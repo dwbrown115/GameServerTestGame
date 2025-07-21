@@ -23,7 +23,7 @@ public static class CryptoUtils
         using var deriveBytes = new Rfc2898DeriveBytes(
             deviceId,
             salt,
-            10000,
+            100_000, // Increased iteration count for stronger key stretching.
             HashAlgorithmName.SHA256
         );
         // Derive a 64-byte key: 32 for encryption, 32 for authentication (HMAC)
@@ -94,12 +94,8 @@ public static class CryptoUtils
         using (var hmac = new HMACSHA256(authKey))
         {
             byte[] computedHmac = hmac.ComputeHash(dataToVerify);
-            if (!computedHmac.SequenceEqual(receivedHmac))
-            {
-                throw new CryptographicException(
-                    "HMAC validation failed. Data is corrupt or key is incorrect."
-                );
-            }
+            if (!FixedTimeEquals(computedHmac, receivedHmac))
+                throw new CryptographicException("HMAC validation failed. Data is corrupt or key is incorrect.");
         }
 
         // 2. Decrypt if HMAC is valid
@@ -126,5 +122,25 @@ public static class CryptoUtils
             );
             throw; // Re-throw the exception to be handled by the caller
         }
+    }
+
+    /// <summary>
+    /// Performs a constant-time comparison of two byte arrays to prevent timing attacks.
+    /// </summary>
+    /// <param name="a">The first byte array.</param>
+    /// <param name="b">The second byte array.</param>
+    /// <returns>True if the arrays are equal, false otherwise.</returns>
+    private static bool FixedTimeEquals(byte[] a, byte[] b)
+    {
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        int diff = 0;
+        for (int i = 0; i < a.Length; i++)
+            diff |= a[i] ^ b[i];
+
+        return diff == 0;
     }
 }
