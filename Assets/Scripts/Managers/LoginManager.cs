@@ -1,0 +1,53 @@
+using System;
+using System.Collections;
+using System.Text;
+using UnityEngine;
+using UnityEngine.Networking;
+
+[Serializable]
+public class LoginResult
+{
+    public string token;
+    public string refreshToken;
+    public string expiresAt; // Parsed manually
+    public string userId; // Added for clarity
+    public string userName;
+}
+
+public class LoginManager : MonoBehaviour
+{
+    private const string serverUrl = "http://localhost:5140/authentication/validate";
+
+    public void AttemptLogin()
+    {
+        if (!JwtManager.Instance.IsTokenValid())
+        {
+            Debug.Log("🔐 No valid token found. Prompting user to log in.");
+            // Show login UI or call AuthManager.Login()
+            return;
+        }
+        else
+        {
+            Debug.Log("🛰️ Attempting token validation with server...");
+            // AuthManager.Instance.ValidateToken(
+            //     (success, message) =>
+            //     {
+            //         if (success)
+            //         {
+            //             Debug.Log("🎉 Token validated or refreshed.");
+            //             // authNavigation.OnLoginSuccess();
+            //         }
+            //         else
+            //         {
+            //             Debug.LogWarning(
+            //                 $"⚠️ Token validation failed: {message}. Prompting login."
+            //             );
+            //             // authNavigation.ShowLoginUI();
+            //         }
+            //     }
+            // );
+
+            
+        }
+    }
+}
