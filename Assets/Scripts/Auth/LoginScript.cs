@@ -12,7 +12,7 @@ public class LoginScript : MonoBehaviour
 
     private void Start()
     {
-        usernameInput.text = "Dak";
+        usernameInput.text = "Jin";
         passwordInput.text = "password123";
         errorText.enabled = false;
     }
