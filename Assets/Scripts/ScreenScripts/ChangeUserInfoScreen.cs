@@ -1,25 +1,73 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class ChangeUserInfoScreen : MonoBehaviour
 {
     public UserScreenNavigation userScreenNavigation;
-    public AuthManager authManager;
-    public PlayerManager playerManager;
 
+    private AuthManager authManager;
+    private PlayerManager playerManager;
     public TMP_Text errorText;
     public TMP_InputField usernameInput;
     public TMP_InputField oldPasswordInput;
     public TMP_InputField newPasswordInput;
 
+    // Private fields to hold the initial player data
+    private string _currentUserId;
+    private string _currentUsername;
+
+    private void Awake()
+    {
+        // Use singletons to get manager instances.
+        // This is more robust than relying on Inspector assignments.
+        authManager = AuthManager.Instance;
+        playerManager = PlayerManager.Instance;
+    }
+
     private void Start()
     {
         errorText.enabled = false;
-        string currentName = playerManager.GetPlayerName();
-        if (!string.IsNullOrEmpty(currentName))
+
+        if (playerManager == null || authManager == null)
         {
-            usernameInput.text = currentName;
+            Debug.LogError("Required managers not found in the scene.");
+            errorText.text = "Critical error: Managers not found.";
+            errorText.enabled = true;
+            DisableForm();
+            return;
+        }
+
+        // 1. Grab player data on start
+        PlayerResponse playerData = playerManager.GetPlayerData();
+        if (playerData != null)
+        {
+            _currentUserId = playerData.userId;
+            _currentUsername = playerData.userName;
+            usernameInput.text = _currentUsername;
+        }
+        else
+        {
+            Debug.LogError("Player data is not available.");
+            errorText.text = "Could not load player data.";
+            errorText.enabled = true;
+            DisableForm();
+            Invoke(nameof(NavigateBack), 3f); // Navigate back after 3 seconds
+        }
+
+        // 2. Add listeners for placeholder behavior
+        usernameInput.onSelect.AddListener(OnUsernameSelect);
+        usernameInput.onDeselect.AddListener(OnUsernameDeselect);
+    }
+
+    private void OnDestroy()
+    {
+        // Clean up listeners
+        if (usernameInput != null)
+        {
+            usernameInput.onSelect.RemoveListener(OnUsernameSelect);
+            usernameInput.onDeselect.RemoveListener(OnUsernameDeselect);
         }
     }
 
@@ -32,16 +80,18 @@ public class ChangeUserInfoScreen : MonoBehaviour
         string newPassword = newPasswordInput.text;
 
         // Validate: if one password field is filled, both must be.
-        if (!string.IsNullOrEmpty(oldPassword) && string.IsNullOrEmpty(newPassword) ||
-            string.IsNullOrEmpty(oldPassword) && !string.IsNullOrEmpty(newPassword))
+        if (
+            !string.IsNullOrEmpty(oldPassword) && string.IsNullOrEmpty(newPassword)
+            || string.IsNullOrEmpty(oldPassword) && !string.IsNullOrEmpty(newPassword)
+        )
         {
             errorText.text = "Both password fields must be filled to change password.";
             errorText.enabled = true;
             return;
         }
 
-        // Don't submit username if it hasn't changed.
-        if (newUsername == playerManager.GetPlayerName())
+        // 3. Don't submit username if it hasn't changed.
+        if (newUsername == _currentUsername)
         {
             newUsername = null;
         }
@@ -54,11 +104,51 @@ public class ChangeUserInfoScreen : MonoBehaviour
             return;
         }
 
-        // authManager.UpdatePlayerInfo(newUsername, oldPassword, newPassword, (success, message) =>
-        // {
-        //     errorText.text = message;
-        //     errorText.enabled = true;
-        //     errorText.color = success ? Color.green : Color.red;
-        // });
+        // 4. Use the UpdatePlayerInfo function
+        authManager.UpdatePlayerInfo(
+            newUsername,
+            oldPassword,
+            newPassword,
+            (success, message) =>
+            {
+                errorText.text = message;
+                errorText.enabled = true;
+                errorText.color = success ? Color.green : Color.red;
+
+                if (success)
+                {
+                    // Optionally navigate back after a short delay
+                    // to let the user see the success message.
+                    Invoke(nameof(NavigateBack), 2f);
+                }
+            }
+        );
+    }
+
+    private void OnUsernameSelect(string text)
+    {
+        // When the user clicks on the input field, clear it.
+        usernameInput.text = "";
+    }
+
+    private void OnUsernameDeselect(string text)
+    {
+        // When the user clicks off, if it's empty, restore the original username.
+        if (string.IsNullOrEmpty(usernameInput.text))
+        {
+            usernameInput.text = _currentUsername;
+        }
+    }
+
+    private void NavigateBack()
+    {
+        userScreenNavigation.NavigateToUserScreen();
+    }
+
+    private void DisableForm()
+    {
+        usernameInput.interactable = false;
+        oldPasswordInput.interactable = false;
+        newPasswordInput.interactable = false;
     }
 }

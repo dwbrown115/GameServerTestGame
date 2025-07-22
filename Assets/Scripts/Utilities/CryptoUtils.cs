@@ -95,7 +95,9 @@ public static class CryptoUtils
         {
             byte[] computedHmac = hmac.ComputeHash(dataToVerify);
             if (!FixedTimeEquals(computedHmac, receivedHmac))
-                throw new CryptographicException("HMAC validation failed. Data is corrupt or key is incorrect.");
+                throw new CryptographicException(
+                    "HMAC validation failed. Data is corrupt or key is incorrect."
+                );
         }
 
         // 2. Decrypt if HMAC is valid

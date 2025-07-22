@@ -14,14 +14,6 @@ public class AuthenticationRequest
 }
 
 [Serializable]
-public class AuthenticationResponse
-{
-    public string Token;
-    public string RefreshToken;
-    public DateTime ExpiresAt;
-}
-
-[Serializable]
 public class LogoutRequest
 {
     public string UserID;
@@ -30,26 +22,10 @@ public class LogoutRequest
 }
 
 [Serializable]
-public class PasswordChange
+public class PasswordChangePayload
 {
-    public string oldPassword;
-    public string newPassword;
-}
-
-[Serializable]
-public class UpdatePlayerRequest
-{
-    public string userId;
-    public string deviceId;
-    public string refreshToken;
-    public PlayerChanges changes;
-}
-
-[Serializable]
-public class PlayerChanges
-{
-    public string username;
-    public PasswordChange password;
+    public string OldPassword;
+    public string NewPassword;
 }
 
 public class AuthManager : MonoBehaviour
@@ -57,7 +33,13 @@ public class AuthManager : MonoBehaviour
     public static AuthManager Instance;
 
     [SerializeField]
-    private string authEndpoint = "http://localhost:5140/authentication";
+    private string endpoint = "http://localhost:5140";
+
+    [SerializeField]
+    private string authEndpointPrefix = "/authentication";
+
+    [SerializeField]
+    private string playerEndpointPrefix = "/player";
 
     [SerializeField]
     private string registerRoute = "/register";
@@ -88,8 +70,10 @@ public class AuthManager : MonoBehaviour
             DeviceId = DeviceUtils.GetDeviceId(),
         };
         string json = JsonUtility.ToJson(payload);
-
-        UnityWebRequest request = new UnityWebRequest(authEndpoint + registerRoute, "POST");
+        UnityWebRequest request = new UnityWebRequest(
+            endpoint + authEndpointPrefix + registerRoute,
+            "POST"
+        );
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -109,12 +93,14 @@ public class AuthManager : MonoBehaviour
 
         string json = JsonUtility.ToJson(payload);
 
-        UnityWebRequest request = new UnityWebRequest(authEndpoint + loginRoute, "POST");
+        UnityWebRequest request = new UnityWebRequest(
+            endpoint + authEndpointPrefix + loginRoute,
+            "POST"
+        );
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
-
         StartCoroutine(
             SendRequest(
                 request,
@@ -160,36 +146,59 @@ public class AuthManager : MonoBehaviour
         Action<bool, string> callback
     )
     {
-        var payload = new UpdatePlayerRequest
-        {
-            userId = PlayerManager.Instance.GetUserId(),
-            deviceId = DeviceUtils.GetDeviceId(),
-            refreshToken = JwtManager.Instance.GetRefreshToken(),
-            changes = new PlayerChanges(),
-        };
+        // This method manually constructs the JSON payload. This is necessary because
+        // the server expects a dynamic 'Changes' object that only includes non-null
+        // fields, and Unity's JsonUtility does not support omitting null fields during
+        // serialization.
+        // This also ensures all keys are correctly in PascalCase.
 
+        var changesJsonParts = new List<string>();
+
+        // Conditionally build the "changes" object to only include what's changed.
         if (!string.IsNullOrEmpty(newUsername))
         {
-            payload.changes.username = newUsername;
+            // Manually quote the string value to make it a valid JSON string.
+            changesJsonParts.Add($"\"Username\": \"{newUsername}\"");
         }
 
         if (!string.IsNullOrEmpty(oldPassword) && !string.IsNullOrEmpty(newPassword))
         {
-            payload.changes.password = new PasswordChange
+            var passwordPayload = new PasswordChangePayload
             {
-                oldPassword = oldPassword,
-                newPassword = newPassword,
+                OldPassword = oldPassword,
+                NewPassword = newPassword,
             };
+            // Use JsonUtility for the nested object, as it handles that correctly.
+            string passwordJson = JsonUtility.ToJson(passwordPayload);
+            changesJsonParts.Add($"\"Password\": {passwordJson}");
         }
 
-        string payloadJson = JsonUtility.ToJson(payload);
-        UnityWebRequest request = new UnityWebRequest(authEndpoint + "/update", "PATCH");
+        string changesJson = string.Join(",", changesJsonParts.ToArray());
 
+        // Manually construct the payload to ensure correct casing and structure,
+        // matching the server's expected schema. This payload is NOT wrapped
+        // in a top-level "request" object.
+        string payloadJson =
+            $"{{ "
+            + $"\"UserId\": \"{PlayerManager.Instance.GetUserId()}\", "
+            + $"\"DeviceId\": \"{DeviceUtils.GetDeviceId()}\", "
+            + $"\"RefreshToken\": \"{JwtManager.Instance.GetRefreshToken()}\", "
+            + $"\"Changes\": {{ {changesJson} }} "
+            + $"}}";
+
+        UnityWebRequest request = new UnityWebRequest(
+            endpoint + playerEndpointPrefix + "/update",
+            "PATCH"
+        );
         byte[] bodyRaw = Encoding.UTF8.GetBytes(payloadJson);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
-
+        string token = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(token))
+        {
+            request.SetRequestHeader("Authorization", "Bearer " + token);
+        }
         StartCoroutine(
             SendRequest(
                 request,
@@ -240,13 +249,20 @@ public class AuthManager : MonoBehaviour
         Debug.Log($"Payload: {JsonUtility.ToJson(payload)}");
 
         string json = JsonUtility.ToJson(payload);
-        UnityWebRequest request = new UnityWebRequest(authEndpoint + logoutRoute, "POST");
-        Debug.Log($"Request: {request.url}");
+
+        UnityWebRequest request = new UnityWebRequest(
+            endpoint + authEndpointPrefix + logoutRoute,
+            "POST"
+        );
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
-
+        string token = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(token))
+        {
+            request.SetRequestHeader("Authorization", "Bearer " + token);
+        }
         StartCoroutine(
             SendRequest(
                 request,
@@ -276,20 +292,53 @@ public class AuthManager : MonoBehaviour
 
 #if UNITY_2023_1_OR_NEWER
         bool hasError = request.result != UnityWebRequest.Result.Success;
+        Debug.Log($"🛰️ Server response code: {hasError}");
 #else
         bool hasError = request.isNetworkError || request.isHttpError;
+        Debug.Log($"🛰️ Server response code: {hasError}");
 #endif
+        // Log the raw response text for debugging.
+        Debug.Log($"🛰️ Server response code: {request.responseCode}");
 
         string responseText = request.downloadHandler?.text ?? "";
 
-        if (hasError)
+        Debug.Log($"📨 Raw response: {responseText}");
+
+        if (request.responseCode == 401)
         {
-            Debug.LogWarning($"❌ Request failed: {request.error} — Response: {responseText}");
-            callback?.Invoke(false, responseText);
+            Debug.LogWarning("❌ Unauthorized (401). Clearing token.");
+            JwtManager.Instance.ClearToken();
+            callback?.Invoke(false, "Unauthorized access. Token cleared.");
+            yield break; // Stop further processing.
+        }
+        else if (request.responseCode == 404)
+        {
+            Debug.LogWarning("❌ Not Found (404). Resource does not exist.");
+            callback?.Invoke(false, "Resource not found.");
+            yield break; // Stop further processing.
+        }
+        else if (request.responseCode == 200)
+        {
+            Debug.Log("✅ Request successful.");
+            callback?.Invoke(true, "Request successful.");
+            yield break; // Stop further processing.
         }
         else
         {
-            callback?.Invoke(true, responseText);
+            Debug.LogWarning($"⚠️ Unexpected response code: {request.responseCode}");
+            callback?.Invoke(false, $"⚠️ Unexpected response code: {request.responseCode}");
+            yield break; // Stop further processing.
         }
+
+        // if (hasError)
+        // {
+        //     Debug.LogWarning($"❌ Request failed: {request.error} — Response: {responseText}");
+        //     callback?.Invoke(false, responseText);
+        // }
+        // else
+        // {
+        //     Debug.Log($"✅ Request to {request.url} successful. Response: {responseText}");
+        //     callback?.Invoke(true, responseText);
+        // }
     }
 }

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_PixelRect:
     serializedVersion: 2
     x: 0
-    y: 66
+    y: 72
     width: 1512
     height: 916
   m_ShowMode: 4
@@ -1054,9 +1054,9 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 146.68306, y: 232.84848, z: -1.8787969}
+    m_Target: {x: 220.0579, y: 231.64728, z: -3.5263722}
     speed: 2
-    m_Value: {x: 0, y: 0, z: 0}
+    m_Value: {x: 146.68306, y: 232.84848, z: -1.8787969}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -1106,9 +1106,9 @@ MonoBehaviour:
     speed: 2
     m_Value: {x: 0, y: 0, z: 0, w: 1}
   m_Size:
-    m_Target: 197.88252
+    m_Target: 362.64014
     speed: 2
-    m_Value: 10
+    m_Value: 197.88252
   m_Ortho:
     m_Target: 1
     speed: 2
