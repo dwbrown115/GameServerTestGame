@@ -28,6 +28,13 @@ public class PasswordChangePayload
     public string NewPassword;
 }
 
+[Serializable]
+public struct UpdateResponse
+{
+    public bool success;
+    public string message;
+}
+
 public class AuthManager : MonoBehaviour
 {
     public static AuthManager Instance;
@@ -212,20 +219,24 @@ public class AuthManager : MonoBehaviour
 
                     try
                     {
-                        // On a successful update, the server should return a new LoginResult
-                        // with fresh tokens and the updated user info.
-                        var loginResult = JsonUtility.FromJson<LoginResult>(response);
-                        if (loginResult != null && !string.IsNullOrEmpty(loginResult.token))
+                        var updateResponse = JsonUtility.FromJson<UpdateResponse>(response);
+                        Debug.Log($"Update response: {JsonUtility.ToJson(updateResponse)}");
+
+                        if (updateResponse.success)
                         {
-                            JwtManager.Instance.SetToken(loginResult);
-                            callback?.Invoke(true, "Player info updated successfully.");
+                            // If the username was successfully changed, update it in the PlayerManager
+                            if (!string.IsNullOrEmpty(newUsername))
+                            {
+                                PlayerManager.Instance.SetPlayerData(
+                                    PlayerManager.Instance.GetUserId(),
+                                    newUsername
+                                );
+                            }
+                            callback?.Invoke(true, updateResponse.message);
                         }
                         else
                         {
-                            callback?.Invoke(
-                                false,
-                                "Received invalid update response from server."
-                            );
+                            callback?.Invoke(false, updateResponse.message);
                         }
                     }
                     catch (Exception ex)
@@ -304,41 +315,22 @@ public class AuthManager : MonoBehaviour
 
         Debug.Log($"📨 Raw response: {responseText}");
 
-        if (request.responseCode == 401)
+        if (hasError)
         {
-            Debug.LogWarning("❌ Unauthorized (401). Clearing token.");
-            JwtManager.Instance.ClearToken();
-            callback?.Invoke(false, "Unauthorized access. Token cleared.");
-            yield break; // Stop further processing.
-        }
-        else if (request.responseCode == 404)
-        {
-            Debug.LogWarning("❌ Not Found (404). Resource does not exist.");
-            callback?.Invoke(false, "Resource not found.");
-            yield break; // Stop further processing.
-        }
-        else if (request.responseCode == 200)
-        {
-            Debug.Log("✅ Request successful.");
-            callback?.Invoke(true, "Request successful.");
-            yield break; // Stop further processing.
+            Debug.LogWarning($"❌ Request failed: {request.error} — Response: {responseText}");
+            if (request.responseCode == 401)
+            {
+                Debug.LogWarning(
+                    "Unauthorized (401). Token may be expired or invalid. Clearing token."
+                );
+                JwtManager.Instance.ClearToken();
+            }
+            callback?.Invoke(false, responseText);
         }
         else
         {
-            Debug.LogWarning($"⚠️ Unexpected response code: {request.responseCode}");
-            callback?.Invoke(false, $"⚠️ Unexpected response code: {request.responseCode}");
-            yield break; // Stop further processing.
+            Debug.Log($"✅ Request to {request.url} successful. Response: {responseText}");
+            callback?.Invoke(true, responseText);
         }
-
-        // if (hasError)
-        // {
-        //     Debug.LogWarning($"❌ Request failed: {request.error} — Response: {responseText}");
-        //     callback?.Invoke(false, responseText);
-        // }
-        // else
-        // {
-        //     Debug.Log($"✅ Request to {request.url} successful. Response: {responseText}");
-        //     callback?.Invoke(true, responseText);
-        // }
     }
 }
