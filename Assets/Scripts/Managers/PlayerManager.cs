@@ -4,6 +4,12 @@ using UnityEngine;
 
 public class PlayerManager : MonoBehaviour
 {
+    [Serializable]
+    private class PersistentPlayerData
+    {
+        public string userId;
+    }
+
     public static PlayerManager Instance;
 
     private string playerDataPath;
@@ -106,9 +112,10 @@ public class PlayerManager : MonoBehaviour
             return;
         }
 
-        // Using JsonUtility to serialize the PlayerData object.
-        string playerDataJson = JsonUtility.ToJson(currentPlayer);
-        Debug.Log($"📝 Raw player data (JSON): {playerDataJson}");
+        // Only persist the userId. The userName is session data.
+        var persistentData = new PersistentPlayerData { userId = currentPlayer.userId };
+        string playerDataJson = JsonUtility.ToJson(persistentData);
+        Debug.Log($"📝 Persisting player data (JSON): {playerDataJson}");
 
         try
         {
@@ -150,15 +157,19 @@ public class PlayerManager : MonoBehaviour
 
             if (string.IsNullOrEmpty(decryptedJson))
             {
-                Debug.LogWarning("⚠️ Decrypted player data is empty. Clearing data.");
+                Debug.LogWarning("⚠️ Decrypted player data is empty. Clearing data file.");
                 ClearPlayerData();
                 return;
             }
 
-            currentPlayer = JsonUtility.FromJson<PlayerResponse>(decryptedJson);
-            Debug.Log(
-                $"✅ Loaded player data: ID={currentPlayer.userId}, Name={currentPlayer.userName}"
-            );
+            var persistentData = JsonUtility.FromJson<PersistentPlayerData>(decryptedJson);
+
+            if (currentPlayer == null)
+                currentPlayer = new PlayerResponse();
+
+            currentPlayer.userId = persistentData.userId;
+            currentPlayer.userName = null; // This is session data, will be fetched after validation.
+            Debug.Log($"✅ Loaded persistent player data: ID={currentPlayer.userId}");
         }
         catch (Exception ex)
         {

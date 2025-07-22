@@ -3,6 +3,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+[Serializable]
+public struct ErrorResponse
+{
+    public string message;
+}
+
 public class ChangeUserInfoScreen : MonoBehaviour
 {
     public UserScreenNavigation userScreenNavigation;
@@ -111,7 +117,26 @@ public class ChangeUserInfoScreen : MonoBehaviour
             newPassword,
             (success, message) =>
             {
-                errorText.text = message;
+                Debug.Log($"UpdatePlayerInfo callback: {success}, {message}");
+
+                string displayMessage = message;
+                if (!success)
+                {
+                    try
+                    {
+                        // Attempt to parse the error response to get the nested message.
+                        ErrorResponse error = JsonUtility.FromJson<ErrorResponse>(message);
+                        if (!string.IsNullOrEmpty(error.message))
+                        {
+                            displayMessage = error.message;
+                        }
+                    }
+                    catch (Exception)
+                    { /* Not a JSON error message, display as is. */
+                    }
+                }
+
+                errorText.text = displayMessage;
                 errorText.enabled = true;
                 errorText.color = success ? Color.green : Color.red;
 

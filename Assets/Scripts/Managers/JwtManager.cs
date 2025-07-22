@@ -83,9 +83,9 @@ public class JwtManager : MonoBehaviour
         expiresAt = expiry;
         Debug.Log($"✅ Token expires at: {expiresAt}");
 
-        // The user ID and other player data are now managed by PlayerManager.
-        // We assume LoginResult has a userId. PlayerName might be missing.
-        PlayerManager.Instance.SetPlayerData(result.userId, result.userName);
+        // The userId is set here. The userName will be fetched from the server separately.
+        // We pass null for the name to ensure any old session data is cleared.
+        PlayerManager.Instance.SetPlayerData(result.userId, null);
 
         SaveTokenToDisk();
     }

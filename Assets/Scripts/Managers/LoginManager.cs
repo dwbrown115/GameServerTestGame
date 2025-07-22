@@ -7,11 +7,10 @@ using UnityEngine.Networking;
 [Serializable]
 public class LoginResult
 {
+    public string userId;
     public string token;
     public string refreshToken;
-    public string expiresAt; // Parsed manually
-    public string userId; // Added for clarity
-    public string userName;
+    public string expiresAt;
 }
 
 public class LoginManager : MonoBehaviour
