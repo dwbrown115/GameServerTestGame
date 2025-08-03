@@ -26,7 +26,7 @@ public class LoadingTextAnimator : MonoBehaviour
     public bool IsAnimating { get; private set; }
 
     private Coroutine _animationCoroutine;
-    private readonly string[] _dotSequence = { " ", ".", "..", "..." };
+    private readonly string[] _dotSequence = { ".", "..", "...", " " };
 
     private void OnDisable()
     {

@@ -19,10 +19,11 @@ public class LoginScript : MonoBehaviour
     public TMP_InputField passwordInput;
     public TMP_Text errorText;
 
-    private void Start()
+    private void OnEnable()
     {
         usernameInput.text = "Jin";
         passwordInput.text = "password123";
+        errorText.text = "";
         errorText.enabled = false;
     }
 
@@ -44,7 +45,7 @@ public class LoginScript : MonoBehaviour
     {
         string username = usernameInput.text;
         string password = passwordInput.text;
-        float minAnimationTime = 0.5f;
+        float minAnimationTime = 1f;
         float startTime = Time.time;
 
         // Show the modal and start the animation
@@ -78,19 +79,19 @@ public class LoginScript : MonoBehaviour
             yield return new WaitForSeconds(minAnimationTime - elapsedTime);
         }
 
-        // Stop the animation and hide the modal
+        // Stop the animation.
         if (loadingAnimator != null)
             loadingAnimator.StopAnimation();
-        if (loadingModal != null)
-            loadingModal.SetActive(false);
 
         if (successResult)
         {
-            errorText.enabled = true;
-            errorText.text = "Login successful!";
-            errorText.color = Color.green;
-            Debug.Log("✅ Login successful!");
+            // On success, we immediately hide the modals and transition to the user screen.
+            // The UserScreen's OnLoggedIn() can handle displaying a welcome message.
+            if (loadingModal != null)
+                loadingModal.SetActive(false);
             loginModal.SetActive(false);
+
+            Debug.Log("✅ Login successful!");
             userScreen.OnLoggedIn(); // Notify user screen to refresh data
             loginVisibilityHandler.RefreshVisibility();
             userVisibilityHandler.RefreshVisibility();
@@ -98,10 +99,13 @@ public class LoginScript : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"❌ Login failed: {responseResult}");
+            // On failure, keep the modal visible to show the error message.
+            if (loadingModal != null)
+                loadingModal.SetActive(false);
             errorText.enabled = true;
-            errorText.text = responseResult;
+            errorText.text = "Username or password is incorrect.";
             errorText.color = Color.red;
+            Debug.LogWarning($"❌ Login failed: {responseResult}");
         }
     }
 }

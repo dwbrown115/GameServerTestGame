@@ -25,10 +25,11 @@ public class RegisterScript : MonoBehaviour
     public TMP_InputField confirmPasswordInput;
     public TMP_Text errorText;
 
-    private void Start()
+    private void OnEnable()
     {
         usernameInput.text = "Dak";
         passwordInput.text = "password123";
+        errorText.text = "";
         errorText.enabled = false;
     }
 

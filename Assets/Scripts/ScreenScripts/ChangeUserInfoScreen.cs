@@ -26,7 +26,6 @@ public class ChangeUserInfoScreen : MonoBehaviour
     public TMP_InputField confirmPasswordInput;
 
     // Private fields to hold the initial player data
-    private string _currentUserId;
     private string _currentUsername;
 
     private void Awake()
@@ -37,7 +36,7 @@ public class ChangeUserInfoScreen : MonoBehaviour
         playerManager = PlayerManager.Instance;
     }
 
-    private void Start()
+    private void OnEnable()
     {
         errorText.enabled = false;
 
@@ -54,7 +53,6 @@ public class ChangeUserInfoScreen : MonoBehaviour
         PlayerResponse playerData = playerManager.GetPlayerData();
         if (playerData != null)
         {
-            _currentUserId = playerData.userId;
             _currentUsername = playerData.userName;
             usernameInput.text = _currentUsername;
         }
