@@ -22,6 +22,8 @@ public class TokenValidationRequest
 
 public class JwtManager : MonoBehaviour
 {
+    public static event Action<bool> OnAuthStateChanged;
+
     public static JwtManager Instance;
 
     private string tokenPath;
@@ -88,6 +90,8 @@ public class JwtManager : MonoBehaviour
         PlayerManager.Instance.SetPlayerData(result.userId, null);
 
         SaveTokenToDisk();
+
+        OnAuthStateChanged?.Invoke(true);
     }
 
     public string GetJwt() => jwtToken;
@@ -108,6 +112,8 @@ public class JwtManager : MonoBehaviour
 
         // Player data is now managed by PlayerManager.
         PlayerManager.Instance.ClearPlayerData();
+
+        OnAuthStateChanged?.Invoke(false);
     }
 
     private void SaveTokenToDisk()

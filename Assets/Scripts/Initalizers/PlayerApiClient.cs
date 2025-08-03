@@ -17,33 +17,37 @@ public class PlayerApiClient : MonoBehaviour
     [SerializeField]
     private string apiBaseUrl = "http://localhost:5140";
 
-    public void GetPlayerData()
+    public Coroutine GetPlayerData(Action<PlayerResponse> onSuccess, Action<string> onError)
     {
-        // Start the coroutine to handle the asynchronous web request
-        StartCoroutine(RequestPlayerData(PlayerManager.Instance.GetUserId(), null));
+        return StartCoroutine(
+            RequestPlayerData(PlayerManager.Instance.GetUserId(), onSuccess, onError)
+        );
     }
 
-    public Coroutine GetPlayerData(Action<bool> onCompleted)
-    {
-        return StartCoroutine(RequestPlayerData(PlayerManager.Instance.GetUserId(), onCompleted));
-    }
-
-    private IEnumerator RequestPlayerData(string userId, Action<bool> onCompleted)
+    private IEnumerator RequestPlayerData(
+        string userId,
+        Action<PlayerResponse> onSuccess,
+        Action<string> onError
+    )
     {
         // Construct the full URL for the API endpoint
         string url = $"{apiBaseUrl}/player/{userId}";
         Debug.Log($"Sending request to: {url}");
-        bool success = false;
 
         // Create a UnityWebRequest object for a GET request
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
+            // Player data requests require an authorization token
+            string token = JwtManager.Instance.GetJwt();
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.SetRequestHeader("Authorization", "Bearer " + token);
+            }
+
             // Send the request and wait for a response
             yield return request.SendWebRequest();
 
-            success = request.result == UnityWebRequest.Result.Success;
-
-            if (success)
+            if (request.result == UnityWebRequest.Result.Success)
             {
                 // Request was successful
                 Debug.Log("Request successful!");
@@ -60,7 +64,7 @@ public class PlayerApiClient : MonoBehaviour
                     $"<color=green>Successfully fetched player: {player.userName} (ID: {player.userId})</color>"
                 );
 
-                PlayerManager.Instance.SetPlayerData(player.userId, player.userName);
+                onSuccess?.Invoke(player);
             }
             else
             {
@@ -72,9 +76,8 @@ public class PlayerApiClient : MonoBehaviour
                 {
                     Debug.LogError("Player not found on the server (404).");
                 }
+                onError?.Invoke(request.error);
             }
-
-            onCompleted?.Invoke(success);
         }
     }
 
@@ -85,7 +88,12 @@ public class PlayerApiClient : MonoBehaviour
         // This allows you to right-click the component in the Inspector and run the test
         if (Application.isPlaying)
         {
-            GetPlayerData();
+            // Use the version with callbacks for better test feedback
+            GetPlayerData(
+                onSuccess: (player) =>
+                    Debug.Log($"[Test] Successfully fetched player: {player.userName}"),
+                onError: (error) => Debug.LogError($"[Test] Failed to fetch player: {error}")
+            );
         }
         else
         {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -11,9 +12,17 @@ public struct UserReg
 
 public class RegisterScript : MonoBehaviour
 {
-    public AuthNavigation authNavigation;
+    // public AuthNavigation authNavigation;
+    public AuthVisibilityHandler loginVisibilityHandler;
+    public AuthVisibilityHandler userVisibilityHandler;
+    public AuthVisibilityHandler userNameVisibilityHandler;
+    public AuthVisibilityHandler logOutVisibilityHandler;
+    public GameObject loadingModal; // Keep this to show/hide the panel
+    public LoadingTextAnimator loadingAnimator; // Add this to control the animation
+    public GameObject registerModal;
     public TMP_InputField usernameInput;
     public TMP_InputField passwordInput;
+    public TMP_InputField confirmPasswordInput;
     public TMP_Text errorText;
 
     private void Start()
@@ -38,6 +47,18 @@ public class RegisterScript : MonoBehaviour
         }
     }
 
+    public void ClearError()
+    {
+        errorText.enabled = false;
+        errorText.text = string.Empty;
+    }
+
+    public void ShowError(string message)
+    {
+        errorText.enabled = true;
+        errorText.text = message;
+    }
+
     public void Register()
     {
         errorText.enabled = false;
@@ -48,25 +69,86 @@ public class RegisterScript : MonoBehaviour
             return;
         }
 
+        if (passwordInput.text != confirmPasswordInput.text)
+        {
+            errorText.enabled = true;
+            errorText.text = "Passwords do not match.";
+            return;
+        }
+
         if (AuthManager.Instance == null)
         {
             Debug.LogError("AuthManager.Instance is null — not initialized yet");
             return;
         }
 
+        // We wrap the registration logic in a coroutine to ensure the loading animation
+        // is visible for a minimum duration, even if the server responds instantly.
+        StartCoroutine(RegisterWithAnimation());
+    }
+
+    private IEnumerator RegisterWithAnimation()
+    {
+        string username = usernameInput.text;
+        string password = passwordInput.text;
+        float minAnimationTime = 0.5f;
+        float startTime = Time.time;
+
+        // Show the modal and start the animation
+        if (loadingModal != null)
+            loadingModal.SetActive(true);
+        if (loadingAnimator != null)
+            loadingAnimator.StartAnimation("Registering");
+
+        bool requestDone = false;
+        bool successResult = false;
+        string responseMessage = "";
+
         AuthManager.Instance.Register(
-            usernameInput.text,
-            passwordInput.text,
+            username,
+            password,
             (success, message) =>
             {
-                if (success)
-                {
-                    Debug.Log("✅ Registration successful!");
-                    authNavigation.NavigateToUser();
-                }
-                else
-                    Debug.LogWarning($"❌ Registration failed: {message}");
+                successResult = success;
+                responseMessage = message;
+                requestDone = true;
             }
         );
+
+        // Wait for the web request to complete
+        yield return new WaitUntil(() => requestDone);
+
+        // Ensure the animation plays for a minimum amount of time
+        float elapsedTime = Time.time - startTime;
+        if (elapsedTime < minAnimationTime)
+        {
+            yield return new WaitForSeconds(minAnimationTime - elapsedTime);
+        }
+
+        // Stop the animation and hide the modal
+        if (loadingAnimator != null)
+            loadingAnimator.StopAnimation();
+        if (loadingModal != null)
+            loadingModal.SetActive(false);
+
+        if (successResult)
+        {
+            errorText.enabled = true;
+            errorText.text = responseMessage;
+            errorText.color = Color.green;
+            Debug.Log("✅ Registration successful!");
+            // authNavigation.NavigateToUser();
+            registerModal.SetActive(false);
+            userVisibilityHandler.RefreshVisibility();
+            loginVisibilityHandler.RefreshVisibility();
+            logOutVisibilityHandler.RefreshVisibility();
+        }
+        else
+        {
+            errorText.enabled = true;
+            errorText.text = responseMessage;
+            errorText.color = Color.red;
+            Debug.LogWarning($"❌ Registration failed: {responseMessage}");
+        }
     }
 }

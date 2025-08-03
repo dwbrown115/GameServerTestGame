@@ -297,6 +297,51 @@ public class AuthManager : MonoBehaviour
         );
     }
 
+    public void ValidateToken(Action<bool, LoginResult> callback)
+    {
+        var payload = new TokenValidationRequest
+        {
+            Token = JwtManager.Instance.GetJwt(),
+            RefreshToken = JwtManager.Instance.GetRefreshToken(),
+            DeviceId = DeviceUtils.GetDeviceId(),
+            UserId = PlayerManager.Instance.GetUserId(),
+        };
+
+        string json = JsonUtility.ToJson(payload);
+        string url = endpoint + authEndpointPrefix + "/validate";
+        UnityWebRequest request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
+
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        // Validation requires an authorization token
+        string token = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(token))
+        {
+            request.SetRequestHeader("Authorization", "Bearer " + token);
+        }
+
+        StartCoroutine(
+            SendRequest(
+                request,
+                (success, response) =>
+                {
+                    if (success)
+                    {
+                        var loginResult = JsonUtility.FromJson<LoginResult>(response);
+                        callback?.Invoke(true, loginResult);
+                    }
+                    else
+                    {
+                        callback?.Invoke(false, null);
+                    }
+                }
+            )
+        );
+    }
+
     private IEnumerator SendRequest(UnityWebRequest request, Action<bool, string> callback)
     {
         yield return request.SendWebRequest();

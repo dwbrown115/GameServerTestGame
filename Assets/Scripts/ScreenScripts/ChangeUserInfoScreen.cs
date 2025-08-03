@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -11,14 +12,18 @@ public struct ErrorResponse
 
 public class ChangeUserInfoScreen : MonoBehaviour
 {
-    public UserScreenNavigation userScreenNavigation;
-
+    // public UserScreenNavigation userScreenNavigation;
+    public UserScreen userScreen;
+    public GameObject userModal;
+    public GameObject loadingModal;
+    public LoadingTextAnimator loadingAnimator;
     private AuthManager authManager;
     private PlayerManager playerManager;
     public TMP_Text errorText;
     public TMP_InputField usernameInput;
     public TMP_InputField oldPasswordInput;
     public TMP_InputField newPasswordInput;
+    public TMP_InputField confirmPasswordInput;
 
     // Private fields to hold the initial player data
     private string _currentUserId;
@@ -59,7 +64,7 @@ public class ChangeUserInfoScreen : MonoBehaviour
             errorText.text = "Could not load player data.";
             errorText.enabled = true;
             DisableForm();
-            Invoke(nameof(NavigateBack), 3f); // Navigate back after 3 seconds
+            // Invoke(nameof(NavigateBack), 3f); // Navigate back after 3 seconds
         }
 
         // 2. Add listeners for placeholder behavior
@@ -84,6 +89,7 @@ public class ChangeUserInfoScreen : MonoBehaviour
         string newUsername = usernameInput.text;
         string oldPassword = oldPasswordInput.text;
         string newPassword = newPasswordInput.text;
+        string confirmPassword = confirmPasswordInput.text;
 
         // Validate: if one password field is filled, both must be.
         if (
@@ -92,6 +98,14 @@ public class ChangeUserInfoScreen : MonoBehaviour
         )
         {
             errorText.text = "Both password fields must be filled to change password.";
+            errorText.enabled = true;
+            return;
+        }
+
+        // Validate: if new password is set, it must match confirm password.
+        if (!string.IsNullOrEmpty(newPassword) && newPassword != confirmPassword)
+        {
+            errorText.text = "Passwords do not match.";
             errorText.enabled = true;
             return;
         }
@@ -110,44 +124,90 @@ public class ChangeUserInfoScreen : MonoBehaviour
             return;
         }
 
-        // 4. Use the UpdatePlayerInfo function
+        // We wrap the logic in a coroutine to ensure the loading animation
+        // is visible for a minimum duration, even if the server responds instantly.
+        StartCoroutine(SubmitChangesWithAnimation());
+    }
+
+    private IEnumerator SubmitChangesWithAnimation()
+    {
+        string newUsername = usernameInput.text;
+        string oldPassword = oldPasswordInput.text;
+        string newPassword = newPasswordInput.text;
+
+        // Don't submit username if it hasn't changed.
+        if (newUsername == _currentUsername)
+        {
+            newUsername = null;
+        }
+
+        float minAnimationTime = 0.5f;
+        float startTime = Time.time;
+
+        // Show the modal and start the animation
+        if (loadingModal != null)
+            loadingModal.SetActive(true);
+        if (loadingAnimator != null)
+            loadingAnimator.StartAnimation("Saving Changes");
+
+        bool requestDone = false;
+        bool successResult = false;
+        string responseMessage = "";
+
         authManager.UpdatePlayerInfo(
             newUsername,
             oldPassword,
             newPassword,
             (success, message) =>
             {
-                Debug.Log($"UpdatePlayerInfo callback: {success}, {message}");
-
-                string displayMessage = message;
-                if (!success)
-                {
-                    try
-                    {
-                        // Attempt to parse the error response to get the nested message.
-                        ErrorResponse error = JsonUtility.FromJson<ErrorResponse>(message);
-                        if (!string.IsNullOrEmpty(error.message))
-                        {
-                            displayMessage = error.message;
-                        }
-                    }
-                    catch (Exception)
-                    { /* Not a JSON error message, display as is. */
-                    }
-                }
-
-                errorText.text = displayMessage;
-                errorText.enabled = true;
-                errorText.color = success ? Color.green : Color.red;
-
-                if (success)
-                {
-                    // Optionally navigate back after a short delay
-                    // to let the user see the success message.
-                    Invoke(nameof(NavigateBack), 2f);
-                }
+                successResult = success;
+                responseMessage = message;
+                requestDone = true;
             }
         );
+
+        // Wait for the web request to complete
+        yield return new WaitUntil(() => requestDone);
+
+        // Ensure the animation plays for a minimum amount of time
+        float elapsedTime = Time.time - startTime;
+        if (elapsedTime < minAnimationTime)
+        {
+            yield return new WaitForSeconds(minAnimationTime - elapsedTime);
+        }
+
+        // Stop the animation and hide the modal
+        if (loadingAnimator != null)
+            loadingAnimator.StopAnimation();
+        if (loadingModal != null)
+            loadingModal.SetActive(false);
+
+        string displayMessage = responseMessage;
+        if (!successResult)
+        {
+            try
+            {
+                // Attempt to parse the error response to get the nested message.
+                ErrorResponse error = JsonUtility.FromJson<ErrorResponse>(responseMessage);
+                if (!string.IsNullOrEmpty(error.message))
+                {
+                    displayMessage = error.message;
+                }
+            }
+            catch (Exception)
+            { /* Not a JSON error message, display as is. */
+            }
+        }
+
+        errorText.text = displayMessage;
+        errorText.enabled = true;
+        errorText.color = successResult ? Color.green : Color.red;
+
+        if (successResult)
+        {
+            userModal.SetActive(false); // Close the modal on success
+            userScreen.OnLoggedIn(); // Notify user screen to refresh data
+        }
     }
 
     private void OnUsernameSelect(string text)
@@ -165,10 +225,10 @@ public class ChangeUserInfoScreen : MonoBehaviour
         }
     }
 
-    private void NavigateBack()
-    {
-        userScreenNavigation.NavigateToUserScreen();
-    }
+    // private void NavigateBack()
+    // {
+    //     // userScreenNavigation.NavigateToUserScreen();
+    // }
 
     private void DisableForm()
     {

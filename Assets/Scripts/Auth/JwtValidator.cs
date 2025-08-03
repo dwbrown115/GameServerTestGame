@@ -1,19 +1,11 @@
 using System.Collections;
-using System.Text;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 
 public class JwtValidator : MonoBehaviour
 {
     public PlayerApiClient playerApiClient;
     public string nextSceneName = "User"; // Scene to load if token is valid
-
-    [SerializeField]
-    private string authEndpoint = "http://localhost:5140/authentication";
-
-    [SerializeField]
-    private string validateRoute = "/validate";
 
     private void Start()
     {
@@ -26,64 +18,69 @@ public class JwtValidator : MonoBehaviour
         {
             Debug.LogWarning("❌ No valid local token. Staying on login screen.");
             JwtManager.Instance.ClearToken();
+            SceneManager.LoadScene("Home");
         }
     }
 
     private IEnumerator ValidateAndFetchData()
     {
-        var payload = new TokenValidationRequest
-        {
-            Token = JwtManager.Instance.GetJwt(),
-            RefreshToken = JwtManager.Instance.GetRefreshToken(),
-            DeviceId = DeviceUtils.GetDeviceId(),
-            UserId = PlayerManager.Instance.GetUserId(),
-        };
+        bool validationComplete = false;
+        bool validationSuccess = false;
+        LoginResult loginResult = null;
 
-        Debug.Log($"Payload: {JsonUtility.ToJson(payload)}");
-        Debug.Log($"Validation URL: {authEndpoint + validateRoute}");
-
-        string json = JsonUtility.ToJson(payload);
-        UnityWebRequest request = new UnityWebRequest(
-            authEndpoint + validateRoute,
-            UnityWebRequest.kHttpVerbPOST
+        // 1. Call the centralized validation method in AuthManager
+        AuthManager.Instance.ValidateToken(
+            (success, result) =>
+            {
+                validationSuccess = success;
+                loginResult = result;
+                validationComplete = true;
+            }
         );
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
 
-        yield return request.SendWebRequest();
+        // Wait for the validation web request to complete
+        yield return new WaitUntil(() => validationComplete);
 
-        Debug.Log($"🛰️ Server response code: {request.responseCode}");
-        Debug.Log($"📨 Raw response: {request.downloadHandler.text}");
-
-#if UNITY_2023_1_OR_NEWER
-        bool hasError = request.result != UnityWebRequest.Result.Success;
-#else
-        bool hasError = request.isNetworkError || request.isHttpError;
-#endif
-
-        if (hasError)
+        if (!validationSuccess)
         {
-            Debug.LogWarning($"❌ Token validation failed: {request.error}");
+            Debug.LogWarning("❌ Token validation failed. Navigating home.");
             JwtManager.Instance.ClearToken();
+            SceneManager.LoadScene("Home");
             yield break; // Stop the coroutine
         }
 
-        // Token validation successful
-        var response = JsonUtility.FromJson<LoginResult>(request.downloadHandler.text);
-        JwtManager.Instance.SetToken(response);
+        // 2. Perform local logic: Update the JWT Manager with the new token info
+        JwtManager.Instance.SetToken(loginResult);
         Debug.Log("✅ Token validated or refreshed.");
 
-        // Now, fetch player data
+        // 3. Call the PlayerApiClient to fetch data
         Debug.Log("🔄 Fetching player data...");
-        bool playerDataSuccess = false;
-        yield return playerApiClient.GetPlayerData(success => playerDataSuccess = success);
+        bool fetchComplete = false;
+        bool fetchSuccess = false;
+        PlayerResponse playerResponse = null;
 
-        if (playerDataSuccess)
+        playerApiClient.GetPlayerData(
+            onSuccess: (playerData) =>
+            {
+                fetchSuccess = true;
+                playerResponse = playerData;
+                fetchComplete = true;
+            },
+            onError: (error) =>
+            {
+                fetchSuccess = false;
+                fetchComplete = true;
+            }
+        );
+
+        yield return new WaitUntil(() => fetchComplete);
+
+        if (fetchSuccess)
         {
+            // 4. Perform local logic: Update the PlayerManager with the fetched data
+            PlayerManager.Instance.SetPlayerData(playerResponse.userId, playerResponse.userName);
             Debug.Log("✅ Player data fetched successfully. Navigating to next scene.");
-            SceneManager.LoadScene(nextSceneName);
+            SceneManager.LoadScene("Home");
         }
         else
         {
@@ -91,6 +88,7 @@ public class JwtValidator : MonoBehaviour
                 "❌ Failed to fetch player data after successful token validation. Staying on login screen."
             );
             JwtManager.Instance.ClearToken();
+            SceneManager.LoadScene("Home");
         }
     }
 }
