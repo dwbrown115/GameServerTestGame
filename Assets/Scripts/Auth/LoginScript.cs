@@ -14,6 +14,7 @@ public class LoginScript : MonoBehaviour
     public UserScreen userScreen;
     public GameObject loginModal;
     public GameObject loadingModal;
+    public GameObject UsernameTextObject;
     public LoadingTextAnimator loadingAnimator;
     public TMP_InputField usernameInput;
     public TMP_InputField passwordInput;
@@ -21,7 +22,7 @@ public class LoginScript : MonoBehaviour
 
     private void OnEnable()
     {
-        usernameInput.text = "Jin";
+        usernameInput.text = "Dak";
         passwordInput.text = "password123";
         errorText.text = "";
         errorText.enabled = false;
@@ -29,7 +30,12 @@ public class LoginScript : MonoBehaviour
 
     public void Login()
     {
-        if (string.IsNullOrEmpty(usernameInput.text) || string.IsNullOrEmpty(passwordInput.text))
+        LoginUser(usernameInput.text, passwordInput.text);
+    }
+
+    public void LoginUser(string username, string password)
+    {
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
             errorText.enabled = true;
             errorText.text = "Username and password cannot be empty.";
@@ -38,13 +44,11 @@ public class LoginScript : MonoBehaviour
 
         // We wrap the login logic in a coroutine to ensure the loading animation
         // is visible for a minimum duration, even if the server responds instantly.
-        StartCoroutine(LoginWithAnimation());
+        StartCoroutine(LoginCoroutine(username, password));
     }
 
-    private IEnumerator LoginWithAnimation()
+    private IEnumerator LoginCoroutine(string username, string password)
     {
-        string username = usernameInput.text;
-        string password = passwordInput.text;
         float minAnimationTime = 1f;
         float startTime = Time.time;
 
@@ -96,6 +100,7 @@ public class LoginScript : MonoBehaviour
             loginVisibilityHandler.RefreshVisibility();
             userVisibilityHandler.RefreshVisibility();
             logOutVisibilityHandler.RefreshVisibility();
+            UsernameTextObject.SetActive(true);
         }
         else
         {
