@@ -188,6 +188,8 @@ GameObject:
   - component: {fileID: 46990876}
   - component: {fileID: 46990877}
   - component: {fileID: 46990878}
+  - component: {fileID: 46990880}
+  - component: {fileID: 46990879}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -359,6 +361,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   apiBaseUrl: http://localhost:5140
+--- !u!114 &46990879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 46990869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ab8513e2d5ff4b0d846e1cd9a3a78d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  loginVisibilityHandler: {fileID: 720549997}
+  userVisibilityHandler: {fileID: 982171228}
+  userNameVisibilityHandler: {fileID: 1896045079}
+  logOutVisibilityHandler: {fileID: 729287741}
+  loginScript: {fileID: 46990880}
+  loadingModal: {fileID: 629556614}
+  loadingAnimator: {fileID: 629556615}
+  registerModal: {fileID: 1074903474}
+  usernameInput: {fileID: 775362684}
+  passwordInput: {fileID: 388860628}
+  confirmPasswordInput: {fileID: 242998111}
+  errorText: {fileID: 1742832172}
+--- !u!114 &46990880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 46990869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e36087fa505e4a95833c68be1456edc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  loginVisibilityHandler: {fileID: 720549997}
+  userVisibilityHandler: {fileID: 982171228}
+  userNameVisibilityHandler: {fileID: 1896045079}
+  logOutVisibilityHandler: {fileID: 729287741}
+  userScreen: {fileID: 46990877}
+  loginModal: {fileID: 1967983516}
+  loadingModal: {fileID: 629556614}
+  UsernameTextObject: {fileID: 1896045077}
+  loadingAnimator: {fileID: 629556615}
+  usernameInput: {fileID: 1831836462}
+  passwordInput: {fileID: 1424592804}
+  errorText: {fileID: 764346869}
 --- !u!1 &51782474
 GameObject:
   m_ObjectHideFlags: 0
@@ -603,7 +653,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 58234199}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 46990874}
+        m_TargetAssemblyTypeName: AuthNavigation, Assembly-CSharp
+        m_MethodName: NavigateToWebsocketTestGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &58234199
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1640,7 +1702,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1967983520}
+      - m_Target: {fileID: 46990880}
         m_TargetAssemblyTypeName: LoginScript, Assembly-CSharp
         m_MethodName: Login
         m_Mode: 1
@@ -5547,7 +5609,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 921229329}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 46990874}
+        m_TargetAssemblyTypeName: AuthNavigation, Assembly-CSharp
+        m_MethodName: NavigateToCustomization
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &921229329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6186,7 +6260,6 @@ GameObject:
   - component: {fileID: 1074903475}
   - component: {fileID: 1074903477}
   - component: {fileID: 1074903476}
-  - component: {fileID: 1074903478}
   m_Layer: 5
   m_Name: Register Modal
   m_TagString: Untagged
@@ -6253,28 +6326,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1074903474}
   m_CullTransparentMesh: 1
---- !u!114 &1074903478
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074903474}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ab8513e2d5ff4b0d846e1cd9a3a78d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  loginVisibilityHandler: {fileID: 720549997}
-  userVisibilityHandler: {fileID: 982171228}
-  userNameVisibilityHandler: {fileID: 1896045079}
-  logOutVisibilityHandler: {fileID: 729287741}
-  loadingModal: {fileID: 629556614}
-  registerModal: {fileID: 1074903474}
-  usernameInput: {fileID: 775362684}
-  passwordInput: {fileID: 388860628}
-  confirmPasswordInput: {fileID: 242998111}
-  errorText: {fileID: 1742832172}
 --- !u!1 &1136545801
 GameObject:
   m_ObjectHideFlags: 0
@@ -6908,7 +6959,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1242684097}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 46990874}
+        m_TargetAssemblyTypeName: AuthNavigation, Assembly-CSharp
+        m_MethodName: NavigateToLeaderboard
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1242684097
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7856,6 +7919,7 @@ MonoBehaviour:
   userScreen: {fileID: 46990877}
   userModal: {fileID: 1396423682}
   loadingModal: {fileID: 629556614}
+  loadingAnimator: {fileID: 0}
   errorText: {fileID: 1404138187}
   usernameInput: {fileID: 966351284}
   oldPasswordInput: {fileID: 2091318396}
@@ -10357,7 +10421,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1886002395}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 46990874}
+        m_TargetAssemblyTypeName: AuthNavigation, Assembly-CSharp
+        m_MethodName: NavigateToSettings
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1886002395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11235,8 +11311,6 @@ GameObject:
   - component: {fileID: 1967983517}
   - component: {fileID: 1967983519}
   - component: {fileID: 1967983518}
-  - component: {fileID: 1967983520}
-  - component: {fileID: 1967983521}
   m_Layer: 5
   m_Name: Login Modal
   m_TagString: Untagged
@@ -11303,44 +11377,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1967983516}
   m_CullTransparentMesh: 1
---- !u!114 &1967983520
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1967983516}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e36087fa505e4a95833c68be1456edc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  loginVisibilityHandler: {fileID: 720549997}
-  userVisibilityHandler: {fileID: 982171228}
-  userNameVisibilityHandler: {fileID: 1896045079}
-  logOutVisibilityHandler: {fileID: 729287741}
-  userScreen: {fileID: 46990877}
-  loginModal: {fileID: 1967983516}
-  loadingModal: {fileID: 629556614}
-  loadingAnimator: {fileID: 1967983521}
-  usernameInput: {fileID: 1831836462}
-  passwordInput: {fileID: 1424592804}
-  errorText: {fileID: 764346869}
---- !u!114 &1967983521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1967983516}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b82f240303e34f2f8c88da74bd0a6bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetText: {fileID: 764346869}
-  baseText: Loading
-  animationSpeed: 0.4
 --- !u!1 &1983594712
 GameObject:
   m_ObjectHideFlags: 0
@@ -11693,7 +11729,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1074903478}
+      - m_Target: {fileID: 46990879}
         m_TargetAssemblyTypeName: RegisterScript, Assembly-CSharp
         m_MethodName: Register
         m_Mode: 1
