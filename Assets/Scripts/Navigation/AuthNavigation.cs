@@ -9,21 +9,27 @@ public class AuthNavigation : MonoBehaviour
         SceneManager.LoadScene("Home", LoadSceneMode.Single);
     }
 
-    public void NavigateToUser()
+    public void NavigateToWebsocketTestGame()
     {
-        Debug.Log("Navigating to User");
-        SceneManager.LoadScene("User", LoadSceneMode.Single);
+        Debug.Log("Navigating to Websocket Test Game");
+        SceneManager.LoadScene("WebsocketTestGame", LoadSceneMode.Single);
     }
 
-    public void NavigateToLogin()
+    public void NavigateToSettings()
     {
-        Debug.Log("Navigating to Login");
-        SceneManager.LoadScene("Login", LoadSceneMode.Single);
+        Debug.Log("Navigating to Settings");
+        SceneManager.LoadScene("Settings", LoadSceneMode.Single);
     }
 
-    public void NavigateToRegister()
+    public void NavigateToCustomization()
     {
-        Debug.Log("Navigating to Register");
-        SceneManager.LoadScene("Register", LoadSceneMode.Single);
+        Debug.Log("Navigating to Customization");
+        SceneManager.LoadScene("Customization", LoadSceneMode.Single);
+    }
+
+    public void NavigateToLeaderboard()
+    {
+        Debug.Log("Navigating to Leaderboard");
+        SceneManager.LoadScene("Leaderboard", LoadSceneMode.Single);
     }
 }
