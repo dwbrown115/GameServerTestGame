@@ -20,6 +20,18 @@ public class PrefabSpawner : MonoBehaviour
     [SerializeField]
     private float spawnRadius = 10f;
 
+    private void OnEnable()
+    {
+        // Subscribe to the countdown finished event to stop spawning.
+        CountdownTimer.OnCountdownFinished += StopSpawning;
+    }
+
+    private void OnDisable()
+    {
+        // Unsubscribe to prevent memory leaks.
+        CountdownTimer.OnCountdownFinished -= StopSpawning;
+    }
+
     private void Start()
     {
         // Check if references are set to avoid errors.
@@ -43,6 +55,11 @@ public class PrefabSpawner : MonoBehaviour
         Vector3 spawnPosition =
             playerTransform.position + new Vector3(randomCirclePoint.x, randomCirclePoint.y, 0);
         Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+    }
+
+    private void StopSpawning()
+    {
+        CancelInvoke(nameof(SpawnPrefab));
     }
 
     private void OnDrawGizmosSelected()
