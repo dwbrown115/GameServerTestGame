@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -94,7 +95,7 @@ public class WebSocketManager : MonoBehaviour
     /// <param name="response">The authentication response from the server.</param>
     private void HandleAuthResponse(WebSocketAuthResponse response)
     {
-        Console.WriteLine("WebSocket Auth Response: " + JsonUtility.ToJson(response));
+        Console.WriteLine("WebSocket Auth Response: " + JsonConvert.SerializeObject(response));
         if (response != null && response.Authenticated)
         {
             // Success case: Store the session ID.

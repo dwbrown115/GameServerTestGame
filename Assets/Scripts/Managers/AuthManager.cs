@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Text;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -33,6 +33,25 @@ public struct UpdateResponse
 {
     public bool success;
     public string message;
+}
+
+[Serializable]
+public class PlayerChanges
+{
+    [JsonProperty("Username", NullValueHandling = NullValueHandling.Ignore)]
+    public string Username { get; set; }
+
+    [JsonProperty("Password", NullValueHandling = NullValueHandling.Ignore)]
+    public PasswordChangePayload Password { get; set; }
+}
+
+[Serializable]
+public class UpdatePlayerRequest
+{
+    public string UserId { get; set; }
+    public string DeviceId { get; set; }
+    public string RefreshToken { get; set; }
+    public PlayerChanges Changes { get; set; }
 }
 
 public class AuthManager : MonoBehaviour
@@ -76,7 +95,7 @@ public class AuthManager : MonoBehaviour
             Password = password,
             DeviceId = DeviceUtils.GetDeviceId(),
         };
-        string json = JsonUtility.ToJson(payload);
+        string json = JsonConvert.SerializeObject(payload);
         UnityWebRequest request = new UnityWebRequest(
             endpoint + authEndpointPrefix + registerRoute,
             "POST"
@@ -98,7 +117,7 @@ public class AuthManager : MonoBehaviour
             DeviceId = DeviceUtils.GetDeviceId(),
         };
 
-        string json = JsonUtility.ToJson(payload);
+        string json = JsonConvert.SerializeObject(payload);
 
         UnityWebRequest request = new UnityWebRequest(
             endpoint + authEndpointPrefix + loginRoute,
@@ -120,8 +139,10 @@ public class AuthManager : MonoBehaviour
                         LoginResult loginResult = null;
                         try
                         {
-                            loginResult = JsonUtility.FromJson<LoginResult>(response);
-                            Debug.Log($"🌐 Parsed LoginResult: {JsonUtility.ToJson(loginResult)}");
+                            loginResult = JsonConvert.DeserializeObject<LoginResult>(response);
+                            Debug.Log(
+                                $"🌐 Parsed LoginResult: {JsonConvert.SerializeObject(loginResult)}"
+                            );
                             if (!string.IsNullOrEmpty(loginResult?.token))
                             {
                                 Debug.Log($"✅ JWT: {loginResult.token}");
@@ -153,45 +174,40 @@ public class AuthManager : MonoBehaviour
         Action<bool, string> callback
     )
     {
-        // This method manually constructs the JSON payload. This is necessary because
-        // the server expects a dynamic 'Changes' object that only includes non-null
-        // fields, and Unity's JsonUtility does not support omitting null fields during
-        // serialization.
-        // This also ensures all keys are correctly in PascalCase.
+        var changes = new PlayerChanges();
+        bool hasChanges = false;
 
-        var changesJsonParts = new List<string>();
-
-        // Conditionally build the "changes" object to only include what's changed.
         if (!string.IsNullOrEmpty(newUsername))
         {
-            // Manually quote the string value to make it a valid JSON string.
-            changesJsonParts.Add($"\"Username\": \"{newUsername}\"");
+            changes.Username = newUsername;
+            hasChanges = true;
         }
 
         if (!string.IsNullOrEmpty(oldPassword) && !string.IsNullOrEmpty(newPassword))
         {
-            var passwordPayload = new PasswordChangePayload
+            changes.Password = new PasswordChangePayload
             {
                 OldPassword = oldPassword,
                 NewPassword = newPassword,
             };
-            // Use JsonUtility for the nested object, as it handles that correctly.
-            string passwordJson = JsonUtility.ToJson(passwordPayload);
-            changesJsonParts.Add($"\"Password\": {passwordJson}");
+            hasChanges = true;
         }
 
-        string changesJson = string.Join(",", changesJsonParts.ToArray());
+        if (!hasChanges)
+        {
+            callback?.Invoke(false, "No changes were provided to update.");
+            return;
+        }
 
-        // Manually construct the payload to ensure correct casing and structure,
-        // matching the server's expected schema. This payload is NOT wrapped
-        // in a top-level "request" object.
-        string payloadJson =
-            $"{{ "
-            + $"\"UserId\": \"{PlayerManager.Instance.GetUserId()}\", "
-            + $"\"DeviceId\": \"{DeviceUtils.GetDeviceId()}\", "
-            + $"\"RefreshToken\": \"{JwtManager.Instance.GetRefreshToken()}\", "
-            + $"\"Changes\": {{ {changesJson} }} "
-            + $"}}";
+        var payload = new UpdatePlayerRequest
+        {
+            UserId = PlayerManager.Instance.GetUserId(),
+            DeviceId = DeviceUtils.GetDeviceId(),
+            RefreshToken = JwtManager.Instance.GetRefreshToken(),
+            Changes = changes,
+        };
+
+        string payloadJson = JsonConvert.SerializeObject(payload);
 
         UnityWebRequest request = new UnityWebRequest(
             endpoint + playerEndpointPrefix + "/update",
@@ -219,8 +235,12 @@ public class AuthManager : MonoBehaviour
 
                     try
                     {
-                        var updateResponse = JsonUtility.FromJson<UpdateResponse>(response);
-                        Debug.Log($"Update response: {JsonUtility.ToJson(updateResponse)}");
+                        var updateResponse = JsonConvert.DeserializeObject<UpdateResponse>(
+                            response
+                        );
+                        Debug.Log(
+                            $"Update response: {JsonConvert.SerializeObject(updateResponse)}"
+                        );
 
                         if (updateResponse.success)
                         {
@@ -257,9 +277,9 @@ public class AuthManager : MonoBehaviour
             RefreshToken = JwtManager.Instance.GetRefreshToken(),
             DeviceId = DeviceUtils.GetDeviceId(),
         };
-        Debug.Log($"Payload: {JsonUtility.ToJson(payload)}");
+        Debug.Log($"Payload: {JsonConvert.SerializeObject(payload)}");
 
-        string json = JsonUtility.ToJson(payload);
+        string json = JsonConvert.SerializeObject(payload);
 
         UnityWebRequest request = new UnityWebRequest(
             endpoint + authEndpointPrefix + logoutRoute,
@@ -307,7 +327,7 @@ public class AuthManager : MonoBehaviour
             UserId = PlayerManager.Instance.GetUserId(),
         };
 
-        string json = JsonUtility.ToJson(payload);
+        string json = JsonConvert.SerializeObject(payload);
         string url = endpoint + authEndpointPrefix + "/validate";
         UnityWebRequest request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
 
@@ -330,7 +350,7 @@ public class AuthManager : MonoBehaviour
                 {
                     if (success)
                     {
-                        var loginResult = JsonUtility.FromJson<LoginResult>(response);
+                        var loginResult = JsonConvert.DeserializeObject<LoginResult>(response);
                         callback?.Invoke(true, loginResult);
                     }
                     else

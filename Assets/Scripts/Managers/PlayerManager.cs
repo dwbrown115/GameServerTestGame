@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class PlayerManager : MonoBehaviour
@@ -114,7 +115,7 @@ public class PlayerManager : MonoBehaviour
 
         // Only persist the userId. The userName is session data.
         var persistentData = new PersistentPlayerData { userId = currentPlayer.userId };
-        string playerDataJson = JsonUtility.ToJson(persistentData);
+        string playerDataJson = JsonConvert.SerializeObject(persistentData);
         Debug.Log($"📝 Persisting player data (JSON): {playerDataJson}");
 
         try
@@ -162,7 +163,7 @@ public class PlayerManager : MonoBehaviour
                 return;
             }
 
-            var persistentData = JsonUtility.FromJson<PersistentPlayerData>(decryptedJson);
+            var persistentData = JsonConvert.DeserializeObject<PersistentPlayerData>(decryptedJson);
 
             if (currentPlayer == null)
                 currentPlayer = new PlayerResponse();

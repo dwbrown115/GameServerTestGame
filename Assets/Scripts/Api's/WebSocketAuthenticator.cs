@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
+using Newtonsoft.Json;
 using UnityEngine.Networking;
 
 // --- Data Models ---
@@ -50,7 +51,7 @@ public class WebSocketAuthenticator : MonoBehaviour
     )
     {
         // 1. Create the request payload
-        string jsonPayload = JsonUtility.ToJson(authRequest);
+        string jsonPayload = JsonConvert.SerializeObject(authRequest);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
 
         // 2. Create and configure the UnityWebRequest
@@ -76,7 +77,7 @@ public class WebSocketAuthenticator : MonoBehaviour
                 try
                 {
                     // Try to parse the error response from the server body
-                    response = JsonUtility.FromJson<WebSocketAuthResponse>(
+                    response = JsonConvert.DeserializeObject<WebSocketAuthResponse>(
                         request.downloadHandler.text
                     );
                     if (string.IsNullOrEmpty(response.Reason))
@@ -98,8 +99,8 @@ public class WebSocketAuthenticator : MonoBehaviour
             {
                 // Successfully received a response from the server
                 string responseJson = request.downloadHandler.text;
-                response = JsonUtility.FromJson<WebSocketAuthResponse>(responseJson);
-                Debug.Log($"Response Code: {JsonUtility.ToJson(response)}");
+                response = JsonConvert.DeserializeObject<WebSocketAuthResponse>(responseJson);
+                Debug.Log($"Response Code: {JsonConvert.SerializeObject(response)}");
             }
 
             // 5. Invoke the callback with the final response object

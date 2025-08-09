@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -56,8 +57,8 @@ public class PlayerApiClient : MonoBehaviour
                 string jsonResponse = request.downloadHandler.text;
                 Debug.Log($"Response JSON: {jsonResponse}");
 
-                // Use JsonUtility to parse the JSON into our PlayerResponse object
-                PlayerResponse player = JsonUtility.FromJson<PlayerResponse>(jsonResponse);
+                // Use Newtonsoft.Json to parse the JSON into our PlayerResponse object
+                PlayerResponse player = JsonConvert.DeserializeObject<PlayerResponse>(jsonResponse);
 
                 // Now you can use the player data
                 Debug.Log(

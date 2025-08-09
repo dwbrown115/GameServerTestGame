@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Text;
+using Newtonsoft.Json;
 using UnityEngine;
 
 [Serializable]
@@ -131,7 +131,7 @@ public class JwtManager : MonoBehaviour
             ExpiresAt = expiresAt.ToString("o"), // ISO 8601 format
         };
 
-        string tokenJson = JsonUtility.ToJson(tokenData);
+        string tokenJson = JsonConvert.SerializeObject(tokenData);
         Debug.Log($"📝 Raw token data (JSON): {tokenJson}");
 
         try
@@ -176,7 +176,7 @@ public class JwtManager : MonoBehaviour
                 return;
             }
 
-            var tokenData = JsonUtility.FromJson<TokenData>(decryptedJson);
+            var tokenData = JsonConvert.DeserializeObject<TokenData>(decryptedJson);
             jwtToken = tokenData.JwtToken;
             refreshToken = tokenData.RefreshToken;
             if (
