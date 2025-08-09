@@ -54,7 +54,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextSelector_A.cs" />
     <Compile Include="Assets/Scripts/Managers/LoginManager.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/HomeScreenScript.cs" />
-    <Compile Include="Assets/Scripts/Initalizers/PlayerApiClient.cs" />
+    <Compile Include="Assets/Scripts/Api&apos;s/PlayerApiClient.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark02.cs" />
     <Compile Include="Assets/Scripts/Utilities/DeviceUtil.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/ChangeUserInfoScreen.cs" />
@@ -62,7 +62,9 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_ExampleScript_01.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMPro_InstructionOverlay.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexShakeB.cs" />
+    <Compile Include="Assets/Scripts/Api&apos;s/WebSocketAuthenticator.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
+    <Compile Include="Assets/Scripts/Managers/WebsocketManager.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_UiFrameRateCounter.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/TimeUI.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexZoom.cs" />

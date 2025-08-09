@@ -1751,7 +1751,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1001233285}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1177181808}
+        m_TargetAssemblyTypeName: AuthNavigation, Assembly-CSharp
+        m_MethodName: NavigateToHome
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1001233285
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2075,8 +2087,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerTransform: {fileID: 332118775}
   prefabToSpawn: {fileID: 7068094009286804774, guid: 1d8b9b609a0c542fea7403f883555296, type: 3}
-  spawnInterval: 2
-  spawnRadius: 4.5
+  spawnInterval: 1
+  spawnRadius: 3
 --- !u!4 &1366457489
 Transform:
   m_ObjectHideFlags: 0
