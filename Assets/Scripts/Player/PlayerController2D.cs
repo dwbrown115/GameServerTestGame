@@ -18,6 +18,14 @@ class PlayerPositionMessage
 }
 
 [Serializable]
+public class PlayerPositionResponse
+{
+    public float X { get; set; }
+    public float Y { get; set; }
+    public string Status { get; set; }
+}
+
+[Serializable]
 internal class PersistentPlayerData
 {
     public string userId;
@@ -181,6 +189,9 @@ public class PlayerController2D : MonoBehaviour
             await webSocket.ConnectAsync(uri, cancellationTokenSource.Token);
             Debug.Log("Connection successful!");
 
+            // Start listening for messages
+            _ = ReceiveMessages(cancellationTokenSource.Token);
+
             // Start sending position updates to the server
             InvokeRepeating(nameof(SendPosition), positionUpdateRate, positionUpdateRate);
         }
@@ -221,6 +232,75 @@ public class PlayerController2D : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"Failed to send position: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Listens for incoming messages from the server.
+    /// </summary>
+    private async Task ReceiveMessages(CancellationToken token)
+    {
+        var buffer = new ArraySegment<byte>(new byte[2048]);
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                // Use a MemoryStream to build the full message from one or more fragments
+                using (var ms = new MemoryStream())
+                {
+                    WebSocketReceiveResult result;
+                    do
+                    {
+                        result = await webSocket.ReceiveAsync(buffer, token);
+                        ms.Write(buffer.Array, buffer.Offset, result.Count);
+                    } while (!result.EndOfMessage);
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                        break;
+
+                    ms.Seek(0, SeekOrigin.Begin);
+                    using (var reader = new StreamReader(ms, Encoding.UTF8))
+                    {
+                        string message = await reader.ReadToEndAsync();
+                        HandleServerMessage(message);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal when the connection is closed.
+                break;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error receiving message: {e.Message}");
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deserializes and processes messages received from the server.
+    /// </summary>
+    private void HandleServerMessage(string jsonMessage)
+    {
+        try
+        {
+            // Attempt to deserialize the message into our new response type
+            var response = JsonConvert.DeserializeObject<PlayerPositionResponse>(jsonMessage);
+            if (response != null && response.Status != null)
+            {
+                // Log the server's response to the Unity console
+                Debug.Log(
+                    $"<color=cyan>Server ACK: X={response.X}, Y={response.Y}, Status='{response.Status}'</color>"
+                );
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning(
+                $"Could not process server message: {jsonMessage}. Error: {e.Message}"
+            );
         }
     }
 }
