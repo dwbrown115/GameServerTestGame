@@ -15,7 +15,7 @@ public class LoginResult
 
 public class LoginManager : MonoBehaviour
 {
-    private const string serverUrl = "http://localhost:5140/authentication/validate";
+    private const string serverUrl = "https://localhost:7123/authentication/validate";
 
     public void AttemptLogin()
     {

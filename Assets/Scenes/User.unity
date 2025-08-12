@@ -537,7 +537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9c66c1935cf040d9be771102a73cfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiBaseUrl: http://localhost:5140
+  apiBaseUrl: https://localhost:7123
 --- !u!1 &1020562013
 GameObject:
   m_ObjectHideFlags: 0

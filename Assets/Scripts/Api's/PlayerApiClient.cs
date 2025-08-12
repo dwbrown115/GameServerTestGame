@@ -14,9 +14,8 @@ public class PlayerResponse
 public class PlayerApiClient : MonoBehaviour
 {
     [Header("API Settings")]
-    [Tooltip("The base URL of your game server, e.g., http://localhost:5140")]
-    [SerializeField]
-    private string apiBaseUrl = "http://localhost:5140";
+    [Tooltip("The base URL of your game server, e.g., https://localhost:7123")]
+    private string apiBaseUrl = "https://localhost:7123";
 
     public Coroutine GetPlayerData(Action<PlayerResponse> onSuccess, Action<string> onError)
     {

@@ -59,7 +59,7 @@ public class AuthManager : MonoBehaviour
     public static AuthManager Instance;
 
     [SerializeField]
-    private string endpoint = "http://localhost:5140";
+    private string endpoint = "https://localhost:7123";
 
     [SerializeField]
     private string authEndpointPrefix = "/authentication";
@@ -364,6 +364,7 @@ public class AuthManager : MonoBehaviour
 
     private IEnumerator SendRequest(UnityWebRequest request, Action<bool, string> callback)
     {
+        request.certificateHandler = new CustomCertificateHandler();
         yield return request.SendWebRequest();
 
 #if UNITY_2023_1_OR_NEWER

@@ -29,8 +29,7 @@ public class WebSocketAuthResponse
 
 public class WebSocketAuthenticator : MonoBehaviour
 {
-    // IMPORTANT: Replace with your server's address
-    private const string AuthEndpoint = "http://localhost:5140/ws/auth";
+    private const string AuthEndpoint = "wss://localhost:7123/ws/auth";
 
     /// <summary>
     /// Starts the authentication process by sending credentials to the server.

@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2343026749693336234}
   - component: {fileID: 5464045508873367053}
   - component: {fileID: 5544965334887691638}
+  - component: {fileID: 9204684190810225946}
   m_Layer: 0
   m_Name: Auth
   m_TagString: Untagged
@@ -49,7 +50,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ec5ab1d1a8114488a96c44e5070475e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  authEndpoint: http://localhost:5140/authentication
+  endpoint: https://localhost:7123
+  authEndpointPrefix: /authentication
+  playerEndpointPrefix: /player
   registerRoute: /register
   loginRoute: /login
   logoutRoute: /logout
@@ -89,10 +92,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e6905146de304e3182c1b37804dc1d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nextSceneName: User
   playerApiClient: {fileID: 5544965334887691638}
-  authEndpoint: http://localhost:5140/authentication
-  validationRoute: /validate
+  nextSceneName: User
 --- !u!114 &5464045508873367053
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -117,4 +118,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9c66c1935cf040d9be771102a73cfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiBaseUrl: http://localhost:5140
+--- !u!114 &9204684190810225946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3262395535121418598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e95316d484be407e8cf42818bebab72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

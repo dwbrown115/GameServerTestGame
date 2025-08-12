@@ -38,7 +38,7 @@ public class PlayerController2D : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 5f;
 
-    private string serverAddress = "localhost:5140"; // Set your server address
+    private string serverAddress = "localhost:7123"; // Set your server address
     private string sessionId;
     private string playerId;
     public float positionUpdateRate = 0.2f; // How often to send position data
@@ -184,7 +184,7 @@ public class PlayerController2D : MonoBehaviour
 
         try
         {
-            Uri uri = new Uri($"ws://{serverAddress}/ws?sessionId={sessionId}");
+            Uri uri = new Uri($"wss://{serverAddress}/ws?sessionId={sessionId}");
             Debug.Log($"Connecting to URI: {uri}");
             await webSocket.ConnectAsync(uri, cancellationTokenSource.Token);
             Debug.Log("Connection successful!");
