@@ -53,11 +53,7 @@ public class PlayerController2D : MonoBehaviour
 
     private void Awake()
     {
-        // Get the Rigidbody2D component attached to this GameObject.
         rb = GetComponent<Rigidbody2D>();
-
-        // Find the "Move" action from the default input actions.
-        // Using "Player/Move" is more specific in case you have other "Move" actions in other maps.
         moveAction = InputSystem.actions.FindAction("Player/Move");
     }
 
@@ -69,27 +65,20 @@ public class PlayerController2D : MonoBehaviour
 
     private void OnEnable()
     {
-        // Enable the move action when this component is enabled.
         moveAction.Enable();
-        // Subscribe to the countdown finished event to stop movement.
         CountdownTimer.OnCountdownFinished += DisableMovement;
     }
 
     private async void OnDisable()
     {
-        // Disable the move action when this component is disabled to prevent errors.
         moveAction.Disable();
-        // Unsubscribe to prevent memory leaks.
         CountdownTimer.OnCountdownFinished -= DisableMovement;
 
         CancelInvoke(nameof(SendPosition));
         if (webSocket?.State == WebSocketState.Open)
         {
-            await webSocket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                "Player leaving",
-                CancellationToken.None
-            );
+            // Use the CancellationToken from the source that was used for the connection
+            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Player leaving", cancellationTokenSource.Token);
         }
         cancellationTokenSource?.Cancel();
         webSocket?.Dispose();
@@ -102,23 +91,17 @@ public class PlayerController2D : MonoBehaviour
             moveInput = Vector2.zero;
             return;
         }
-
-        // Read the input value from the "Move" action.
-        // This returns a Vector2 with values from -1 to 1 for X and Y.
         moveInput = moveAction.ReadValue<Vector2>();
     }
 
     private void FixedUpdate()
     {
-        // Apply the movement to the Rigidbody2D in FixedUpdate for smooth physics.
-        // We multiply the normalized input by the move speed.
         rb.linearVelocity = moveInput * moveSpeed;
     }
 
     private void DisableMovement()
     {
         isMovementDisabled = true;
-        // Immediately stop the player's movement.
         rb.linearVelocity = Vector2.zero;
     }
 
@@ -163,16 +146,9 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Call this from your game manager or auth script after logging in.
-    /// </summary>
     public async Task ConnectToServer()
     {
         Debug.Log("Attempting to connect to WebSocket server...");
-        Debug.Log($"Server Address: {serverAddress}");
-        Debug.Log($"Session ID: {sessionId}");
-        Debug.Log($"Player ID: {playerId}");
-
         if (string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(playerId))
         {
             Debug.LogError("SessionId or PlayerId is not set. Cannot connect to the server.");
@@ -189,26 +165,21 @@ public class PlayerController2D : MonoBehaviour
             await webSocket.ConnectAsync(uri, cancellationTokenSource.Token);
             Debug.Log("Connection successful!");
 
-            // Start listening for messages
             _ = ReceiveMessages(cancellationTokenSource.Token);
-
-            // Start sending position updates to the server
             InvokeRepeating(nameof(SendPosition), positionUpdateRate, positionUpdateRate);
         }
         catch (Exception e)
         {
             Debug.LogError($"WebSocket connection failed: {e.Message}");
+            webSocket?.Dispose();
         }
     }
 
-    /// <summary>
-    /// Sends the player's current position to the server.
-    /// </summary>
     private async void SendPosition()
     {
         if (webSocket?.State != WebSocketState.Open)
         {
-            return; // Don't send if not connected
+            return;
         }
 
         var positionMessage = new PlayerPositionMessage
@@ -222,12 +193,7 @@ public class PlayerController2D : MonoBehaviour
 
         try
         {
-            await webSocket.SendAsync(
-                bytesToSend,
-                WebSocketMessageType.Text,
-                true,
-                cancellationTokenSource.Token
-            );
+            await webSocket.SendAsync(bytesToSend, WebSocketMessageType.Text, true, cancellationTokenSource.Token);
         }
         catch (Exception e)
         {
@@ -235,17 +201,13 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Listens for incoming messages from the server.
-    /// </summary>
     private async Task ReceiveMessages(CancellationToken token)
     {
         var buffer = new ArraySegment<byte>(new byte[2048]);
-        while (!token.IsCancellationRequested)
+        while (!token.IsCancellationRequested && webSocket.State == WebSocketState.Open)
         {
             try
             {
-                // Use a MemoryStream to build the full message from one or more fragments
                 using (var ms = new MemoryStream())
                 {
                     WebSocketReceiveResult result;
@@ -268,7 +230,6 @@ public class PlayerController2D : MonoBehaviour
             }
             catch (OperationCanceledException)
             {
-                // Normal when the connection is closed.
                 break;
             }
             catch (Exception e)
@@ -279,18 +240,13 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Deserializes and processes messages received from the server.
-    /// </summary>
     private void HandleServerMessage(string jsonMessage)
     {
         try
         {
-            // Attempt to deserialize the message into our new response type
             var response = JsonConvert.DeserializeObject<PlayerPositionResponse>(jsonMessage);
             if (response != null && response.Status != null)
             {
-                // Log the server's response to the Unity console
                 Debug.Log(
                     $"<color=cyan>Server ACK: X={response.X}, Y={response.Y}, Status='{response.Status}'</color>"
                 );
@@ -298,9 +254,7 @@ public class PlayerController2D : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogWarning(
-                $"Could not process server message: {jsonMessage}. Error: {e.Message}"
-            );
+            Debug.LogWarning($"Could not process server message: {jsonMessage}. Error: {e.Message}");
         }
     }
 }

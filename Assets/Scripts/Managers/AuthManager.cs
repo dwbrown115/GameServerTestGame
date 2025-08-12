@@ -364,7 +364,7 @@ public class AuthManager : MonoBehaviour
 
     private IEnumerator SendRequest(UnityWebRequest request, Action<bool, string> callback)
     {
-        request.certificateHandler = new CustomCertificateHandler();
+        request.certificateHandler = CustomCertificateHandler.Instance;
         yield return request.SendWebRequest();
 
 #if UNITY_2023_1_OR_NEWER

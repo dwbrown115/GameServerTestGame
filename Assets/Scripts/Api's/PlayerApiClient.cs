@@ -44,6 +44,9 @@ public class PlayerApiClient : MonoBehaviour
                 request.SetRequestHeader("Authorization", "Bearer " + token);
             }
 
+            // Assign the custom certificate handler
+            request.certificateHandler = PlayerApiCertificateHandler.Instance;
+
             // Send the request and wait for a response
             yield return request.SendWebRequest();
 
