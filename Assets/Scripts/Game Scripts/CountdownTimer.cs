@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems; // Required for controlling UI focus
 using UnityEngine.InputSystem;
 using UnityEngine.UI; // Required for the Selectable class
+using TMPro; // Added for TMP_Text
 
 public class CountdownTimer : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class CountdownTimer : MonoBehaviour
     [Tooltip("The Game Over modal to enable when the timer reaches zero.")]
     [SerializeField]
     private GameObject gameOverModal;
+
+    public PlayerController2D playerController2D; // Reference to the PlayerController2D
 
     // Event to notify listeners when the countdown finishes.
     public static event System.Action OnCountdownFinished;
@@ -90,6 +93,12 @@ public class CountdownTimer : MonoBehaviour
             // Switch to the UI action map to enable menu navigation.
             playerActionMap?.Disable();
             uiActionMap?.Enable();
+
+            // Disconnect WebSocket when countdown finishes
+            if (playerController2D != null)
+            {
+                playerController2D.DisconnectWebSocket();
+            }
 
             OnCountdownFinished?.Invoke();
         }

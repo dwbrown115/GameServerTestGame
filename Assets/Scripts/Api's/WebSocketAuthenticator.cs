@@ -35,6 +35,7 @@ public class WebSocketAuthenticator : MonoBehaviour
         Action<WebSocketAuthResponse> onComplete
     )
     {
+        Debug.Log("WebSocketAuthenticator: Authenticate method called. Starting coroutine.");
         StartCoroutine(AuthenticateCoroutine(authRequest, onComplete));
     }
 
@@ -43,24 +44,27 @@ public class WebSocketAuthenticator : MonoBehaviour
         Action<WebSocketAuthResponse> onComplete
     )
     {
+        Debug.Log("WebSocketAuthenticator: AuthenticateCoroutine started.");
+        Debug.Log($"WebSocketAuthenticator: Creating payload for authentication request. UserID: {authRequest.UserId}");
         string jsonPayload = JsonConvert.SerializeObject(authRequest);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
 
         using (UnityWebRequest request = new UnityWebRequest(AuthEndpoint, "POST"))
         {
             // Use the CustomCertificateHandler that we know works.
-            request.certificateHandler = new CustomCertificateHandler();
+            request.certificateHandler = CustomCertificateHandler.Instance; // Ensure using singleton
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
 
-            Debug.Log("Sending WebSocket authentication request via HTTPS...");
+            Debug.Log($"WebSocketAuthenticator: Sending authentication request to {AuthEndpoint}...");
             yield return request.SendWebRequest();
+            Debug.Log("WebSocketAuthenticator: Authentication request sent. Processing response.");
 
             WebSocketAuthResponse response;
             if (request.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"Authentication Error: {request.error}");
+                Debug.LogError($"WebSocketAuthenticator: Authentication Error: {request.error}");
                 try
                 {
                     response = JsonConvert.DeserializeObject<WebSocketAuthResponse>(
@@ -70,24 +74,27 @@ public class WebSocketAuthenticator : MonoBehaviour
                     {
                         response.Reason = request.error;
                     }
+                    Debug.LogWarning($"WebSocketAuthenticator: Parsed error response: {JsonConvert.SerializeObject(response)}");
                 }
-                catch
+                catch (Exception ex)
                 {
                     response = new WebSocketAuthResponse
                     {
                         Authenticated = false,
                         Reason = request.error,
                     };
+                    Debug.LogError($"WebSocketAuthenticator: Failed to parse error response: {ex.Message}");
                 }
             }
             else
             {
                 string responseJson = request.downloadHandler.text;
                 response = JsonConvert.DeserializeObject<WebSocketAuthResponse>(responseJson);
-                Debug.Log($"HTTPS Auth Response: {JsonConvert.SerializeObject(response)}");
+                Debug.Log($"WebSocketAuthenticator: HTTPS Auth Response: {JsonConvert.SerializeObject(response)}");
             }
 
             onComplete?.Invoke(response);
+            Debug.Log("WebSocketAuthenticator: Authentication process completed.");
         }
     }
 }

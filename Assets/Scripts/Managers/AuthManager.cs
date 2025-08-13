@@ -148,7 +148,12 @@ public class AuthManager : MonoBehaviour
                                 Debug.Log($"✅ JWT: {loginResult.token}");
                                 Debug.Log($"🔁 Refresh Token: {loginResult.refreshToken}");
                                 Debug.Log($"⏳ Expires At: {loginResult.expiresAt}");
-                                JwtManager.Instance.SetToken(loginResult);
+                                JwtManager.Instance.SetToken(
+                                    loginResult.token,
+                                    loginResult.refreshToken,
+                                    loginResult.userId,
+                                    loginResult.expiresAt
+                                );
                             }
                             else
                             {
@@ -351,10 +356,28 @@ public class AuthManager : MonoBehaviour
                     if (success)
                     {
                         var loginResult = JsonConvert.DeserializeObject<LoginResult>(response);
+                        JwtManager.Instance.SetToken(
+                            loginResult.token,
+                            loginResult.refreshToken,
+                            loginResult.userId,
+                            loginResult.expiresAt
+                        ); // Update tokens in JwtManager
                         callback?.Invoke(true, loginResult);
                     }
                     else
                     {
+                        // Check for specific refresh token expiry message from the server
+                        if (
+                            response.Contains(
+                                "No valid refresh token record found or it has expired"
+                            )
+                        )
+                        {
+                            Debug.LogWarning(
+                                "Server indicated refresh token is invalid or expired. Clearing local tokens."
+                            );
+                            JwtManager.Instance.ClearToken();
+                        }
                         callback?.Invoke(false, null);
                     }
                 }

@@ -1,29 +1,12 @@
 using System;
 using System.IO;
-using System.Net.WebSockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 // using SharedLibrary.Requests;
 
-[Serializable]
-class PlayerPositionMessage
-{
-    public float X { get; set; }
-    public float Y { get; set; }
-}
-
-[Serializable]
-public class PlayerPositionResponse
-{
-    public float X { get; set; }
-    public float Y { get; set; }
-    public string Status { get; set; }
-}
+// Removed PlayerPositionMessage and PlayerPositionResponse structs
 
 [Serializable]
 internal class PersistentPlayerData
@@ -48,8 +31,7 @@ public class PlayerController2D : MonoBehaviour
     private Vector2 moveInput;
     private bool isMovementDisabled;
 
-    private ClientWebSocket webSocket;
-    private CancellationTokenSource cancellationTokenSource;
+    private PlayerWebSocketClient _playerWebSocketClient; // New instance of the client
 
     private void Awake()
     {
@@ -60,7 +42,18 @@ public class PlayerController2D : MonoBehaviour
     private async void Start()
     {
         LoadCredentials();
-        await ConnectToServer();
+        // Initialize the WebSocket client
+        _playerWebSocketClient = new PlayerWebSocketClient(
+            serverAddress,
+            sessionId,
+            playerId,
+            positionUpdateRate,
+            HandlePlayerPositionResponse, // Callback for messages (now receives PlayerPositionResponse)
+            (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"), // Callback for errors
+            () => Debug.Log("PlayerWebSocketClient: Connected!"), // Callback for connection
+            () => Debug.Log("PlayerWebSocketClient: Disconnected!") // Callback for disconnection
+        );
+        await _playerWebSocketClient.ConnectAsync();
     }
 
     private void OnEnable()
@@ -74,14 +67,11 @@ public class PlayerController2D : MonoBehaviour
         moveAction.Disable();
         CountdownTimer.OnCountdownFinished -= DisableMovement;
 
-        CancelInvoke(nameof(SendPosition));
-        if (webSocket?.State == WebSocketState.Open)
+        // Removed CancelInvoke(nameof(SendPosition));
+        if (_playerWebSocketClient != null)
         {
-            // Use the CancellationToken from the source that was used for the connection
-            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Player leaving", cancellationTokenSource.Token);
+            await _playerWebSocketClient.DisconnectAsync();
         }
-        cancellationTokenSource?.Cancel();
-        webSocket?.Dispose();
     }
 
     private void Update()
@@ -97,6 +87,8 @@ public class PlayerController2D : MonoBehaviour
     private void FixedUpdate()
     {
         rb.linearVelocity = moveInput * moveSpeed;
+        // Send position updates via the new client
+        _ = _playerWebSocketClient.SendPositionAsync(transform.position);
     }
 
     private void DisableMovement()
@@ -146,115 +138,39 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
-    public async Task ConnectToServer()
+    public async void DisconnectWebSocket()
     {
-        Debug.Log("Attempting to connect to WebSocket server...");
-        if (string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(playerId))
-        {
-            Debug.LogError("SessionId or PlayerId is not set. Cannot connect to the server.");
-            return;
-        }
-
-        webSocket = new ClientWebSocket();
-        cancellationTokenSource = new CancellationTokenSource();
-
-        try
-        {
-            Uri uri = new Uri($"wss://{serverAddress}/ws?sessionId={sessionId}");
-            Debug.Log($"Connecting to URI: {uri}");
-            await webSocket.ConnectAsync(uri, cancellationTokenSource.Token);
-            Debug.Log("Connection successful!");
-
-            _ = ReceiveMessages(cancellationTokenSource.Token);
-            InvokeRepeating(nameof(SendPosition), positionUpdateRate, positionUpdateRate);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"WebSocket connection failed: {e.Message}");
-            webSocket?.Dispose();
-        }
-    }
-
-    private async void SendPosition()
-    {
-        if (webSocket?.State != WebSocketState.Open)
-        {
-            return;
-        }
-
-        var positionMessage = new PlayerPositionMessage
-        {
-            X = transform.position.x,
-            Y = transform.position.y,
-        };
-
-        var jsonMessage = JsonConvert.SerializeObject(positionMessage);
-        var bytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes(jsonMessage));
-
-        try
-        {
-            await webSocket.SendAsync(bytesToSend, WebSocketMessageType.Text, true, cancellationTokenSource.Token);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to send position: {e.Message}");
-        }
-    }
-
-    private async Task ReceiveMessages(CancellationToken token)
-    {
-        var buffer = new ArraySegment<byte>(new byte[2048]);
-        while (!token.IsCancellationRequested && webSocket.State == WebSocketState.Open)
+        Debug.Log("PlayerController2D: Disconnecting WebSocket...");
+        if (_playerWebSocketClient != null)
         {
             try
             {
-                using (var ms = new MemoryStream())
-                {
-                    WebSocketReceiveResult result;
-                    do
-                    {
-                        result = await webSocket.ReceiveAsync(buffer, token);
-                        ms.Write(buffer.Array, buffer.Offset, result.Count);
-                    } while (!result.EndOfMessage);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                        break;
-
-                    ms.Seek(0, SeekOrigin.Begin);
-                    using (var reader = new StreamReader(ms, Encoding.UTF8))
-                    {
-                        string message = await reader.ReadToEndAsync();
-                        HandleServerMessage(message);
-                    }
-                }
+                await _playerWebSocketClient.DisconnectAsync();
             }
-            catch (OperationCanceledException)
+            catch (System.Net.WebSockets.WebSocketException ex)
             {
-                break;
+                Debug.LogWarning(
+                    $"PlayerController2D: Caught WebSocketException during DisconnectWebSocket: {ex.Message}"
+                );
+                // The WebSocket is likely already in an invalid state, so we just log and continue.
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Debug.LogError($"Error receiving message: {e.Message}");
-                break;
+                Debug.LogError(
+                    $"PlayerController2D: An unexpected error occurred during DisconnectWebSocket: {ex.Message}"
+                );
             }
         }
     }
 
-    private void HandleServerMessage(string jsonMessage)
+    // New method to handle deserialized PlayerPositionResponse
+    private void HandlePlayerPositionResponse(PlayerPositionResponse response)
     {
-        try
+        if (response != null && response.Status != null)
         {
-            var response = JsonConvert.DeserializeObject<PlayerPositionResponse>(jsonMessage);
-            if (response != null && response.Status != null)
-            {
-                Debug.Log(
-                    $"<color=cyan>Server ACK: X={response.X}, Y={response.Y}, Status='{response.Status}'</color>"
-                );
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"Could not process server message: {jsonMessage}. Error: {e.Message}");
+            // Debug.Log(
+            //     $"<color=cyan>Server ACK: X={response.X}, Y={response.Y}, Status='{response.Status}'</color>"
+            // );
         }
     }
 }

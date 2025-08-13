@@ -1,0 +1,1670 @@
+The program '[74396] GameServer' has exited with code 0 (0x0).
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+warn: Microsoft.AspNetCore.Server.Kestrel[0]
+      Overriding address(es) 'https://localhost:7123, http://localhost:5140'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+Microsoft.AspNetCore.Server.Kestrel: Warning: Overriding address(es) 'https://localhost:7123, http://localhost:5140'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+Microsoft.Hosting.Lifetime: Information: Now listening on: https://0.0.0.0:7123
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: https://0.0.0.0:7123
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+Microsoft.Hosting.Lifetime: Information: Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+Microsoft.Hosting.Lifetime: Information: Hosting environment: Development
+Microsoft.Hosting.Lifetime: Information: Content root path: /Users/dakotabrown/Desktop/CodingProjects/GameServer/GameServer
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/dakotabrown/Desktop/CodingProjects/GameServer/GameServer
+[AuthenticationController] Received token validation request for user: 6npuiyOyOECgRCMO2xzHaQ
+[JwtService] ValidateOrRefreshAsync called. UserId: 6npuiyOyOECgRCMO2xzHaQ, DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (33ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+      FROM [auth].[RefreshTokenRecord] AS [r]
+      WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (33ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+FROM [auth].[RefreshTokenRecord] AS [r]
+WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+[JwtService] Found 1 non-revoked token candidates for DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+[JwtService] Found matching refresh token record. Id: 2012
+Exception thrown: 'Microsoft.IdentityModel.Tokens.SecurityTokenInvalidSignatureException' in System.Private.CoreLib.dll
+[JwtService] JWT validation result: IsValid=False, ShouldRefresh=False
+[JwtService] JWT is invalid or needs refresh. Generating new token pair.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (Size = 4000), @__deviceId_1='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+      FROM [auth].[RefreshTokenRecord] AS [r]
+      WHERE [r].[UserId] = @__userId_0 AND [r].[DeviceId] = @__deviceId_1
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (Size = 4000), @__deviceId_1='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+FROM [auth].[RefreshTokenRecord] AS [r]
+WHERE [r].[UserId] = @__userId_0 AND [r].[DeviceId] = @__deviceId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (23ms) [Parameters=[@p6='?' (DbType = Int32), @p0='?' (Size = 4000), @p1='?' (Size = 4000), @p2='?' (DbType = DateTime2), @p3='?' (DbType = Boolean), @p4='?' (Size = 8000) (DbType = Binary), @p5='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [auth].[RefreshTokenRecord] SET [DeviceId] = @p0, [EncryptedRefreshToken] = @p1, [ExpiresAt] = @p2, [IsRevoked] = @p3, [SecretKey] = @p4, [UserId] = @p5
+      OUTPUT 1
+      WHERE [Id] = @p6;
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (23ms) [Parameters=[@p6='?' (DbType = Int32), @p0='?' (Size = 4000), @p1='?' (Size = 4000), @p2='?' (DbType = DateTime2), @p3='?' (DbType = Boolean), @p4='?' (Size = 8000) (DbType = Binary), @p5='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SET IMPLICIT_TRANSACTIONS OFF;
+SET NOCOUNT ON;
+UPDATE [auth].[RefreshTokenRecord] SET [DeviceId] = @p0, [EncryptedRefreshToken] = @p1, [ExpiresAt] = @p2, [IsRevoked] = @p3, [SecretKey] = @p4, [UserId] = @p5
+OUTPUT 1
+WHERE [Id] = @p6;
+[JwtService] New token pair generated and returned. New JWT: eyJhbGciOiJBMjU...
+[AuthenticationController] Token validation successful for user: 6npuiyOyOECgRCMO2xzHaQ. Refreshed: True
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[PasswordHash], [u].[Salt], [u].[UUID], [u].[UpdatedAt], [u].[Username]
+      FROM [users].[Users] AS [u]
+      WHERE [u].[UUID] = @__userId_0
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[PasswordHash], [u].[Salt], [u].[UUID], [u].[UpdatedAt], [u].[Username]
+FROM [users].[Users] AS [u]
+WHERE [u].[UUID] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[PasswordHash], [u].[Salt], [u].[UUID], [u].[UpdatedAt], [u].[Username]
+      FROM [users].[Users] AS [u]
+      WHERE [u].[UUID] = @__userId_0
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[PasswordHash], [u].[Salt], [u].[UUID], [u].[UpdatedAt], [u].[Username]
+FROM [users].[Users] AS [u]
+WHERE [u].[UUID] = @__userId_0
+[WebSocketController] Step 1: Received auth request. Input: {"DeviceId":"185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3","UserId":"6npuiyOyOECgRCMO2xzHaQ","JwtToken":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.4ITukA9c3tkO8zxXtVEzOJ09wLGk0iwyaQnS_pXVavJ50kLtjxrOROYGkDtpE36Vl_d6KQwfkwPEo7NB0c3TBj-gu0l5huVK.7UbCBMCULFwTzt7fwSS78w.yJHN0MM4PomnBK3MBcEAk-oAvcs9yJpWyt0oFmVBPfAmLHa49hG9P-isv2d1pwgLtLgtp_TeJBXDa-f2t6bOWrY8767nBszujrGF8fCme76vD3m89QnxE9uS3v5Rvt4yfD8RwM0GdZAiMl5Z2TQ9dVYCwBo0SVoqKr7kqbuECIlc5IntuEsuNLd5c_f59u4dfY5Fb0JGi7CKDXrSO6lGJA.ebTQWWp0Cx4_jJJOIyFpUh894stNRw1QlYwfVT0Fbu0","RefreshToken":"dd55297748874039a26f50505544e788"}
+[WebSocketService] Step 2: Validating tokens via JwtService. Input: {"DeviceId":"185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3","UserId":"6npuiyOyOECgRCMO2xzHaQ","JwtToken":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.4ITukA9c3tkO8zxXtVEzOJ09wLGk0iwyaQnS_pXVavJ50kLtjxrOROYGkDtpE36Vl_d6KQwfkwPEo7NB0c3TBj-gu0l5huVK.7UbCBMCULFwTzt7fwSS78w.yJHN0MM4PomnBK3MBcEAk-oAvcs9yJpWyt0oFmVBPfAmLHa49hG9P-isv2d1pwgLtLgtp_TeJBXDa-f2t6bOWrY8767nBszujrGF8fCme76vD3m89QnxE9uS3v5Rvt4yfD8RwM0GdZAiMl5Z2TQ9dVYCwBo0SVoqKr7kqbuECIlc5IntuEsuNLd5c_f59u4dfY5Fb0JGi7CKDXrSO6lGJA.ebTQWWp0Cx4_jJJOIyFpUh894stNRw1QlYwfVT0Fbu0","RefreshToken":"dd55297748874039a26f50505544e788"}
+[JwtService] ValidateOrRefreshAsync called. UserId: 6npuiyOyOECgRCMO2xzHaQ, DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+      FROM [auth].[RefreshTokenRecord] AS [r]
+      WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (3ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+FROM [auth].[RefreshTokenRecord] AS [r]
+WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+[JwtService] Found 1 non-revoked token candidates for DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+[JwtService] Found matching refresh token record. Id: 2012
+Exception thrown: 'Microsoft.IdentityModel.Tokens.SecurityTokenInvalidSignatureException' in System.Private.CoreLib.dll
+[JwtService] JWT validation result: IsValid=False, ShouldRefresh=False
+[JwtService] JWT is invalid or needs refresh. Generating new token pair.
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (Size = 4000), @__deviceId_1='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+FROM [auth].[RefreshTokenRecord] AS [r]
+WHERE [r].[UserId] = @__userId_0 AND [r].[DeviceId] = @__deviceId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (Size = 4000), @__deviceId_1='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+      FROM [auth].[RefreshTokenRecord] AS [r]
+      WHERE [r].[UserId] = @__userId_0 AND [r].[DeviceId] = @__deviceId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p6='?' (DbType = Int32), @p0='?' (Size = 4000), @p1='?' (Size = 4000), @p2='?' (DbType = DateTime2), @p3='?' (DbType = Boolean), @p4='?' (Size = 8000) (DbType = Binary), @p5='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [auth].[RefreshTokenRecord] SET [DeviceId] = @p0, [EncryptedRefreshToken] = @p1, [ExpiresAt] = @p2, [IsRevoked] = @p3, [SecretKey] = @p4, [UserId] = @p5
+      OUTPUT 1
+      WHERE [Id] = @p6;
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (3ms) [Parameters=[@p6='?' (DbType = Int32), @p0='?' (Size = 4000), @p1='?' (Size = 4000), @p2='?' (DbType = DateTime2), @p3='?' (DbType = Boolean), @p4='?' (Size = 8000) (DbType = Binary), @p5='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SET IMPLICIT_TRANSACTIONS OFF;
+SET NOCOUNT ON;
+UPDATE [auth].[RefreshTokenRecord] SET [DeviceId] = @p0, [EncryptedRefreshToken] = @p1, [ExpiresAt] = @p2, [IsRevoked] = @p3, [SecretKey] = @p4, [UserId] = @p5
+OUTPUT 1
+WHERE [Id] = @p6;
+[JwtService] New token pair generated and returned. New JWT: eyJhbGciOiJBMjU...
+[WebSocketService] Token validation successful. AuthResult: {"UserId":"6npuiyOyOECgRCMO2xzHaQ","Token":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.k_xmtwYxXbHA6ML3H4-j9M8wYQ_geBKlJhiXyKVPQ19xLl0ypRIbTinNQFZROiLJqhBDA9_DiTLxrBm7o3iRzKMCcXjr-8o4.trBXRZntg5nCzRQ48pQT0Q.jR9cNYxq0iuniSGZ68tUqcZ4dJ_AUcW-1UryN3uUBor1KtemYe0_DchykUypxG18RZAeCJHkY8WnSzA4ogbIuzAv-RK3hfG7Ro3gVCJjTLjMOhaxHQCMznKq79HkPyORcxLmVJ1wUcBjzZHjNtwhk7YCw5uOt1SS3TmzgIYlRoxGwiXXojvRLJHqjSwxEmSvQ664bQSWHSbU7mC7iocjtg.-d1gP4ZxDA8oyR9b9F2uYcdm4-cb41C5zhX2Id8mS70","RefreshToken":"590644ee070b4aa6aa18cd718918e9bf","ExpiresAt":"2025-08-13T01:10:05.521643Z"}
+[WebSocketService] Generated new SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+[WebSocketService] Step 3: Creating new PlayerSessionLog in database for PlayerId: 6npuiyOyOECgRCMO2xzHaQ
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (22ms) [Parameters=[@p0='?' (Size = 4000), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = DateTime2), @p5='?' (Size = 4000), @p6='?' (Size = 4000), @p7='?' (DbType = Boolean), @p8='?' (DbType = Boolean), @p9='?' (Size = 4000), @p10='?' (DbType = Boolean), @p11='?' (Size = 4000), @p12='?' (Size = 4000), @p13='?' (DbType = Int32), @p14='?' (Size = 4000), @p15='?' (Size = 4000), @p16='?' (DbType = Boolean), @p17='?' (Size = 4000), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = DateTime2), @p21='?' (Size = 4000), @p22='?' (Size = 4000), @p23='?' (DbType = DateTime2), @p24='?' (DbType = Boolean), @p25='?' (DbType = Int32), @p26='?' (Size = 4000), @p27='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SET IMPLICIT_TRANSACTIONS OFF;
+SET NOCOUNT ON;
+INSERT INTO [gameplay].[PlayerSessionLog] ([AdminNotes], [AttemptedClientScore], [BlockedSpawns], [ClientObjCount], [DeletionDate], [DesyncResolution], [DeviceId], [FakeObjectDetected], [FlaggedForReview], [GameVersion], [HashMismatch], [ObjectLifecycleLog], [ObjectSyncHash], [PickupEventsVerified], [Platform], [PlayerId], [RadiusEnforced], [Region], [ScoreServer], [ServerObjCount], [SessionEnd], [SessionId], [SessionMetadata], [SessionStart], [SpawnRateFlagged], [SpawnRequests], [SyncStatus], [ValidatedSpawns])
+OUTPUT INSERTED.[Id]
+VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (22ms) [Parameters=[@p0='?' (Size = 4000), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = DateTime2), @p5='?' (Size = 4000), @p6='?' (Size = 4000), @p7='?' (DbType = Boolean), @p8='?' (DbType = Boolean), @p9='?' (Size = 4000), @p10='?' (DbType = Boolean), @p11='?' (Size = 4000), @p12='?' (Size = 4000), @p13='?' (DbType = Int32), @p14='?' (Size = 4000), @p15='?' (Size = 4000), @p16='?' (DbType = Boolean), @p17='?' (Size = 4000), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = DateTime2), @p21='?' (Size = 4000), @p22='?' (Size = 4000), @p23='?' (DbType = DateTime2), @p24='?' (DbType = Boolean), @p25='?' (DbType = Int32), @p26='?' (Size = 4000), @p27='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [gameplay].[PlayerSessionLog] ([AdminNotes], [AttemptedClientScore], [BlockedSpawns], [ClientObjCount], [DeletionDate], [DesyncResolution], [DeviceId], [FakeObjectDetected], [FlaggedForReview], [GameVersion], [HashMismatch], [ObjectLifecycleLog], [ObjectSyncHash], [PickupEventsVerified], [Platform], [PlayerId], [RadiusEnforced], [Region], [ScoreServer], [ServerObjCount], [SessionEnd], [SessionId], [SessionMetadata], [SessionStart], [SpawnRateFlagged], [SpawnRequests], [SyncStatus], [ValidatedSpawns])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27);
+[WebSocketService] PlayerSessionLog created successfully.
+[WebSocketService] Tokens were refreshed. Adding new tokens to the response.
+[WebSocketController] Step 4: Sending OK response. Body: {"Authenticated":true,"SessionId":"42fc5f3c-8043-48c2-8450-a8ec4cde90ce","Reason":null,"Token":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.k_xmtwYxXbHA6ML3H4-j9M8wYQ_geBKlJhiXyKVPQ19xLl0ypRIbTinNQFZROiLJqhBDA9_DiTLxrBm7o3iRzKMCcXjr-8o4.trBXRZntg5nCzRQ48pQT0Q.jR9cNYxq0iuniSGZ68tUqcZ4dJ_AUcW-1UryN3uUBor1KtemYe0_DchykUypxG18RZAeCJHkY8WnSzA4ogbIuzAv-RK3hfG7Ro3gVCJjTLjMOhaxHQCMznKq79HkPyORcxLmVJ1wUcBjzZHjNtwhk7YCw5uOt1SS3TmzgIYlRoxGwiXXojvRLJHqjSwxEmSvQ664bQSWHSbU7mC7iocjtg.-d1gP4ZxDA8oyR9b9F2uYcdm4-cb41C5zhX2Id8mS70","RefreshToken":"590644ee070b4aa6aa18cd718918e9bf"}
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (5ms) [Parameters=[@__sessionId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [p].[Id], [p].[AdminNotes], [p].[AttemptedClientScore], [p].[BlockedSpawns], [p].[ClientObjCount], [p].[DeletionDate], [p].[DesyncResolution], [p].[DeviceId], [p].[FakeObjectDetected], [p].[FlaggedForReview], [p].[GameVersion], [p].[HashMismatch], [p].[ObjectLifecycleLog], [p].[ObjectSyncHash], [p].[PickupEventsVerified], [p].[Platform], [p].[PlayerId], [p].[RadiusEnforced], [p].[Region], [p].[ScoreServer], [p].[ServerObjCount], [p].[SessionEnd], [p].[SessionId], [p].[SessionMetadata], [p].[SessionStart], [p].[SpawnRateFlagged], [p].[SpawnRequests], [p].[SyncStatus], [p].[ValidatedSpawns]
+FROM [gameplay].[PlayerSessionLog] AS [p]
+WHERE [p].[SessionId] = @__sessionId_0 AND [p].[SessionEnd] IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__sessionId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[AdminNotes], [p].[AttemptedClientScore], [p].[BlockedSpawns], [p].[ClientObjCount], [p].[DeletionDate], [p].[DesyncResolution], [p].[DeviceId], [p].[FakeObjectDetected], [p].[FlaggedForReview], [p].[GameVersion], [p].[HashMismatch], [p].[ObjectLifecycleLog], [p].[ObjectSyncHash], [p].[PickupEventsVerified], [p].[Platform], [p].[PlayerId], [p].[RadiusEnforced], [p].[Region], [p].[ScoreServer], [p].[ServerObjCount], [p].[SessionEnd], [p].[SessionId], [p].[SessionMetadata], [p].[SessionStart], [p].[SpawnRateFlagged], [p].[SpawnRequests], [p].[SyncStatus], [p].[ValidatedSpawns]
+      FROM [gameplay].[PlayerSessionLog] AS [p]
+      WHERE [p].[SessionId] = @__sessionId_0 AND [p].[SessionEnd] IS NULL
+info: GameServer.Services.WebSocketConnectionManager[0]
+      WebSocket connected for SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+GameServer.Services.WebSocketConnectionManager: Information: WebSocket connected for SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+GameServer.Handlers.WebSocketHandler: Information: WebSocket connection established for PlayerId: 6npuiyOyOECgRCMO2xzHaQ with SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+info: GameServer.Handlers.WebSocketHandler[0]
+      WebSocket connection established for PlayerId: 6npuiyOyOECgRCMO2xzHaQ with SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.18878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.28878, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.28878, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3887799, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3887799, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4887798, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4887798, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5887797, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5887797, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6887796, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6887796, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7887795, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7887795, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8887794, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8887794, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9887793, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9887793, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0887792, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0887792, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.188779, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.188779, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.288779, Y=-0.49731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.288779, Y=-0.49731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3594897, Y=-0.42659932
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3594897, Y=-0.42659932
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4302003, Y=-0.35588866
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4302003, Y=-0.35588866
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.500911, Y=-0.285178
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.500911, Y=-0.285178
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5716217, Y=-0.21446733
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5716217, Y=-0.21446733
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6423323, Y=-0.14375666
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6423323, Y=-0.14375666
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.713043, Y=-0.073045984
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.713043, Y=-0.073045984
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7837536, Y=-0.00233531
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7837536, Y=-0.00233531
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8544643, Y=0.068375364
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8544643, Y=0.068375364
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.925175, Y=0.13908604
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.925175, Y=0.13908604
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9958856, Y=0.20979671
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9958856, Y=0.20979671
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.2805074
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.2805074
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.38050735
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.38050735
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.4805073
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.4805073
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.5805073
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.5805073
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.68050724
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.68050724
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.7805072
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.7805072
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.8805072
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.8805072
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.98050714
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=0.98050714
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.080507
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.080507
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.180507
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.180507
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.2805068
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0665963, Y=1.2805068
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9958856, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9958856, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8958857, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8958857, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7958858, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7958858, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.695886, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.695886, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.595886, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.595886, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.495886, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.495886, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3958862, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3958862, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2958863, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2958863, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.1958864, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.1958864, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0958865, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0958865, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9958866, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9958866, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8958867, Y=1.3512175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8958867, Y=1.3512175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.825176, Y=1.2805068
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.825176, Y=1.2805068
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7544653, Y=1.2097962
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7544653, Y=1.2097962
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6837547, Y=1.1390855
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6837547, Y=1.1390855
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.613044, Y=1.0683749
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.613044, Y=1.0683749
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5423334, Y=0.9976642
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5423334, Y=0.9976642
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4716227, Y=0.92695355
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4716227, Y=0.92695355
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.400912, Y=0.8562429
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.400912, Y=0.8562429
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3302014, Y=0.78553224
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3302014, Y=0.78553224
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2594907, Y=0.7148216
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2594907, Y=0.7148216
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1887801, Y=0.6441109
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1887801, Y=0.6441109
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1180694, Y=0.57340026
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1180694, Y=0.57340026
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0473588, Y=0.5026896
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0473588, Y=0.5026896
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.43197894
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.43197894
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.33197898
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.33197898
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.23197901
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.23197901
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.13197905
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.13197905
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.031979084
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=0.031979084
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.06802088
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.06802088
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.16802084
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.16802084
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.2680208
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.2680208
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.36802077
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.36802077
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.46802074
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.46802074
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.5680207
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.5680207
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.66802067
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9766481, Y=-0.66802067
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.90593743, Y=-0.7387313
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.90593743, Y=-0.7387313
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8352268, Y=-0.809442
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8352268, Y=-0.809442
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7645161, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7645161, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.66451615, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.66451615, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5645162, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5645162, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.46451622, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.46451622, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.36451626, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.36451626, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2645163, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2645163, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.16451633, Y=-0.88015264
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.16451633, Y=-0.88015264
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.093805656, Y=-0.809442
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.093805656, Y=-0.809442
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.023094982, Y=-0.7387313
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.023094982, Y=-0.7387313
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.047615692, Y=-0.66802067
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.047615692, Y=-0.66802067
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.118326366, Y=-0.59731
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.118326366, Y=-0.59731
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.18903704, Y=-0.52659935
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.18903704, Y=-0.52659935
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.2597477, Y=-0.4558887
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.2597477, Y=-0.4558887
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.3304584, Y=-0.38517803
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.3304584, Y=-0.38517803
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.31446737
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.31446737
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.2144674
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.2144674
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.11446744
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.11446744
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.014467478
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=-0.014467478
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.08553249
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.08553249
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.18553245
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.18553245
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.28553241
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.28553241
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.38553238
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.38553238
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.48553234
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.48553234
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.5855323
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.40116906, Y=0.5855323
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.3304584, Y=0.65624297
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.3304584, Y=0.65624297
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.25974774, Y=0.7269536
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.25974774, Y=0.7269536
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.18903707, Y=0.7976643
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.18903707, Y=0.7976643
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.118326396, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.118326396, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.018326432, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=0.018326432, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.08167353, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.08167353, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.1816735, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.1816735, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.28167346, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.28167346, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.38167343, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.38167343, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.4816734, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.4816734, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5816734, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5816734, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.68167335, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.68167335, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7816733, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7816733, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8816733, Y=0.86837494
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8816733, Y=0.86837494
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.95238394, Y=0.7976643
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.95238394, Y=0.7976643
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0230947, Y=0.7269536
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0230947, Y=0.7269536
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0938053, Y=0.65624297
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0938053, Y=0.65624297
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.164516, Y=0.5855323
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.164516, Y=0.5855323
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2352266, Y=0.51482165
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2352266, Y=0.51482165
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3059373, Y=0.444111
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3059373, Y=0.444111
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.376648, Y=0.37340033
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.376648, Y=0.37340033
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4473586, Y=0.30268967
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4473586, Y=0.30268967
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5180693, Y=0.231979
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5180693, Y=0.231979
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5887799, Y=0.16126832
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5887799, Y=0.16126832
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6594906, Y=0.09055765
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6594906, Y=0.09055765
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7302012, Y=0.019846976
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7302012, Y=0.019846976
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8009119, Y=-0.050863698
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8009119, Y=-0.050863698
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8716226, Y=-0.12157437
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8716226, Y=-0.12157437
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9423332, Y=-0.19228505
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9423332, Y=-0.19228505
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0130439, Y=-0.26299572
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0130439, Y=-0.26299572
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0837545, Y=-0.33370638
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.0837545, Y=-0.33370638
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.1544652, Y=-0.40441704
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.1544652, Y=-0.40441704
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2251759, Y=-0.4751277
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2251759, Y=-0.4751277
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2958865, Y=-0.54583836
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2958865, Y=-0.54583836
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3665972, Y=-0.616549
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3665972, Y=-0.616549
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4373078, Y=-0.6872597
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4373078, Y=-0.6872597
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5080185, Y=-0.75797033
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5080185, Y=-0.75797033
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5787292, Y=-0.828681
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5787292, Y=-0.828681
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6494398, Y=-0.89939165
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6494398, Y=-0.89939165
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7201505, Y=-0.9701023
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7201505, Y=-0.9701023
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7908611, Y=-1.040813
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7908611, Y=-1.040813
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8615718, Y=-1.1115236
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8615718, Y=-1.1115236
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9322824, Y=-1.1822343
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9322824, Y=-1.1822343
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.002993, Y=-1.252945
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.002993, Y=-1.252945
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0737038, Y=-1.3236556
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0737038, Y=-1.3236556
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1444144, Y=-1.3943663
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1444144, Y=-1.3943663
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.215125, Y=-1.4650769
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.215125, Y=-1.4650769
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2858357, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2858357, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3858356, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3858356, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3858356, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3858356, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2858357, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2858357, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1858358, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1858358, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.085836, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.085836, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.985836, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.985836, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8858361, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8858361, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7858362, Y=-1.5357876
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7858362, Y=-1.5357876
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7151256, Y=-1.4650769
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7151256, Y=-1.4650769
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.644415, Y=-1.3943663
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.644415, Y=-1.3943663
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5737042, Y=-1.3236556
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5737042, Y=-1.3236556
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.252945
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.252945
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.152945
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.152945
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.0529451
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-1.0529451
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.9529452
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.9529452
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.8529452
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.8529452
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.75294524
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5029936, Y=-0.75294524
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5737042, Y=-0.6822346
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5737042, Y=-0.6822346
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.644415, Y=-0.6115239
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.644415, Y=-0.6115239
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7151256, Y=-0.54081327
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7151256, Y=-0.54081327
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7858362, Y=-0.4701026
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7858362, Y=-0.4701026
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8565469, Y=-0.39939195
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8565469, Y=-0.39939195
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9272575, Y=-0.3286813
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9272575, Y=-0.3286813
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9979682, Y=-0.25797063
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9979682, Y=-0.25797063
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0686789, Y=-0.18725996
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0686789, Y=-0.18725996
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1393895, Y=-0.11654928
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1393895, Y=-0.11654928
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2101002, Y=-0.04583861
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2101002, Y=-0.04583861
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2808108, Y=0.024872065
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2808108, Y=0.024872065
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3515215, Y=0.09558274
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3515215, Y=0.09558274
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4222322, Y=0.16629341
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4222322, Y=0.16629341
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.23700409
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.23700409
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.33700407
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.33700407
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.43700403
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.43700403
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.537004
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4929428, Y=0.537004
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4222322, Y=0.60771465
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.4222322, Y=0.60771465
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3515215, Y=0.6784253
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.3515215, Y=0.6784253
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2808108, Y=0.749136
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2808108, Y=0.749136
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2101002, Y=0.81984663
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.2101002, Y=0.81984663
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1393895, Y=0.8905573
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.1393895, Y=0.8905573
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0686789, Y=0.96126795
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-3.0686789, Y=0.96126795
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9979682, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.9979682, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8979683, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.8979683, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7979684, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.7979684, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6979685, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.6979685, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5979686, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.5979686, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4979687, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.4979687, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3979688, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.3979688, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2979689, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.2979689, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.197969, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.197969, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.097969, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-2.097969, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9979692, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.9979692, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8979692, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.8979692, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7979693, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7979693, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6979694, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.6979694, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5979695, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5979695, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4979696, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4979696, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3979697, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3979697, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2979698, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2979698, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1979699, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1979699, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.09797, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.09797, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.99797004, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.99797004, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8979701, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8979701, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7979701, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7979701, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.69797015, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.69797015, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5979702, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5979702, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.49797022, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.49797022, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.39797026, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.39797026, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2979703, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2979703, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.19797033, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.19797033, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+2
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=1.0319786
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=0.93197864
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.09797037, Y=0.93197864
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.16868104, Y=0.861268
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.16868104, Y=0.861268
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.23939171, Y=0.7905573
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.23939171, Y=0.7905573
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.3101024, Y=0.71984667
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.3101024, Y=0.71984667
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.38081306, Y=0.649136
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.38081306, Y=0.649136
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.45152372, Y=0.57842535
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.45152372, Y=0.57842535
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5222344, Y=0.5077147
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5222344, Y=0.5077147
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.59294504, Y=0.43700403
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.59294504, Y=0.43700403
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6636557, Y=0.36629337
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6636557, Y=0.36629337
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.73436636, Y=0.2955827
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.73436636, Y=0.2955827
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.805077, Y=0.22487204
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.805077, Y=0.22487204
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8757877, Y=0.15416136
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8757877, Y=0.15416136
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.94649833, Y=0.08345069
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.94649833, Y=0.08345069
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.017209, Y=0.012740016
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.017209, Y=0.012740016
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0879197, Y=-0.057970658
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0879197, Y=-0.057970658
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1586304, Y=-0.12868133
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1586304, Y=-0.12868133
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.229341, Y=-0.199392
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.229341, Y=-0.199392
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3000517, Y=-0.27010268
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3000517, Y=-0.27010268
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3707623, Y=-0.34081334
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3707623, Y=-0.34081334
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.441473, Y=-0.411524
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.441473, Y=-0.411524
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5121837, Y=-0.48223466
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5121837, Y=-0.48223466
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5828943, Y=-0.5529453
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5828943, Y=-0.5529453
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.653605, Y=-0.623656
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.653605, Y=-0.623656
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7243156, Y=-0.69436663
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7243156, Y=-0.69436663
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.7650773
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.7650773
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.86507726
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.86507726
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.9650772
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-0.9650772
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.0650772
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.0650772
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.1650772
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.1650772
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.2650771
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.2650771
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.365077
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7950263, Y=-1.365077
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7243156, Y=-1.4357877
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.7243156, Y=-1.4357877
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.653605, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.653605, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5536051, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.5536051, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4536052, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4536052, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3536053, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3536053, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2536054, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2536054, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1536055, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1536055, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0536056, Y=-1.5064983
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0536056, Y=-1.5064983
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9828949, Y=-1.4357877
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9828949, Y=-1.4357877
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.91218424, Y=-1.365077
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.91218424, Y=-1.365077
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8414736, Y=-1.2943664
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8414736, Y=-1.2943664
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7707629, Y=-1.2236557
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7707629, Y=-1.2236557
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.70005226, Y=-1.152945
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.70005226, Y=-1.152945
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6293416, Y=-1.0822344
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6293416, Y=-1.0822344
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.55863094, Y=-1.0115237
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.55863094, Y=-1.0115237
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48792028, Y=-0.94081306
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48792028, Y=-0.94081306
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41720963, Y=-0.8701024
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41720963, Y=-0.8701024
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34649897, Y=-0.79939175
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34649897, Y=-0.79939175
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2757883, Y=-0.7286811
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2757883, Y=-0.7286811
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.6579704
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.6579704
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.55797046
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.55797046
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.4579705
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.4579705
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.35797054
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.35797054
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.25797057
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.20507763, Y=-0.25797057
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2757883, Y=-0.1872599
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.2757883, Y=-0.1872599
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34649897, Y=-0.11654922
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34649897, Y=-0.11654922
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41720963, Y=-0.04583855
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41720963, Y=-0.04583855
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48792028, Y=0.024872124
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48792028, Y=0.024872124
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.55863094, Y=0.0955828
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.55863094, Y=0.0955828
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6293416, Y=0.16629347
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.6293416, Y=0.16629347
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.70005226, Y=0.23700415
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.70005226, Y=0.23700415
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7707629, Y=0.30771482
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7707629, Y=0.30771482
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8414736, Y=0.37842548
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8414736, Y=0.37842548
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.91218424, Y=0.44913614
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.91218424, Y=0.44913614
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9828949, Y=0.5198468
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.9828949, Y=0.5198468
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0536056, Y=0.59055746
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0536056, Y=0.59055746
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1243162, Y=0.6612681
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1243162, Y=0.6612681
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1950269, Y=0.7319788
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1950269, Y=0.7319788
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2657375, Y=0.80268943
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2657375, Y=0.80268943
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3364482, Y=0.8734001
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3364482, Y=0.8734001
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=0.94411075
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=0.94411075
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.0441108
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.0441108
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.1441107
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.1441107
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.2441106
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.2441106
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.3441105
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.3441105
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.4441104
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.4441104
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.5441103
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.5441103
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.6441102
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.6441102
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.7441101
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.7441101
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.84411
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.84411
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.9441099
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=1.9441099
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=2.0441098
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.4071589, Y=2.0441098
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3364482, Y=2.1148205
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.3364482, Y=2.1148205
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2657375, Y=2.1855311
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.2657375, Y=2.1855311
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1950269, Y=2.2562418
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1950269, Y=2.2562418
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1243162, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.1243162, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0243163, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-1.0243163, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.92431635, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.92431635, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8243164, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.8243164, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7243164, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.7243164, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.62431645, Y=2.3269525
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.62431645, Y=2.3269525
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5536058, Y=2.2562418
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.5536058, Y=2.2562418
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48289514, Y=2.1855311
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.48289514, Y=2.1855311
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41218448, Y=2.1148205
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.41218448, Y=2.1148205
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34147382, Y=2.0441098
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.34147382, Y=2.0441098
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.9733992
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.9733992
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.8733993
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.8733993
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.7733994
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.7733994
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.6733994
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.6733994
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.5733995
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.5733995
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.4733996
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.4733996
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.3733997
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.3733997
+info: GameServer.Handlers.WebSocketHandler[0]
+      Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.2733998
+GameServer.Handlers.WebSocketHandler: Information: Player 6npuiyOyOECgRCMO2xzHaQ position update: X=-0.27076316, Y=1.2733998
+Exception thrown: 'System.Net.WebSockets.WebSocketException' in System.Private.CoreLib.dll
+info: GameServer.Handlers.WebSocketHandler[0]
+      WebSocket connection closed for SessionId 42fc5f3c-8043-48c2-8450-a8ec4cde90ce. Reason: The remote party closed the WebSocket connection without completing the close handshake.
+GameServer.Handlers.WebSocketHandler: Information: WebSocket connection closed for SessionId 42fc5f3c-8043-48c2-8450-a8ec4cde90ce. Reason: The remote party closed the WebSocket connection without completing the close handshake.
+info: GameServer.Services.WebSocketConnectionManager[0]
+      WebSocket disconnected for SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+GameServer.Services.WebSocketConnectionManager: Information: WebSocket disconnected for SessionId: 42fc5f3c-8043-48c2-8450-a8ec4cde90ce
+[WebSocketController] Step 1: Received auth request. Input: {"DeviceId":"185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3","UserId":"6npuiyOyOECgRCMO2xzHaQ","JwtToken":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.4ITukA9c3tkO8zxXtVEzOJ09wLGk0iwyaQnS_pXVavJ50kLtjxrOROYGkDtpE36Vl_d6KQwfkwPEo7NB0c3TBj-gu0l5huVK.7UbCBMCULFwTzt7fwSS78w.yJHN0MM4PomnBK3MBcEAk-oAvcs9yJpWyt0oFmVBPfAmLHa49hG9P-isv2d1pwgLtLgtp_TeJBXDa-f2t6bOWrY8767nBszujrGF8fCme76vD3m89QnxE9uS3v5Rvt4yfD8RwM0GdZAiMl5Z2TQ9dVYCwBo0SVoqKr7kqbuECIlc5IntuEsuNLd5c_f59u4dfY5Fb0JGi7CKDXrSO6lGJA.ebTQWWp0Cx4_jJJOIyFpUh894stNRw1QlYwfVT0Fbu0","RefreshToken":"dd55297748874039a26f50505544e788"}
+[WebSocketService] Step 2: Validating tokens via JwtService. Input: {"DeviceId":"185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3","UserId":"6npuiyOyOECgRCMO2xzHaQ","JwtToken":"eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIn0.4ITukA9c3tkO8zxXtVEzOJ09wLGk0iwyaQnS_pXVavJ50kLtjxrOROYGkDtpE36Vl_d6KQwfkwPEo7NB0c3TBj-gu0l5huVK.7UbCBMCULFwTzt7fwSS78w.yJHN0MM4PomnBK3MBcEAk-oAvcs9yJpWyt0oFmVBPfAmLHa49hG9P-isv2d1pwgLtLgtp_TeJBXDa-f2t6bOWrY8767nBszujrGF8fCme76vD3m89QnxE9uS3v5Rvt4yfD8RwM0GdZAiMl5Z2TQ9dVYCwBo0SVoqKr7kqbuECIlc5IntuEsuNLd5c_f59u4dfY5Fb0JGi7CKDXrSO6lGJA.ebTQWWp0Cx4_jJJOIyFpUh894stNRw1QlYwfVT0Fbu0","RefreshToken":"dd55297748874039a26f50505544e788"}
+[JwtService] ValidateOrRefreshAsync called. UserId: 6npuiyOyOECgRCMO2xzHaQ, DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+      FROM [auth].[RefreshTokenRecord] AS [r]
+      WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+Microsoft.EntityFrameworkCore.Database.Command: Information: Executed DbCommand (2ms) [Parameters=[@__deviceId_0='?' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+SELECT [r].[Id], [r].[DeviceId], [r].[EncryptedRefreshToken], [r].[ExpiresAt], [r].[IsRevoked], [r].[SecretKey], [r].[UserId]
+FROM [auth].[RefreshTokenRecord] AS [r]
+WHERE [r].[DeviceId] = @__deviceId_0 AND [r].[IsRevoked] = CAST(0 AS bit)
+[JwtService] Found 1 non-revoked token candidates for DeviceId: 185BC65C-64B8-5AE4-8DF3-EFF110BB7FF3
+[JwtService] No valid refresh token record found or it has expired. Expiry: 
+[WebSocketService] Token validation failed. Returning unauthenticated.
+[WebSocketController] Step 4: Sending Unauthorized response. Body: {"Authenticated":false,"SessionId":null,"Reason":"Invalid token or session. Please log in again.","Token":null,"RefreshToken":null}

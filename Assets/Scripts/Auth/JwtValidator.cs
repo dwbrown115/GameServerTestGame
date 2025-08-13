@@ -50,7 +50,7 @@ public class JwtValidator : MonoBehaviour
         }
 
         // 2. Perform local logic: Update the JWT Manager with the new token info
-        JwtManager.Instance.SetToken(loginResult);
+        JwtManager.Instance.SetToken(loginResult.token, loginResult.refreshToken, loginResult.userId, loginResult.expiresAt);
         Debug.Log("✅ Token validated or refreshed.");
 
         // 3. Call the PlayerApiClient to fetch data
