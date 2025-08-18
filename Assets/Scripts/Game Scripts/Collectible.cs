@@ -19,6 +19,7 @@ public class Collectible : MonoBehaviour
         if (other.CompareTag(PLAYER_TAG))
         {
             AddScore();
+            ValidatedObjectsManager.DestroyObject(gameObject.name);
             Destroy(gameObject);
         }
     }

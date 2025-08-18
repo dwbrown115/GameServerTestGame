@@ -9,7 +9,7 @@ internal class TokenData
 {
     public string JwtToken;
     public string RefreshToken;
-    public string ExpiresAt;
+    public DateTime ExpiresAt;
 }
 
 [Serializable]
@@ -55,26 +55,15 @@ public class JwtManager : MonoBehaviour
         LoadTokenFromDisk();
     }
 
-    public void SetToken(string jwt, string refreshToken, string userId, string expiresAtString)
+    public void SetToken(string jwt, string refreshToken, string userId, DateTime? expiresAtDateTime)
     {
-        if (
-            !DateTime.TryParse(
-                expiresAtString,
-                null,
-                System.Globalization.DateTimeStyles.RoundtripKind,
-                out DateTime expiry
-            )
-        )
-        {
-            Debug.LogWarning("⚠️ Failed to parse expiry from string. Defaulting to MinValue.");
-            expiry = DateTime.MinValue;
-        }
+        DateTime expiry = expiresAtDateTime ?? DateTime.MinValue; // Use provided DateTime or MinValue if null
 
         if (string.IsNullOrEmpty(jwt) || string.IsNullOrEmpty(refreshToken))
         {
             Debug.LogWarning("🚫 Attempted to save empty token or refresh token.");
             Debug.Log(
-                $"🛎 SetToken → Token: {jwt}, Refresh: {refreshToken}, ExpiresAt: {expiresAtString}"
+                $"🛎 SetToken → Token: {jwt}, Refresh: {refreshToken}, ExpiresAt: {expiresAtDateTime}"
             );
             return;
         }
@@ -107,7 +96,7 @@ public class JwtManager : MonoBehaviour
         return refreshToken;
     }
 
-    public static string ParseJwtExpiry(string jwtToken)
+    public static DateTime? ParseJwtExpiry(string jwtToken)
     {
         if (string.IsNullOrEmpty(jwtToken))
         {
@@ -146,7 +135,7 @@ public class JwtManager : MonoBehaviour
             {
                 long expUnixTimestamp = Convert.ToInt64(payload["exp"]);
                 DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(expUnixTimestamp);
-                return dateTimeOffset.UtcDateTime.ToString("o"); // ISO 8601 format
+                return dateTimeOffset.UtcDateTime; // Return DateTime directly
             }
             else
             {
@@ -199,7 +188,7 @@ public class JwtManager : MonoBehaviour
         {
             JwtToken = jwtToken,
             RefreshToken = refreshToken,
-            ExpiresAt = expiresAt.ToString("o"), // ISO 8601 format
+            ExpiresAt = expiresAt,
         };
 
         string tokenJson = JsonConvert.SerializeObject(tokenData);
@@ -250,18 +239,7 @@ public class JwtManager : MonoBehaviour
             var tokenData = JsonConvert.DeserializeObject<TokenData>(decryptedJson);
             jwtToken = tokenData.JwtToken;
             refreshToken = tokenData.RefreshToken;
-            if (
-                !DateTime.TryParse(
-                    tokenData.ExpiresAt,
-                    null,
-                    System.Globalization.DateTimeStyles.RoundtripKind,
-                    out expiresAt
-                )
-            )
-            {
-                Debug.LogWarning("⚠️ Failed to parse token expiry date. Setting to MinValue.");
-                expiresAt = DateTime.MinValue;
-            }
+            expiresAt = tokenData.ExpiresAt; // Load DateTime directly
 
             Debug.Log($"✅ Loaded JWT: {jwtToken}");
             Debug.Log($"✅ Loaded Refresh Token: {refreshToken}");

@@ -5,12 +5,6 @@ using UnityEngine;
 
 public class PlayerManager : MonoBehaviour
 {
-    [Serializable]
-    private class PersistentPlayerData
-    {
-        public string userId;
-    }
-
     public static PlayerManager Instance;
 
     private string playerDataPath;

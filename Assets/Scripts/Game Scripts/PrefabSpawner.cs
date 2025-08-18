@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PrefabSpawner : MonoBehaviour
 {
@@ -20,46 +21,64 @@ public class PrefabSpawner : MonoBehaviour
     [SerializeField]
     private float spawnRadius = 10f;
 
+    public PlayerController2D playerController;
+
     private void OnEnable()
     {
-        // Subscribe to the countdown finished event to stop spawning.
         CountdownTimer.OnCountdownFinished += StopSpawning;
     }
 
     private void OnDisable()
     {
-        // Unsubscribe to prevent memory leaks.
         CountdownTimer.OnCountdownFinished -= StopSpawning;
     }
 
     private void Start()
     {
-        // Check if references are set to avoid errors.
-        if (playerTransform == null || prefabToSpawn == null)
+        if (playerController == null)
         {
-            Debug.LogError(
-                "Player Transform or Prefab to Spawn is not set in the Spawner. Disabling spawner.",
-                this
-            );
+            Debug.LogError("PlayerController2D not set on PrefabSpawner.", this);
             this.enabled = false;
             return;
         }
-
-        // Call the SpawnPrefab method every 'spawnInterval' seconds, starting after an initial delay.
-        InvokeRepeating(nameof(SpawnPrefab), spawnInterval, spawnInterval);
+        StartCoroutine(SpawnLoop());
     }
 
-    private void SpawnPrefab()
+    private IEnumerator SpawnLoop()
     {
-        Vector2 randomCirclePoint = Random.insideUnitCircle * spawnRadius;
-        Vector3 spawnPosition =
-            playerTransform.position + new Vector3(randomCirclePoint.x, randomCirclePoint.y, 0);
-        Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        while (true)
+        {
+            yield return new WaitForSeconds(spawnInterval);
+            playerController.RequestSpawn(spawnRadius);
+        }
+    }
+
+    public void HandleSpawnResponse(SpawnItemResponse response)
+    {
+        Debug.Log($"Received Spawn Response: Granted={response.Granted}, UniqueId={response.UniqueId}");
+        if (response.Granted)
+        {
+            bool isValid = IsNumberValid.isValidNumber(response.UniqueId);
+            Debug.Log($"UniqueId validation result: {isValid}");
+            if (isValid)
+            {
+                Vector3 spawnPosition = new Vector3(response.SpawnPosition.X, response.SpawnPosition.Y, 0);
+                Debug.Log($"Spawning prefab at {spawnPosition}");
+                GameObject newObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+                newObject.name = response.UniqueId;
+                ValidatedObjectsManager.AddActiveObject(response.UniqueId);
+                Debug.Log($"Spawned prefab and named it {response.UniqueId}");
+            }
+            else
+            {
+                Debug.LogWarning($"Invalid UniqueId received from server: {response.UniqueId}");
+            }
+        }
     }
 
     private void StopSpawning()
     {
-        CancelInvoke(nameof(SpawnPrefab));
+        StopAllCoroutines();
     }
 
     private void OnDrawGizmosSelected()

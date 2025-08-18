@@ -4,16 +4,6 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// using SharedLibrary.Requests;
-
-// Removed PlayerPositionMessage and PlayerPositionResponse structs
-
-[Serializable]
-internal class PersistentPlayerData
-{
-    public string userId;
-}
-
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController2D : MonoBehaviour
 {
@@ -21,17 +11,20 @@ public class PlayerController2D : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 5f;
 
-    private string serverAddress = "localhost:7123"; // Set your server address
+    private string serverAddress = "localhost:7123";
     private string sessionId;
     private string playerId;
-    public float positionUpdateRate = 0.2f; // How often to send position data
+    public float positionUpdateRate = 0.2f;
+    public float playerRadius = 5.0f;
+    private DateTime _lastSpawnAttempt = DateTime.MinValue;
 
     private Rigidbody2D rb;
     private InputAction moveAction;
     private Vector2 moveInput;
     private bool isMovementDisabled;
 
-    private PlayerWebSocketClient _playerWebSocketClient; // New instance of the client
+    private PlayerWebSocketClient _playerWebSocketClient;
+    public PrefabSpawner prefabSpawner; // Reference to PrefabSpawner
 
     private void Awake()
     {
@@ -42,16 +35,18 @@ public class PlayerController2D : MonoBehaviour
     private async void Start()
     {
         LoadCredentials();
-        // Initialize the WebSocket client
         _playerWebSocketClient = new PlayerWebSocketClient(
             serverAddress,
             sessionId,
             playerId,
             positionUpdateRate,
-            HandlePlayerPositionResponse, // Callback for messages (now receives PlayerPositionResponse)
-            (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"), // Callback for errors
-            () => Debug.Log("PlayerWebSocketClient: Connected!"), // Callback for connection
-            () => Debug.Log("PlayerWebSocketClient: Disconnected!") // Callback for disconnection
+            playerRadius,
+            _lastSpawnAttempt,
+            HandlePlayerPingResponse,
+            prefabSpawner.HandleSpawnResponse, // Pass the handler from PrefabSpawner
+            (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"),
+            () => Debug.Log("PlayerWebSocketClient: Connected!"),
+            () => Debug.Log("PlayerWebSocketClient: Disconnected!")
         );
         await _playerWebSocketClient.ConnectAsync();
     }
@@ -67,9 +62,9 @@ public class PlayerController2D : MonoBehaviour
         moveAction.Disable();
         CountdownTimer.OnCountdownFinished -= DisableMovement;
 
-        // Removed CancelInvoke(nameof(SendPosition));
         if (_playerWebSocketClient != null)
         {
+            ValidatedObjectsManager.DeleteFile();
             await _playerWebSocketClient.DisconnectAsync();
         }
     }
@@ -87,8 +82,7 @@ public class PlayerController2D : MonoBehaviour
     private void FixedUpdate()
     {
         rb.linearVelocity = moveInput * moveSpeed;
-        // Send position updates via the new client
-        _ = _playerWebSocketClient.SendPositionAsync(transform.position);
+        _ = _playerWebSocketClient.SendPositionAsync(transform.position, _lastSpawnAttempt);
     }
 
     private void DisableMovement()
@@ -152,7 +146,6 @@ public class PlayerController2D : MonoBehaviour
                 Debug.LogWarning(
                     $"PlayerController2D: Caught WebSocketException during DisconnectWebSocket: {ex.Message}"
                 );
-                // The WebSocket is likely already in an invalid state, so we just log and continue.
             }
             catch (Exception ex)
             {
@@ -163,14 +156,30 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
-    // New method to handle deserialized PlayerPositionResponse
-    private void HandlePlayerPositionResponse(PlayerPositionResponse response)
+    private void HandlePlayerPingResponse(PlayerPingResponse response)
     {
         if (response != null && response.Status != null)
         {
-            // Debug.Log(
-            //     $"<color=cyan>Server ACK: X={response.X}, Y={response.Y}, Status='{response.Status}'</color>"
-            // );
+            Debug.Log(
+                $"<color=cyan>Server Response: {JsonConvert.SerializeObject(response)}</color>"
+            );
         }
+    }
+
+    public void SetLastSpawnAttempt(DateTime spawnTime)
+    {
+        _lastSpawnAttempt = spawnTime;
+    }
+
+    public void RequestSpawn(float spawnRadius)
+    {
+        var request = new SpawnItemRequest
+        {
+            SessionId = sessionId,
+            PlayerPosition = new Position { X = transform.position.x, Y = transform.position.y },
+            SpawnAttemptTimestamp = DateTime.UtcNow,
+            SpawnRadius = spawnRadius,
+        };
+        _ = _playerWebSocketClient.SendSpawnRequestAsync(request);
     }
 }

@@ -45,7 +45,9 @@ public class WebSocketAuthenticator : MonoBehaviour
     )
     {
         Debug.Log("WebSocketAuthenticator: AuthenticateCoroutine started.");
-        Debug.Log($"WebSocketAuthenticator: Creating payload for authentication request. UserID: {authRequest.UserId}");
+        Debug.Log(
+            $"WebSocketAuthenticator: Creating payload for authentication request. UserID: {authRequest.UserId}"
+        );
         string jsonPayload = JsonConvert.SerializeObject(authRequest);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
 
@@ -57,7 +59,9 @@ public class WebSocketAuthenticator : MonoBehaviour
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
 
-            Debug.Log($"WebSocketAuthenticator: Sending authentication request to {AuthEndpoint}...");
+            Debug.Log(
+                $"WebSocketAuthenticator: Sending authentication request to {AuthEndpoint}..."
+            );
             yield return request.SendWebRequest();
             Debug.Log("WebSocketAuthenticator: Authentication request sent. Processing response.");
 
@@ -74,7 +78,9 @@ public class WebSocketAuthenticator : MonoBehaviour
                     {
                         response.Reason = request.error;
                     }
-                    Debug.LogWarning($"WebSocketAuthenticator: Parsed error response: {JsonConvert.SerializeObject(response)}");
+                    Debug.LogWarning(
+                        $"WebSocketAuthenticator: Parsed error response: {JsonConvert.SerializeObject(response)}"
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -83,14 +89,18 @@ public class WebSocketAuthenticator : MonoBehaviour
                         Authenticated = false,
                         Reason = request.error,
                     };
-                    Debug.LogError($"WebSocketAuthenticator: Failed to parse error response: {ex.Message}");
+                    Debug.LogError(
+                        $"WebSocketAuthenticator: Failed to parse error response: {ex.Message}"
+                    );
                 }
             }
             else
             {
                 string responseJson = request.downloadHandler.text;
                 response = JsonConvert.DeserializeObject<WebSocketAuthResponse>(responseJson);
-                Debug.Log($"WebSocketAuthenticator: HTTPS Auth Response: {JsonConvert.SerializeObject(response)}");
+                Debug.Log(
+                    $"WebSocketAuthenticator: HTTPS Auth Response: {JsonConvert.SerializeObject(response)}"
+                );
             }
 
             onComplete?.Invoke(response);

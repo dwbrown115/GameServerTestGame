@@ -5,21 +5,24 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 // Data models for player position messages
 [Serializable]
-public class PlayerPositionMessage
+public class PlayerPing
 {
-    public float X { get; set; }
-    public float Y { get; set; }
+    public string SessionId { get; set; }
+    public string PlayerId { get; set; }
+    public Position CurrentPosition { get; set; }
+    public float Radius { get; set; }
+    public DateTime LastSpawnAttempt { get; set; }
 }
 
 [Serializable]
-public class PlayerPositionResponse
+public class PlayerPingResponse
 {
-    public float X { get; set; }
-    public float Y { get; set; }
+    public string SessionId { get; set; }
     public string Status { get; set; }
 }
 
@@ -31,7 +34,11 @@ public class PlayerWebSocketClient
     private string _sessionId;
     private string _playerId;
     private float _positionUpdateRate;
-    private Action<PlayerPositionResponse> _onMessageReceived; // Changed to PlayerPositionResponse
+    private float _lastSendTime;
+    private float _radius;
+    private DateTime _lastSpawnAttempt;
+    private Action<PlayerPingResponse> _onPlayerPingResponse;
+    private Action<SpawnItemResponse> _onSpawnItemResponse;
     private Action<string> _onError;
     private Action _onConnected;
     private Action _onDisconnected;
@@ -41,7 +48,10 @@ public class PlayerWebSocketClient
         string sessionId,
         string playerId,
         float positionUpdateRate,
-        Action<PlayerPositionResponse> onMessageReceived, // Changed to PlayerPositionResponse
+        float radius,
+        DateTime lastSpawnAttempt,
+        Action<PlayerPingResponse> onPlayerPingResponse,
+        Action<SpawnItemResponse> onSpawnItemResponse,
         Action<string> onError,
         Action onConnected,
         Action onDisconnected
@@ -51,7 +61,10 @@ public class PlayerWebSocketClient
         _sessionId = sessionId;
         _playerId = playerId;
         _positionUpdateRate = positionUpdateRate;
-        _onMessageReceived = onMessageReceived;
+        _radius = radius;
+        _lastSpawnAttempt = lastSpawnAttempt;
+        _onPlayerPingResponse = onPlayerPingResponse;
+        _onSpawnItemResponse = onSpawnItemResponse;
         _onError = onError;
         _onConnected = onConnected;
         _onDisconnected = onDisconnected;
@@ -59,13 +72,9 @@ public class PlayerWebSocketClient
 
     public async Task ConnectAsync()
     {
-        // Debug.Log("PlayerWebSocketClient: Attempting to connect to WebSocket server...");
         if (string.IsNullOrEmpty(_sessionId) || string.IsNullOrEmpty(_playerId))
         {
             _onError?.Invoke("SessionId or PlayerId is not set. Cannot connect to the server.");
-            // Debug.LogWarning(
-            // "PlayerWebSocketClient: Connection aborted due to missing credentials."
-            // );
             return;
         }
 
@@ -75,25 +84,19 @@ public class PlayerWebSocketClient
         try
         {
             Uri uri = new Uri($"wss://{_serverAddress}/ws?sessionId={_sessionId}");
-            // Debug.Log($"PlayerWebSocketClient: Connecting to URI: {uri}");
             await _webSocket.ConnectAsync(uri, _cancellationTokenSource.Token);
-            // Debug.Log("PlayerWebSocketClient: Connection successful!");
             _onConnected?.Invoke();
-            // Debug.Log("PlayerWebSocketClient: Starting message receiver.");
-
             _ = ReceiveMessagesAsync(_cancellationTokenSource.Token);
         }
         catch (Exception e)
         {
             _onError?.Invoke($"WebSocket connection failed: {e.Message}");
-            // Debug.LogError($"PlayerWebSocketClient: Connection failed with exception: {e.Message}");
             _webSocket?.Dispose();
         }
     }
 
     public async Task DisconnectAsync()
     {
-        // Debug.Log("PlayerWebSocketClient: Attempting to disconnect WebSocket.");
         if (_webSocket != null)
         {
             if (
@@ -102,42 +105,23 @@ public class PlayerWebSocketClient
                 || _webSocket.State == WebSocketState.CloseSent
             )
             {
-                // Debug.Log(
-                // $"PlayerWebSocketClient: Closing WebSocket from state '{_webSocket.State}'."
-                // );
                 _cancellationTokenSource?.Cancel();
-
-                // Initiate graceful close from client side
-                // Debug.Log("PlayerWebSocketClient: Initiating graceful WebSocket close...");
                 await _webSocket.CloseOutputAsync(
                     WebSocketCloseStatus.NormalClosure,
                     "Client leaving",
                     CancellationToken.None
                 );
-
-                // Wait for the server to acknowledge the close
                 try
                 {
                     var buffer = new byte[1024];
-                    var receiveResult = await _webSocket.ReceiveAsync(
+                    await _webSocket.ReceiveAsync(
                         new ArraySegment<byte>(buffer),
                         CancellationToken.None
                     );
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
-                    {
-                        // Debug.Log($"PlayerWebSocketClient: Server acknowledged close. Status: {receiveResult.CloseStatus}, Description: {receiveResult.CloseStatusDescription}");
-                    }
                 }
-                catch (WebSocketException ex)
-                {
-                    // Debug.LogWarning($"PlayerWebSocketClient: Caught WebSocketException while waiting for server close: {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    // Debug.LogError($"PlayerWebSocketClient: An unexpected error occurred while waiting for server close: {ex.Message}");
-                }
+                catch (WebSocketException) { }
+                catch (Exception) { }
 
-                // Ensure the WebSocket is fully closed
                 if (_webSocket.State != WebSocketState.Closed)
                 {
                     await _webSocket.CloseAsync(
@@ -146,74 +130,83 @@ public class PlayerWebSocketClient
                         CancellationToken.None
                     );
                 }
-                // Debug.Log("PlayerWebSocketClient: WebSocket closed gracefully.");
             }
-            else if (
-                _webSocket.State == WebSocketState.Aborted
-                || _webSocket.State == WebSocketState.Closed
-            )
-            {
-                // Debug.LogWarning(
-                // $"PlayerWebSocketClient: WebSocket is already in state '{_webSocket.State}'. Disposing without calling CloseAsync."
-                // );
-            }
-            else
-            {
-                // Debug.LogWarning(
-                // $"PlayerWebSocketClient: WebSocket in unexpected state '{_webSocket.State}'. Disposing."
-                // );
-            }
-
             _onDisconnected?.Invoke();
             _webSocket?.Dispose();
-            // Debug.Log("PlayerWebSocketClient: WebSocket disposed.");
-        }
-        else
-        {
-            // Debug.LogWarning(
-            // "PlayerWebSocketClient: DisconnectAsync called but _webSocket is null."
-            // );
         }
     }
 
-    public async Task SendPositionAsync(Vector2 position)
+    public async Task SendPositionAsync(Vector2 position, DateTime lastSpawnAttempt)
     {
         if (_webSocket?.State != WebSocketState.Open)
         {
-            // // Debug.LogWarning(
-            //     $"PlayerWebSocketClient: Not sending position. WebSocket state is '{_webSocket?.State}'."
-            // );
             return;
         }
 
-        var positionMessage = new PlayerPositionMessage { X = position.x, Y = position.y };
+        if (Time.time - _lastSendTime < _positionUpdateRate)
+        {
+            return;
+        }
 
-        var jsonMessage = JsonConvert.SerializeObject(positionMessage);
+        _lastSendTime = Time.time;
+
+        var playerPing = new PlayerPing
+        {
+            SessionId = _sessionId,
+            PlayerId = _playerId,
+            CurrentPosition = new Position { X = position.x, Y = position.y },
+            Radius = _radius,
+            LastSpawnAttempt = lastSpawnAttempt,
+        };
+
+        var jsonMessage = JsonConvert.SerializeObject(playerPing);
         var bytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes(jsonMessage));
 
         try
         {
-            // // Debug.Log($"PlayerWebSocketClient: Sending position: {jsonMessage}");
+            Debug.Log($"PlayerWebSocketClient: Sending PlayerPing: {jsonMessage}");
             await _webSocket.SendAsync(
                 bytesToSend,
                 WebSocketMessageType.Text,
                 true,
                 _cancellationTokenSource.Token
             );
-            // // Debug.Log("PlayerWebSocketClient: Position sent successfully.");
         }
         catch (Exception e)
         {
             _onError?.Invoke($"Failed to send position: {e.Message}");
-            // Debug.LogError(
-            // $"PlayerWebSocketClient: Failed to send position with exception: {e.Message}"
-            // );
+        }
+    }
+
+    public async Task SendSpawnRequestAsync(SpawnItemRequest request)
+    {
+        if (_webSocket?.State != WebSocketState.Open)
+        {
+            _onError?.Invoke("WebSocket is not connected.");
+            return;
+        }
+
+        var jsonMessage = JsonConvert.SerializeObject(request);
+        var bytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes(jsonMessage));
+
+        try
+        {
+            Debug.Log($"PlayerWebSocketClient: Sending SpawnItemRequest: {jsonMessage}");
+            await _webSocket.SendAsync(
+                bytesToSend,
+                WebSocketMessageType.Text,
+                true,
+                _cancellationTokenSource.Token
+            );
+        }
+        catch (Exception e)
+        {
+            _onError?.Invoke($"Failed to send spawn request: {e.Message}");
         }
     }
 
     private async Task ReceiveMessagesAsync(CancellationToken token)
     {
-        // Debug.Log("PlayerWebSocketClient: Message receiver started.");
         var buffer = new ArraySegment<byte>(new byte[2048]);
         while (!token.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
         {
@@ -224,17 +217,12 @@ public class PlayerWebSocketClient
                     WebSocketReceiveResult result;
                     do
                     {
-                        // Debug.Log("PlayerWebSocketClient: Waiting to receive message part.");
                         result = await _webSocket.ReceiveAsync(buffer, token);
                         ms.Write(buffer.Array, buffer.Offset, result.Count);
-                        // Debug.Log(
-                        // $"PlayerWebSocketClient: Received {result.Count} bytes. EndOfMessage: {result.EndOfMessage}"
-                        // );
                     } while (!result.EndOfMessage);
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        // Debug.Log("PlayerWebSocketClient: Received close message from server.");
                         break;
                     }
 
@@ -242,29 +230,48 @@ public class PlayerWebSocketClient
                     using (var reader = new StreamReader(ms, Encoding.UTF8))
                     {
                         string message = await reader.ReadToEndAsync();
-                        // // Debug.Log($"PlayerWebSocketClient: Full message received: {message}");
-                        // Deserialize before invoking the callback
-                        var response = JsonConvert.DeserializeObject<PlayerPositionResponse>(
-                            message
-                        );
-                        _onMessageReceived?.Invoke(response);
-                        // // Debug.Log("PlayerWebSocketClient: Message processed and callback invoked.");
+                        Debug.Log($"PlayerWebSocketClient: Full message received: {message}");
+
+                        var jObject = JObject.Parse(message);
+                        if (jObject.ContainsKey("Granted"))
+                        {
+                            try
+                            {
+                                Debug.Log("Deserializing SpawnItemResponse...");
+                                var response = JsonConvert.DeserializeObject<SpawnItemResponse>(
+                                    message
+                                );
+                                Debug.Log("Deserialization successful. Invoking callback...");
+                                _onSpawnItemResponse?.Invoke(response);
+                                Debug.Log("Callback invoked successfully.");
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogError(
+                                    $"Error processing SpawnItemResponse: {ex.ToString()}"
+                                );
+                            }
+                        }
+                        else
+                        {
+                            var response = JsonConvert.DeserializeObject<PlayerPingResponse>(
+                                message
+                            );
+                            _onPlayerPingResponse?.Invoke(response);
+                        }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                // Debug.Log("PlayerWebSocketClient: Message reception cancelled.");
                 break;
             }
             catch (Exception e)
             {
                 _onError?.Invoke($"Error receiving message: {e.Message}");
-                // Debug.LogError($"PlayerWebSocketClient: Error receiving message: {e.Message}");
                 break;
             }
         }
-        // Debug.Log("PlayerWebSocketClient: Message receiver stopped.");
         _onDisconnected?.Invoke();
     }
 }

@@ -152,7 +152,7 @@ public class AuthManager : MonoBehaviour
                                     loginResult.token,
                                     loginResult.refreshToken,
                                     loginResult.userId,
-                                    loginResult.expiresAt
+                                    JwtManager.ParseJwtExpiry(loginResult.token)
                                 );
                             }
                             else
@@ -360,7 +360,7 @@ public class AuthManager : MonoBehaviour
                             loginResult.token,
                             loginResult.refreshToken,
                             loginResult.userId,
-                            loginResult.expiresAt
+                            JwtManager.ParseJwtExpiry(loginResult.token)
                         ); // Update tokens in JwtManager
                         callback?.Invoke(true, loginResult);
                     }
