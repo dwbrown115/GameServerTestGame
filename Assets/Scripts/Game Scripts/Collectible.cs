@@ -13,6 +13,11 @@ public class Collectible : MonoBehaviour
     private const string PLAYER_TAG = "Player";
     private const string SCORE_PREFS_KEY = "PlayerScore";
 
+    private void Awake()
+    {
+        ValidatedObjectsManager.AddActiveObject(gameObject.name, transform.position);
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         // Check if the object that entered the trigger is the player.

@@ -66,7 +66,7 @@ public class PrefabSpawner : MonoBehaviour
                 Debug.Log($"Spawning prefab at {spawnPosition}");
                 GameObject newObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
                 newObject.name = response.UniqueId;
-                ValidatedObjectsManager.AddActiveObject(response.UniqueId);
+                ValidatedObjectsManager.AddActiveObject(response.UniqueId, spawnPosition);
                 Debug.Log($"Spawned prefab and named it {response.UniqueId}");
             }
             else

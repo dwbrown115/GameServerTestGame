@@ -13,16 +13,28 @@ public static class ValidatedObjectsManager
         "validatedObjects.json"
     );
 
+    private class Coordinates
+    {
+        [JsonProperty("x")]
+        public float X { get; set; }
+
+        [JsonProperty("y")]
+        public float Y { get; set; }
+    }
+
     private class ValidatedObject
     {
         [JsonProperty("id")]
         public string Id { get; set; }
 
-        [JsonProperty("spawnedTime")]
-        public DateTime SpawnedTime { get; set; }
+        [JsonProperty("clientSpawnedTime")]
+        public DateTime ClientSpawnedTime { get; set; }
 
         [JsonProperty("claimedTime")]
         public DateTime? ClaimedTime { get; set; }
+
+        [JsonProperty("coordinates")]
+        public Coordinates Coordinates { get; set; }
     }
 
     private class ValidatedObjectsData
@@ -42,11 +54,15 @@ public static class ValidatedObjectsManager
 
     public static void CreateOrResetFile(string sessionId)
     {
-        Debug.Log($"ValidatedObjectsManager: CreateOrResetFile called with sessionId: '{sessionId}'");
+        Debug.Log(
+            $"ValidatedObjectsManager: CreateOrResetFile called with sessionId: '{sessionId}'"
+        );
 
         if (string.IsNullOrEmpty(sessionId))
         {
-            Debug.LogError("ValidatedObjectsManager: CreateOrResetFile called with a null or empty sessionId.");
+            Debug.LogError(
+                "ValidatedObjectsManager: CreateOrResetFile called with a null or empty sessionId."
+            );
             return;
         }
 
@@ -73,13 +89,17 @@ public static class ValidatedObjectsManager
                 ClaimedObjectsNumber = 0,
             };
             string json = JsonConvert.SerializeObject(initialData, Formatting.Indented);
-            Debug.Log($"ValidatedObjectsManager: Writing new file to {FilePath} with content: {json}");
+            Debug.Log(
+                $"ValidatedObjectsManager: Writing new file to {FilePath} with content: {json}"
+            );
             File.WriteAllText(FilePath, json);
             Debug.Log($"ValidatedObjectsManager: validatedObjects.json created successfully.");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"ValidatedObjectsManager: An error occurred in CreateOrResetFile: {ex.ToString()}");
+            Debug.LogError(
+                $"ValidatedObjectsManager: An error occurred in CreateOrResetFile: {ex.ToString()}"
+            );
         }
     }
 
@@ -91,7 +111,7 @@ public static class ValidatedObjectsManager
         }
     }
 
-    public static void AddActiveObject(string objectId)
+    public static void AddActiveObject(string objectId, Vector3 position)
     {
         if (!File.Exists(FilePath))
             return;
@@ -102,7 +122,12 @@ public static class ValidatedObjectsManager
         if (data.ValidatedObjects.All(o => o.Id != objectId))
         {
             data.ValidatedObjects.Add(
-                new ValidatedObject { Id = objectId, SpawnedTime = DateTime.UtcNow }
+                new ValidatedObject
+                {
+                    Id = objectId,
+                    ClientSpawnedTime = DateTime.UtcNow,
+                    Coordinates = new Coordinates { X = position.x, Y = position.y }
+                }
             );
             data.SpawnedObjectsNumber++;
             string updatedJson = JsonConvert.SerializeObject(data, Formatting.Indented);
