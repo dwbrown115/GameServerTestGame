@@ -100,6 +100,7 @@
     <Compile Include="Assets/Scripts/Managers/JwtManager.cs" />
     <Compile Include="Assets/Scripts/Managers/AuthManager.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/CameraController.cs" />
+    <Compile Include="Assets/Scripts/Utilities/RuntimeCollectibleValidator.cs" />
     <Compile Include="Assets/Scripts/Navigation/AuthNavigation.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark03.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/Collectible.cs" />

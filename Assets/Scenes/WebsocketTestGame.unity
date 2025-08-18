@@ -2060,6 +2060,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1153261257}
   - component: {fileID: 1153261256}
+  - component: {fileID: 1153261258}
   m_Layer: 0
   m_Name: GameSceneManager
   m_TagString: Untagged
@@ -2079,7 +2080,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72578cd5bdb764a9fa9acb7a508db70e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  websocketManager: {fileID: 1836834352}
 --- !u!4 &1153261257
 Transform:
   m_ObjectHideFlags: 0
@@ -2095,6 +2095,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1153261258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1153261255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f6f667ffd69a49a181bf1052688edb2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  validationInterval: 1
 --- !u!1 &1177181803
 GameObject:
   m_ObjectHideFlags: 0
@@ -2473,17 +2486,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 76207adcb344842149467f11bd94217e, type: 3}
---- !u!114 &1836834352 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5180052103070173912, guid: 76207adcb344842149467f11bd94217e, type: 3}
-  m_PrefabInstance: {fileID: 1836834351}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 420b3140e070d45858a6ee6d597b1648, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1948453434
 GameObject:
   m_ObjectHideFlags: 0
@@ -2516,7 +2518,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerController2D: {fileID: 332118771}
-  websocketManager: {fileID: 1836834352}
   loadingModal: {fileID: 751190979}
   loadingAnimator: {fileID: 751190978}
   errorModal: {fileID: 686526842}

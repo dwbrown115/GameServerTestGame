@@ -152,4 +152,45 @@ public static class ValidatedObjectsManager
             File.WriteAllText(FilePath, updatedJson);
         }
     }
+
+    public static HashSet<string> GetValidatedObjectIds()
+    {
+        if (!File.Exists(FilePath))
+        {
+            return new HashSet<string>(); // Return empty set if file doesn't exist
+        }
+
+        try
+        {
+            string json = File.ReadAllText(FilePath);
+            var data = JsonConvert.DeserializeObject<ValidatedObjectsData>(json);
+            return new HashSet<string>(data.ValidatedObjects.Select(o => o.Id));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ValidatedObjectsManager: Error reading validatedObjects.json: {ex.Message}");
+            return new HashSet<string>();
+        }
+    }
+
+    public static bool IsObjectClaimed(string objectId)
+    {
+        if (!File.Exists(FilePath))
+        {
+            return false; // Cannot be claimed if file doesn't exist
+        }
+
+        try
+        {
+            string json = File.ReadAllText(FilePath);
+            var data = JsonConvert.DeserializeObject<ValidatedObjectsData>(json);
+            var obj = data.ValidatedObjects.FirstOrDefault(o => o.Id == objectId);
+            return obj != null && obj.ClaimedTime != null;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ValidatedObjectsManager: Error checking if object is claimed: {ex.Message}");
+            return false;
+        }
+    }
 }

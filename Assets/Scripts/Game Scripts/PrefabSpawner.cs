@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
 public class PrefabSpawner : MonoBehaviour
 {
@@ -48,31 +48,48 @@ public class PrefabSpawner : MonoBehaviour
     {
         while (true)
         {
+            Debug.Log("SpawnLoop: Waiting for spawn interval.");
             yield return new WaitForSeconds(spawnInterval);
+            Debug.Log("SpawnLoop: Requesting spawn from playerController.");
             playerController.RequestSpawn(spawnRadius);
         }
     }
 
     public void HandleSpawnResponse(SpawnItemResponse response)
     {
-        Debug.Log($"Received Spawn Response: Granted={response.Granted}, UniqueId={response.UniqueId}");
+        Debug.Log(
+            $"HandleSpawnResponse: Called. Granted={response.Granted}, UniqueId={response.UniqueId}"
+        );
         if (response.Granted)
         {
-            bool isValid = IsNumberValid.isValidNumber(response.UniqueId);
-            Debug.Log($"UniqueId validation result: {isValid}");
-            if (isValid)
+            // The validation is now handled by Collectible.Initialize()
+            Vector3 spawnPosition = new Vector3(
+                response.SpawnPosition.X,
+                response.SpawnPosition.Y,
+                0
+            );
+            Debug.Log($"HandleSpawnResponse: Spawning prefab at {spawnPosition}");
+            GameObject newObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+
+            Collectible collectibleComponent = newObject.GetComponent<Collectible>();
+            if (collectibleComponent != null)
             {
-                Vector3 spawnPosition = new Vector3(response.SpawnPosition.X, response.SpawnPosition.Y, 0);
-                Debug.Log($"Spawning prefab at {spawnPosition}");
-                GameObject newObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
-                newObject.name = response.UniqueId;
-                ValidatedObjectsManager.AddActiveObject(response.UniqueId, spawnPosition);
-                Debug.Log($"Spawned prefab and named it {response.UniqueId}");
+                Debug.Log("HandleSpawnResponse: Collectible component found. Initializing.");
+                collectibleComponent.Initialize(response.UniqueId, spawnPosition);
             }
             else
             {
-                Debug.LogWarning($"Invalid UniqueId received from server: {response.UniqueId}");
+                Debug.LogError(
+                    "HandleSpawnResponse: Collectible component not found on spawned prefab! Destroying object."
+                );
+                Destroy(newObject); // Destroy if it's not a collectible
             }
+
+            Debug.Log($"HandleSpawnResponse: Spawned prefab and named it {response.UniqueId}");
+        }
+        else
+        {
+            Debug.LogWarning($"HandleSpawnResponse: Spawn not granted. Reason: {response}"); // Assuming a Message field exists
         }
     }
 
