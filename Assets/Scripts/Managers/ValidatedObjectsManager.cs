@@ -112,7 +112,7 @@ public static class ValidatedObjectsManager
         }
     }
 
-    public static void DestroyObject(string objectId)
+    public static async void DestroyObject(string objectId)
     {
         if (!File.Exists(FilePath))
             return;
@@ -140,7 +140,7 @@ public static class ValidatedObjectsManager
                     SessionId = data.SessionId,
                     ClaimedObject = obj,
                 };
-                _webSocketClient.SendClaimObjectRequestAsync(request);
+                await _webSocketClient.SendClaimObjectRequestAsync(request);
             }
             else
             {

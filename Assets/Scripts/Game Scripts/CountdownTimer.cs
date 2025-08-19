@@ -94,11 +94,7 @@ public class CountdownTimer : MonoBehaviour
             playerActionMap?.Disable();
             uiActionMap?.Enable();
 
-            // Disconnect WebSocket when countdown finishes
-            if (playerController2D != null)
-            {
-                playerController2D.DisconnectWebSocket();
-            }
+            
 
             OnCountdownFinished?.Invoke();
         }

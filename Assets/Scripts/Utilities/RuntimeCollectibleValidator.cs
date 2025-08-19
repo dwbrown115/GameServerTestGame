@@ -31,7 +31,7 @@ public class RuntimeCollectibleValidator : MonoBehaviour
 
     void ValidateActiveCollectibles()
     {
-        Collectible[] collectiblesInScene = FindObjectsOfType<Collectible>();
+        Collectible[] collectiblesInScene = FindObjectsByType<Collectible>(FindObjectsSortMode.None);
         HashSet<string> validatedObjectIds = ValidatedObjectsManager.GetValidatedObjectIds();
         HashSet<string> encounteredObjectIds = new HashSet<string>(); // To check for duplicates in scene
 

@@ -15,11 +15,16 @@ public class PlayerPing
 {
     [JsonProperty("request_type")]
     public string RequestType { get; set; }
+
+    [JsonProperty("session_id")]
     public string SessionId { get; set; }
     public string PlayerId { get; set; }
     public Position CurrentPosition { get; set; }
     public float Radius { get; set; }
     public DateTime LastSpawnAttempt { get; set; }
+
+    [JsonProperty("attempted_client_score")]
+    public int Score { get; set; }
 }
 
 [Serializable]
@@ -27,8 +32,15 @@ public class PlayerPingResponse
 {
     [JsonProperty("response_type")]
     public string ResponseType { get; set; }
+
+    [JsonProperty("session_id")]
     public string SessionId { get; set; }
+
+    [JsonProperty("status")]
     public string Status { get; set; }
+
+    [JsonProperty("server_score")]
+    public int ServerScore { get; set; }
 }
 
 public class PlayerWebSocketClient
@@ -224,6 +236,22 @@ public class PlayerWebSocketClient
             CurrentPosition = new Position { X = position.x, Y = position.y },
             Radius = _radius,
             LastSpawnAttempt = lastSpawnAttempt,
+            Score = PlayerPrefs.GetInt("PlayerScore", 0),
+        };
+        await SendRequestAsync(playerPing);
+    }
+
+    public async Task SendFinalPingAsync(Vector2 position, DateTime lastSpawnAttempt)
+    {
+        var playerPing = new PlayerPing
+        {
+            RequestType = "player_ping",
+            SessionId = _sessionId,
+            PlayerId = _playerId,
+            CurrentPosition = new Position { X = position.x, Y = position.y },
+            Radius = _radius,
+            LastSpawnAttempt = lastSpawnAttempt,
+            Score = PlayerPrefs.GetInt("PlayerScore", 0),
         };
         await SendRequestAsync(playerPing);
     }

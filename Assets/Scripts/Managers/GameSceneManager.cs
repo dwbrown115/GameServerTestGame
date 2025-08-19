@@ -44,7 +44,7 @@ public class GameSceneManager : MonoBehaviour
 
     void DestroyUnclaimedCollectibles()
     {
-        Collectible[] collectibles = FindObjectsOfType<Collectible>();
+        Collectible[] collectibles = FindObjectsByType<Collectible>(FindObjectsSortMode.None);
         foreach (Collectible collectible in collectibles)
         {
             if (!ValidatedObjectsManager.IsObjectClaimed(collectible.gameObject.name))

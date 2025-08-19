@@ -24,6 +24,7 @@ public class PlayerController2D : MonoBehaviour
     private Vector2 moveInput;
     private bool isMovementDisabled;
     private bool _isGameOver = false;
+    private TaskCompletionSource<bool> _lastPingResponseReceived = new TaskCompletionSource<bool>();
 
     private PlayerWebSocketClient _playerWebSocketClient;
     public PrefabSpawner prefabSpawner; // Reference to PrefabSpawner
@@ -103,6 +104,8 @@ public class PlayerController2D : MonoBehaviour
     {
         if (_playerWebSocketClient != null)
         {
+            await _playerWebSocketClient.SendFinalPingAsync(transform.position, _lastSpawnAttempt);
+            await _lastPingResponseReceived.Task;
             await _playerWebSocketClient.DisconnectAsync();
         }
     }
@@ -174,21 +177,34 @@ public class PlayerController2D : MonoBehaviour
 
     private void HandlePlayerPingResponse(PlayerPingResponse response)
     {
-        if (response != null && response.Status != null)
+        if (response != null && response.Status == "Bad")
         {
-            Debug.Log(
-                $"<color=cyan>Server Response: {JsonConvert.SerializeObject(response)}</color>"
-            );
+            Debug.LogWarning($"Score mismatch detected. Client score will be updated to server's score.");
+            PlayerPrefs.SetInt("PlayerScore", response.ServerScore);
+            PlayerPrefs.Save();
+            Collectible.InvokeOnScoreChanged(response.ServerScore);
+        }
+
+        if (_isGameOver)
+        {
+            _lastPingResponseReceived.TrySetResult(true);
         }
     }
 
     private void HandleClaimObjectResponse(ClaimObjectResponse response)
     {
-        if (response != null && response.Status != null)
+        if (response != null && response.Status == "Ok")
         {
             Debug.Log(
-                $"<color=green>Claim Object Response: {response.Status}</color>"
+                $"<color=green>Claim Object Response: {JsonConvert.SerializeObject(response)}</color>"
             );
+
+            int currentScore = PlayerPrefs.GetInt("PlayerScore", 0);
+            int newScore = currentScore + 1;
+            PlayerPrefs.SetInt("PlayerScore", newScore);
+            PlayerPrefs.Save();
+
+            Collectible.InvokeOnScoreChanged(newScore);
         }
     }
 

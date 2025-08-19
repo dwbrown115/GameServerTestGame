@@ -33,7 +33,7 @@ public class ClaimObjectRequest
     [JsonProperty("request_type")]
     public string RequestType { get; set; }
 
-    [JsonProperty("sessionId")]
+    [JsonProperty("session_id")]
     public string SessionId { get; set; }
 
     [JsonProperty("claimedObject")]
@@ -90,6 +90,9 @@ public class ClaimObjectResponse
 {
     [JsonProperty("response_type")]
     public string ResponseType { get; set; }
+
+    [JsonProperty("session_id")]
+    public string SessionId { get; set; }
 
     [JsonProperty("status")]
     public string Status { get; set; }
