@@ -4,6 +4,9 @@ public class GameSceneManager : MonoBehaviour
 {
     void Start()
     {
+        GameStateManager.IsGameOver = false; // Reset on start
+        CountdownTimer.OnCountdownFinished += OnGameOver;
+
         Debug.Log("GameSceneManager Start");
         if (WebSocketManager.Instance != null)
         {
@@ -28,8 +31,27 @@ public class GameSceneManager : MonoBehaviour
     void OnDestroy()
     {
         // It's good practice to unsubscribe from static events.
+        CountdownTimer.OnCountdownFinished -= OnGameOver;
         Debug.Log("GameSceneManager OnDestroy: Unsubscribing from OnSessionIdReady event.");
         WebSocketManager.OnSessionIdReady -= CreateValidatedObjectsFile;
+    }
+
+    void OnGameOver()
+    {
+        GameStateManager.IsGameOver = true;
+        DestroyUnclaimedCollectibles();
+    }
+
+    void DestroyUnclaimedCollectibles()
+    {
+        Collectible[] collectibles = FindObjectsOfType<Collectible>();
+        foreach (Collectible collectible in collectibles)
+        {
+            if (!ValidatedObjectsManager.IsObjectClaimed(collectible.gameObject.name))
+            {
+                Destroy(collectible.gameObject);
+            }
+        }
     }
 
     void CreateValidatedObjectsFile(string sessionId)

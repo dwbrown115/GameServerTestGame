@@ -32,6 +32,8 @@ public class Collectible : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (GameStateManager.IsGameOver) return;
+
         // Check if the object that entered the trigger is the player.
         if (other.CompareTag(PLAYER_TAG))
         {
@@ -50,7 +52,9 @@ public class Collectible : MonoBehaviour
 
             if (count > 1)
             {
-                Debug.LogWarning($"Collectible: Duplicate object '{currentObjectId}' detected on trigger. Destroying this instance.");
+                Debug.LogWarning(
+                    $"Collectible: Duplicate object '{currentObjectId}' detected on trigger. Destroying this instance."
+                );
                 Destroy(gameObject);
                 return; // Stop processing this collectible
             }
@@ -58,7 +62,9 @@ public class Collectible : MonoBehaviour
             // --- Anti-cheat: Check if already claimed ---
             if (ValidatedObjectsManager.IsObjectClaimed(currentObjectId))
             {
-                Debug.LogWarning($"Collectible: Object '{currentObjectId}' has already been claimed. Destroying this instance.");
+                Debug.LogWarning(
+                    $"Collectible: Object '{currentObjectId}' has already been claimed. Destroying this instance."
+                );
                 Destroy(gameObject);
                 return; // Stop processing this collectible
             }

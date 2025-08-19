@@ -20,6 +20,10 @@ public class RuntimeCollectibleValidator : MonoBehaviour
     {
         while (true)
         {
+            if (GameStateManager.IsGameOver)
+            {
+                yield break; // Exit the coroutine
+            }
             yield return new WaitForSeconds(validationInterval);
             ValidateActiveCollectibles();
         }

@@ -10,6 +10,7 @@ public class WebSocketManager : MonoBehaviour
 {
     public static WebSocketManager Instance { get; private set; }
     public static event Action<string> OnSessionIdReady;
+
     // --- Dependencies ---
     [Header("Dependencies")]
     [Tooltip("The authenticator component used to verify WebSocket connections.")]
@@ -51,14 +52,12 @@ public class WebSocketManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
         Debug.Log($"WebSocketManager instance set: {gameObject.name}");
 
-        // Ensure we have the authenticator component assigned in the Inspector
         if (_authenticator == null)
         {
-            enabled = false; // Disable this component to prevent errors
+            enabled = false;
             return;
         }
 
-        // Define the path for the temporary session file, consistent with other managers
         string debugFolder = Path.Combine(Application.dataPath, "_DebugTokens");
         if (!Directory.Exists(debugFolder))
         {
@@ -71,7 +70,7 @@ public class WebSocketManager : MonoBehaviour
     {
         errorModal.SetActive(false);
         if (loadingModal != null)
-            loadingModal.SetActive(false); // Ensure loading modal is hidden on start
+            loadingModal.SetActive(false);
     }
 
     public void AuthenticateWebSocket()
@@ -106,17 +105,12 @@ public class WebSocketManager : MonoBehaviour
             DeviceId = deviceId,
         };
 
-        _authenticator.Authenticate(
-            authRequest,
-            (response) => StartCoroutine(HandleAuthResponseWithAnimation(response, onComplete, loadSceneOnSuccess))
+        _authenticator.Authenticate(authRequest, (response) =>
+            StartCoroutine(HandleAuthResponseWithAnimation(response, onComplete, loadSceneOnSuccess))
         );
     }
 
-    private IEnumerator HandleAuthResponseWithAnimation(
-        WebSocketAuthResponse response,
-        Action<bool> onComplete,
-        bool loadSceneOnSuccess
-    )
+    private IEnumerator HandleAuthResponseWithAnimation(WebSocketAuthResponse response, Action<bool> onComplete, bool loadSceneOnSuccess)
     {
         float minAnimationTime = 0.5f;
         float startTime = Time.time;
@@ -140,12 +134,7 @@ public class WebSocketManager : MonoBehaviour
             Debug.Log("Firing OnSessionIdReady event.");
             OnSessionIdReady?.Invoke(_sessionId);
 
-            JwtManager.Instance.SetToken(
-                response.Token,
-                response.RefreshToken,
-                PlayerManager.Instance.GetUserId(),
-                JwtManager.ParseJwtExpiry(response.Token)
-            );
+            JwtManager.Instance.SetToken(response.Token, response.RefreshToken, PlayerManager.Instance.GetUserId(), JwtManager.ParseJwtExpiry(response.Token));
 
             try
             {
@@ -159,14 +148,9 @@ public class WebSocketManager : MonoBehaviour
                 yield break;
             }
 
-            
-
-            if (loadSceneOnSuccess)
+            if (loadSceneOnSuccess && !string.IsNullOrEmpty(sceneToLoadOnSuccess))
             {
-                if (!string.IsNullOrEmpty(sceneToLoadOnSuccess))
-                {
-                    SceneManager.LoadScene(sceneToLoadOnSuccess);
-                }
+                SceneManager.LoadScene(sceneToLoadOnSuccess);
             }
             onComplete?.Invoke(true);
         }

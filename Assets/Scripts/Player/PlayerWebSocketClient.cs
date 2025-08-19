@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -12,6 +13,8 @@ using UnityEngine;
 [Serializable]
 public class PlayerPing
 {
+    [JsonProperty("request_type")]
+    public string RequestType { get; set; }
     public string SessionId { get; set; }
     public string PlayerId { get; set; }
     public Position CurrentPosition { get; set; }
@@ -22,6 +25,8 @@ public class PlayerPing
 [Serializable]
 public class PlayerPingResponse
 {
+    [JsonProperty("response_type")]
+    public string ResponseType { get; set; }
     public string SessionId { get; set; }
     public string Status { get; set; }
 }
@@ -39,9 +44,12 @@ public class PlayerWebSocketClient
     private DateTime _lastSpawnAttempt;
     private Action<PlayerPingResponse> _onPlayerPingResponse;
     private Action<SpawnItemResponse> _onSpawnItemResponse;
+    private Action<ClaimObjectResponse> _onClaimObjectResponse;
     private Action<string> _onError;
     private Action _onConnected;
     private Action _onDisconnected;
+    private Dictionary<string, Action<string>> _responseHandlers;
+    private TaskCompletionSource<bool> _connectionCompletion = new TaskCompletionSource<bool>();
 
     public PlayerWebSocketClient(
         string serverAddress,
@@ -52,6 +60,7 @@ public class PlayerWebSocketClient
         DateTime lastSpawnAttempt,
         Action<PlayerPingResponse> onPlayerPingResponse,
         Action<SpawnItemResponse> onSpawnItemResponse,
+        Action<ClaimObjectResponse> onClaimObjectResponse,
         Action<string> onError,
         Action onConnected,
         Action onDisconnected
@@ -65,9 +74,41 @@ public class PlayerWebSocketClient
         _lastSpawnAttempt = lastSpawnAttempt;
         _onPlayerPingResponse = onPlayerPingResponse;
         _onSpawnItemResponse = onSpawnItemResponse;
+        _onClaimObjectResponse = onClaimObjectResponse;
         _onError = onError;
         _onConnected = onConnected;
         _onDisconnected = onDisconnected;
+
+        _responseHandlers = new Dictionary<string, Action<string>>
+        {
+            {
+                "spawn_request_response",
+                (message) =>
+                {
+                    Debug.Log("Deserializing SpawnItemResponse...");
+                    var response = JsonConvert.DeserializeObject<SpawnItemResponse>(message);
+                    Debug.Log("Deserialization successful. Invoking callback...");
+                    _onSpawnItemResponse?.Invoke(response);
+                    Debug.Log("Callback invoked successfully.");
+                }
+            },
+            {
+                "player_ping_response",
+                (message) =>
+                {
+                    var response = JsonConvert.DeserializeObject<PlayerPingResponse>(message);
+                    _onPlayerPingResponse?.Invoke(response);
+                }
+            },
+            {
+                "object_claimed_response",
+                (message) =>
+                {
+                    var response = JsonConvert.DeserializeObject<ClaimObjectResponse>(message);
+                    _onClaimObjectResponse?.Invoke(response);
+                }
+            },
+        };
     }
 
     public async Task ConnectAsync()
@@ -75,6 +116,7 @@ public class PlayerWebSocketClient
         if (string.IsNullOrEmpty(_sessionId) || string.IsNullOrEmpty(_playerId))
         {
             _onError?.Invoke("SessionId or PlayerId is not set. Cannot connect to the server.");
+            _connectionCompletion.TrySetResult(false);
             return;
         }
 
@@ -86,11 +128,13 @@ public class PlayerWebSocketClient
             Uri uri = new Uri($"wss://{_serverAddress}/ws?sessionId={_sessionId}");
             await _webSocket.ConnectAsync(uri, _cancellationTokenSource.Token);
             _onConnected?.Invoke();
+            _connectionCompletion.TrySetResult(true);
             _ = ReceiveMessagesAsync(_cancellationTokenSource.Token);
         }
         catch (Exception e)
         {
             _onError?.Invoke($"WebSocket connection failed: {e.Message}");
+            _connectionCompletion.TrySetResult(false);
             _webSocket?.Dispose();
         }
     }
@@ -134,53 +178,12 @@ public class PlayerWebSocketClient
             _onDisconnected?.Invoke();
             _webSocket?.Dispose();
         }
+        _connectionCompletion = new TaskCompletionSource<bool>();
     }
 
-    public async Task SendPositionAsync(Vector2 position, DateTime lastSpawnAttempt)
+    private async Task SendRequestAsync<T>(T request)
     {
-        if (_webSocket?.State != WebSocketState.Open)
-        {
-            return;
-        }
-
-        if (Time.time - _lastSendTime < _positionUpdateRate)
-        {
-            return;
-        }
-
-        _lastSendTime = Time.time;
-
-        var playerPing = new PlayerPing
-        {
-            SessionId = _sessionId,
-            PlayerId = _playerId,
-            CurrentPosition = new Position { X = position.x, Y = position.y },
-            Radius = _radius,
-            LastSpawnAttempt = lastSpawnAttempt,
-        };
-
-        var jsonMessage = JsonConvert.SerializeObject(playerPing);
-        var bytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes(jsonMessage));
-
-        try
-        {
-            Debug.Log($"PlayerWebSocketClient: Sending PlayerPing: {jsonMessage}");
-            await _webSocket.SendAsync(
-                bytesToSend,
-                WebSocketMessageType.Text,
-                true,
-                _cancellationTokenSource.Token
-            );
-        }
-        catch (Exception e)
-        {
-            _onError?.Invoke($"Failed to send position: {e.Message}");
-        }
-    }
-
-    public async Task SendSpawnRequestAsync(SpawnItemRequest request)
-    {
-        if (_webSocket?.State != WebSocketState.Open)
+        if (!await _connectionCompletion.Task || _webSocket?.State != WebSocketState.Open)
         {
             _onError?.Invoke("WebSocket is not connected.");
             return;
@@ -191,7 +194,7 @@ public class PlayerWebSocketClient
 
         try
         {
-            Debug.Log($"PlayerWebSocketClient: Sending SpawnItemRequest: {jsonMessage}");
+            Debug.Log($"PlayerWebSocketClient: Sending {typeof(T).Name}: {jsonMessage}");
             await _webSocket.SendAsync(
                 bytesToSend,
                 WebSocketMessageType.Text,
@@ -201,8 +204,38 @@ public class PlayerWebSocketClient
         }
         catch (Exception e)
         {
-            _onError?.Invoke($"Failed to send spawn request: {e.Message}");
+            _onError?.Invoke($"Failed to send {typeof(T).Name}: {e.Message}");
         }
+    }
+
+    public async Task SendPositionAsync(Vector2 position, DateTime lastSpawnAttempt)
+    {
+        if (Time.time - _lastSendTime < _positionUpdateRate)
+        {
+            return;
+        }
+        _lastSendTime = Time.time;
+
+        var playerPing = new PlayerPing
+        {
+            RequestType = "player_ping",
+            SessionId = _sessionId,
+            PlayerId = _playerId,
+            CurrentPosition = new Position { X = position.x, Y = position.y },
+            Radius = _radius,
+            LastSpawnAttempt = lastSpawnAttempt,
+        };
+        await SendRequestAsync(playerPing);
+    }
+
+    public async Task SendSpawnRequestAsync(SpawnItemRequest request)
+    {
+        await SendRequestAsync(request);
+    }
+
+    public async Task SendClaimObjectRequestAsync(ClaimObjectRequest request)
+    {
+        await SendRequestAsync(request);
     }
 
     private async Task ReceiveMessagesAsync(CancellationToken token)
@@ -233,31 +266,15 @@ public class PlayerWebSocketClient
                         Debug.Log($"PlayerWebSocketClient: Full message received: {message}");
 
                         var jObject = JObject.Parse(message);
-                        if (jObject.ContainsKey("Granted"))
+                        string responseType = jObject["response_type"]?.Value<string>();
+
+                        if (_responseHandlers.TryGetValue(responseType, out var handler))
                         {
-                            try
-                            {
-                                Debug.Log("Deserializing SpawnItemResponse...");
-                                var response = JsonConvert.DeserializeObject<SpawnItemResponse>(
-                                    message
-                                );
-                                Debug.Log("Deserialization successful. Invoking callback...");
-                                _onSpawnItemResponse?.Invoke(response);
-                                Debug.Log("Callback invoked successfully.");
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError(
-                                    $"Error processing SpawnItemResponse: {ex.ToString()}"
-                                );
-                            }
+                            handler(message);
                         }
                         else
                         {
-                            var response = JsonConvert.DeserializeObject<PlayerPingResponse>(
-                                message
-                            );
-                            _onPlayerPingResponse?.Invoke(response);
+                            Debug.LogWarning($"Unknown response type: {responseType}");
                         }
                     }
                 }

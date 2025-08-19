@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -22,6 +23,7 @@ public class PlayerController2D : MonoBehaviour
     private InputAction moveAction;
     private Vector2 moveInput;
     private bool isMovementDisabled;
+    private bool _isGameOver = false;
 
     private PlayerWebSocketClient _playerWebSocketClient;
     public PrefabSpawner prefabSpawner; // Reference to PrefabSpawner
@@ -44,10 +46,12 @@ public class PlayerController2D : MonoBehaviour
             _lastSpawnAttempt,
             HandlePlayerPingResponse,
             prefabSpawner.HandleSpawnResponse, // Pass the handler from PrefabSpawner
+            HandleClaimObjectResponse, // Add this handler
             (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"),
             () => Debug.Log("PlayerWebSocketClient: Connected!"),
             () => Debug.Log("PlayerWebSocketClient: Disconnected!")
         );
+        ValidatedObjectsManager.Initialize(_playerWebSocketClient);
         await _playerWebSocketClient.ConnectAsync();
     }
 
@@ -81,14 +85,26 @@ public class PlayerController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (_isGameOver) return;
+
         rb.linearVelocity = moveInput * moveSpeed;
         _ = _playerWebSocketClient.SendPositionAsync(transform.position, _lastSpawnAttempt);
     }
 
     private void DisableMovement()
     {
+        _isGameOver = true;
         isMovementDisabled = true;
         rb.linearVelocity = Vector2.zero;
+        _ = DisconnectOnGameOver();
+    }
+
+    private async Task DisconnectOnGameOver()
+    {
+        if (_playerWebSocketClient != null)
+        {
+            await _playerWebSocketClient.DisconnectAsync();
+        }
     }
 
     private void LoadCredentials()
@@ -166,6 +182,16 @@ public class PlayerController2D : MonoBehaviour
         }
     }
 
+    private void HandleClaimObjectResponse(ClaimObjectResponse response)
+    {
+        if (response != null && response.Status != null)
+        {
+            Debug.Log(
+                $"<color=green>Claim Object Response: {response.Status}</color>"
+            );
+        }
+    }
+
     public void SetLastSpawnAttempt(DateTime spawnTime)
     {
         _lastSpawnAttempt = spawnTime;
@@ -173,8 +199,11 @@ public class PlayerController2D : MonoBehaviour
 
     public void RequestSpawn(float spawnRadius)
     {
+        if (_isGameOver) return;
+
         var request = new SpawnItemRequest
         {
+            RequestType = "spawn_item_request",
             SessionId = sessionId,
             PlayerPosition = new Position { X = transform.position.x, Y = transform.position.y },
             SpawnAttemptTimestamp = DateTime.UtcNow,

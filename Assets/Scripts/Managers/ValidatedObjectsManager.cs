@@ -7,35 +7,18 @@ using UnityEngine;
 
 public static class ValidatedObjectsManager
 {
+    private static PlayerWebSocketClient _webSocketClient;
+
+    public static void Initialize(PlayerWebSocketClient client)
+    {
+        _webSocketClient = client;
+    }
+
     private static readonly string FilePath = Path.Combine(
         Application.dataPath,
         "_DebugTokens",
         "validatedObjects.json"
     );
-
-    private class Coordinates
-    {
-        [JsonProperty("x")]
-        public float X { get; set; }
-
-        [JsonProperty("y")]
-        public float Y { get; set; }
-    }
-
-    private class ValidatedObject
-    {
-        [JsonProperty("id")]
-        public string Id { get; set; }
-
-        [JsonProperty("clientSpawnedTime")]
-        public DateTime ClientSpawnedTime { get; set; }
-
-        [JsonProperty("claimedTime")]
-        public DateTime? ClaimedTime { get; set; }
-
-        [JsonProperty("coordinates")]
-        public Coordinates Coordinates { get; set; }
-    }
 
     private class ValidatedObjectsData
     {
@@ -68,17 +51,14 @@ public static class ValidatedObjectsManager
 
         try
         {
-            // Ensure the directory exists
             string directoryPath = Path.GetDirectoryName(FilePath);
             if (!Directory.Exists(directoryPath))
             {
-                Debug.Log($"ValidatedObjectsManager: Creating directory at {directoryPath}");
                 Directory.CreateDirectory(directoryPath);
             }
 
             if (File.Exists(FilePath))
             {
-                Debug.Log($"ValidatedObjectsManager: Deleting existing file at {FilePath}");
                 File.Delete(FilePath);
             }
 
@@ -89,9 +69,6 @@ public static class ValidatedObjectsManager
                 ClaimedObjectsNumber = 0,
             };
             string json = JsonConvert.SerializeObject(initialData, Formatting.Indented);
-            Debug.Log(
-                $"ValidatedObjectsManager: Writing new file to {FilePath} with content: {json}"
-            );
             File.WriteAllText(FilePath, json);
             Debug.Log($"ValidatedObjectsManager: validatedObjects.json created successfully.");
         }
@@ -126,7 +103,7 @@ public static class ValidatedObjectsManager
                 {
                     Id = objectId,
                     ClientSpawnedTime = DateTime.UtcNow,
-                    Coordinates = new Coordinates { X = position.x, Y = position.y }
+                    Coordinates = new Coordinates { X = position.x, Y = position.y },
                 }
             );
             data.SpawnedObjectsNumber++;
@@ -150,6 +127,27 @@ public static class ValidatedObjectsManager
             data.ClaimedObjectsNumber++;
             string updatedJson = JsonConvert.SerializeObject(data, Formatting.Indented);
             File.WriteAllText(FilePath, updatedJson);
+
+            Debug.Log(
+                $"ValidatedObjectsManager: Object with ID '{obj.Id}' claimed at {obj.ClaimedTime}."
+            );
+
+            if (_webSocketClient != null)
+            {
+                var request = new ClaimObjectRequest
+                {
+                    RequestType = "object_claimed_request",
+                    SessionId = data.SessionId,
+                    ClaimedObject = obj,
+                };
+                _webSocketClient.SendClaimObjectRequestAsync(request);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "ValidatedObjectsManager: PlayerWebSocketClient is not initialized. Cannot send claim message."
+                );
+            }
         }
     }
 
@@ -157,7 +155,7 @@ public static class ValidatedObjectsManager
     {
         if (!File.Exists(FilePath))
         {
-            return new HashSet<string>(); // Return empty set if file doesn't exist
+            return new HashSet<string>();
         }
 
         try
@@ -168,7 +166,9 @@ public static class ValidatedObjectsManager
         }
         catch (Exception ex)
         {
-            Debug.LogError($"ValidatedObjectsManager: Error reading validatedObjects.json: {ex.Message}");
+            Debug.LogError(
+                $"ValidatedObjectsManager: Error reading validatedObjects.json: {ex.Message}"
+            );
             return new HashSet<string>();
         }
     }
@@ -177,7 +177,7 @@ public static class ValidatedObjectsManager
     {
         if (!File.Exists(FilePath))
         {
-            return false; // Cannot be claimed if file doesn't exist
+            return false;
         }
 
         try
@@ -189,7 +189,9 @@ public static class ValidatedObjectsManager
         }
         catch (Exception ex)
         {
-            Debug.LogError($"ValidatedObjectsManager: Error checking if object is claimed: {ex.Message}");
+            Debug.LogError(
+                $"ValidatedObjectsManager: Error checking if object is claimed: {ex.Message}"
+            );
             return false;
         }
     }
