@@ -54,6 +54,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
     <Compile Include="Assets/Scripts/Apis/WebSocketAuthenticator.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextSelector_A.cs" />
+    <Compile Include="Assets/Scripts/Managers/SkinShopManager.cs" />
     <Compile Include="Assets/Scripts/Managers/LoginManager.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/HomeScreenScript.cs" />
     <Compile Include="Assets/Scripts/Utilities/CustomCertificateHandler.cs" />

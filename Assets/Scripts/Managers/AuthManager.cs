@@ -16,7 +16,9 @@ public class AuthenticationRequest
 [Serializable]
 public class LogoutRequest
 {
-    public string UserID;
+    // Ensure JSON uses "UserId"
+    [JsonProperty("UserId")]
+    public string UserId;
     public string RefreshToken;
     public string DeviceId;
 }
@@ -279,10 +281,22 @@ public class AuthManager : MonoBehaviour
         Debug.Log("Logging out");
         var payload = new LogoutRequest
         {
+            UserId = PlayerManager.Instance.GetUserId(),
             RefreshToken = JwtManager.Instance.GetRefreshToken(),
             DeviceId = DeviceUtils.GetDeviceId(),
         };
-        Debug.Log($"Payload: {JsonConvert.SerializeObject(payload)}");
+        if (string.IsNullOrEmpty(payload.UserId))
+        {
+            Debug.LogWarning("⚠️ Logout: No UserId found in PlayerManager. Proceeding without it.");
+        }
+
+        // Mask sensitive tokens in logs
+        string rt = payload.RefreshToken ?? string.Empty;
+        string maskedRt =
+            rt.Length > 8 ? $"{rt.Substring(0, 4)}...{rt.Substring(rt.Length - 4)}" : "(empty)";
+        Debug.Log(
+            $"Payload => UserId={payload.UserId}, DeviceId={payload.DeviceId}, RefreshToken={maskedRt}"
+        );
 
         string json = JsonConvert.SerializeObject(payload);
 

@@ -37,6 +37,8 @@ public class PlayerController2D : MonoBehaviour
 
     private async void Start()
     {
+        // Apply saved color to the player's sprite if available
+        TryApplySavedColor();
         LoadCredentials();
         _playerWebSocketClient = new PlayerWebSocketClient(
             serverAddress,
@@ -54,6 +56,47 @@ public class PlayerController2D : MonoBehaviour
         );
         ValidatedObjectsManager.Initialize(_playerWebSocketClient);
         await _playerWebSocketClient.ConnectAsync();
+    }
+
+    private void TryApplySavedColor()
+    {
+        try
+        {
+            string hex =
+                PlayerManager.Instance != null ? PlayerManager.Instance.GetSavedSkinHex() : null;
+            if (!string.IsNullOrEmpty(hex))
+            {
+                if (!hex.StartsWith("#"))
+                    hex = "#" + hex;
+                if (ColorUtility.TryParseHtmlString(hex, out var color))
+                {
+                    var sr = GetComponent<SpriteRenderer>();
+                    if (sr == null)
+                    {
+                        sr = GetComponentInChildren<SpriteRenderer>();
+                    }
+                    if (sr != null)
+                    {
+                        sr.color = color;
+                        Debug.Log($"Applied player color from saved hex {hex}.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning(
+                            $"TryApplySavedColor: No SpriteRenderer found on player or children. Hex={hex}"
+                        );
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"TryApplySavedColor: Invalid hex format: {hex}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"TryApplySavedColor failed: {ex.Message}");
+        }
     }
 
     private void OnEnable()
@@ -86,7 +129,8 @@ public class PlayerController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_isGameOver) return;
+        if (_isGameOver)
+            return;
 
         rb.linearVelocity = moveInput * moveSpeed;
         _ = _playerWebSocketClient.SendPositionAsync(transform.position, _lastSpawnAttempt);
@@ -179,7 +223,9 @@ public class PlayerController2D : MonoBehaviour
     {
         if (response != null && response.Status == "Bad")
         {
-            Debug.LogWarning($"Score mismatch detected. Client score will be updated to server's score.");
+            Debug.LogWarning(
+                $"Score mismatch detected. Client score will be updated to server's score."
+            );
             PlayerPrefs.SetInt("PlayerScore", response.ServerScore);
             PlayerPrefs.Save();
             Collectible.InvokeOnScoreChanged(response.ServerScore);
@@ -215,7 +261,8 @@ public class PlayerController2D : MonoBehaviour
 
     public void RequestSpawn(float spawnRadius)
     {
-        if (_isGameOver) return;
+        if (_isGameOver)
+            return;
 
         var request = new SpawnItemRequest
         {

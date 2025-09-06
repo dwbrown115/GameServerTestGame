@@ -107,8 +107,15 @@ public class PlayerManager : MonoBehaviour
             return;
         }
 
-        // Only persist the userId. The userName is session data.
-        var persistentData = new PersistentPlayerData { userId = currentPlayer.userId };
+        // Persist userId and any cosmetic data (skin/color). The userName is session data.
+        // Attempt to preserve existing persisted cosmetic values if present.
+        var existing = LoadPersistentUnsafe();
+        var persistentData = new PersistentPlayerData
+        {
+            userId = currentPlayer.userId,
+            skinId = existing?.skinId,
+            hexValue = existing?.hexValue,
+        };
         string playerDataJson = JsonConvert.SerializeObject(persistentData);
         Debug.Log($"📝 Persisting player data (JSON): {playerDataJson}");
 
@@ -164,7 +171,9 @@ public class PlayerManager : MonoBehaviour
 
             currentPlayer.userId = persistentData.userId;
             currentPlayer.userName = null; // This is session data, will be fetched after validation.
-            Debug.Log($"✅ Loaded persistent player data: ID={currentPlayer.userId}");
+            Debug.Log(
+                $"✅ Loaded persistent player data: ID={currentPlayer.userId} SkinId={persistentData.skinId} Hex={persistentData.hexValue}"
+            );
         }
         catch (Exception ex)
         {
@@ -175,5 +184,67 @@ public class PlayerManager : MonoBehaviour
             // Delete it to prevent repeated errors.
             ClearPlayerData();
         }
+    }
+
+    // Helper to read existing persisted data without mutating currentPlayer. Returns null on failure.
+    private PersistentPlayerData LoadPersistentUnsafe()
+    {
+        try
+        {
+            if (!File.Exists(playerDataPath) || _derivedKey == null)
+                return null;
+            byte[] encryptedData = File.ReadAllBytes(playerDataPath);
+            if (encryptedData == null || encryptedData.Length == 0)
+                return null;
+            string json = CryptoUtils.DecryptAES(encryptedData, _derivedKey);
+            if (string.IsNullOrEmpty(json))
+                return null;
+            return JsonConvert.DeserializeObject<PersistentPlayerData>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void SetActiveSkin(string skinId, string hexValue)
+    {
+        var existing = LoadPersistentUnsafe() ?? new PersistentPlayerData();
+        existing.userId = GetUserId();
+        existing.skinId = skinId;
+        existing.hexValue = hexValue;
+        Persist(existing);
+    }
+
+    private void Persist(PersistentPlayerData data)
+    {
+        if (_derivedKey == null)
+        {
+            Debug.LogError("❌ Cannot persist player data: encryption key not available.");
+            return;
+        }
+        string json = JsonConvert.SerializeObject(data);
+        try
+        {
+            byte[] encrypted = CryptoUtils.EncryptAES(json, _derivedKey);
+            File.WriteAllBytes(playerDataPath, encrypted);
+            Debug.Log("💾 Saved player_data.dat with skin/color.");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"❌ Failed to persist player data: {ex.Message}");
+        }
+    }
+
+    public string GetSavedSkinId()
+    {
+        var p = LoadPersistentUnsafe();
+        return p?.skinId;
+    }
+
+    public string GetSavedSkinHex()
+    {
+        var p = LoadPersistentUnsafe();
+        return p?.hexValue;
     }
 }

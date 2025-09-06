@@ -12,6 +12,11 @@ public class AuthNavigation : MonoBehaviour
     public void NavigateToWebsocketTestGame()
     {
         Debug.Log("Navigating to Websocket Test Game");
+        // Re-fetch active skin and compare to saved before entering the game
+        if (SkinShopManager.Instance != null)
+        {
+            SkinShopManager.Instance.ValidateActiveSkinAgainstSaved();
+        }
         SceneManager.LoadScene("WebsocketTestGame", LoadSceneMode.Single);
     }
 

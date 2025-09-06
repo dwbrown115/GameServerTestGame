@@ -586,6 +586,27 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 425402894}
   m_CullTransparentMesh: 1
+--- !u!1 &589992136 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3262395535121418598, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
+  m_PrefabInstance: {fileID: 660118972}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &589992144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 589992136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f917b967edab14973bdc480503dbb1b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  apiBaseUrl: https://localhost:7123
+  activeSkinPathTemplate: /api/Shop/active-skin/{userId}
+  autoFetchAfterAuth: 1
+  includeAuthHeader: 1
 --- !u!1001 &660118972
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -642,7 +663,10 @@ PrefabInstance:
     - {fileID: 9204684190810225946, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3262395535121418598, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 589992144}
   m_SourcePrefab: {fileID: 100100000, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
 --- !u!1 &1737254819
 GameObject:
