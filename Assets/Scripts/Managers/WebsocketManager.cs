@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class WebSocketManager : MonoBehaviour
 {
@@ -33,6 +34,9 @@ public class WebSocketManager : MonoBehaviour
 
     private string _sessionPath;
     private string _sessionId;
+    private bool _usedSkinShopLoading; // track if we proxied to SkinShopManager for loading UI
+    private GameObject _runtimeLoadingOverlay; // minimal fallback when no modal is configured
+    private TextMeshProUGUI _runtimeLoadingText;
 
     public string GetSessionId()
     {
@@ -54,8 +58,10 @@ public class WebSocketManager : MonoBehaviour
 
         if (_authenticator == null)
         {
-            enabled = false;
-            return;
+            _authenticator = gameObject.AddComponent<WebSocketAuthenticator>();
+            Debug.Log(
+                "WebSocketManager: No authenticator assigned, added default WebSocketAuthenticator component."
+            );
         }
 
         string debugFolder = Path.Combine(Application.dataPath, "_DebugTokens");
@@ -78,24 +84,29 @@ public class WebSocketManager : MonoBehaviour
         AuthenticateWebSocket(null, true);
     }
 
-    public void AuthenticateWebSocket(Action<bool> onComplete = null, bool loadSceneOnSuccess = true)
+    public void AuthenticateWebSocket(
+        Action<bool> onComplete = null,
+        bool loadSceneOnSuccess = true
+    )
     {
         string jwt = JwtManager.Instance.GetJwt();
         string refreshToken = JwtManager.Instance.GetRefreshToken();
         string userId = PlayerManager.Instance.GetUserId();
         string deviceId = DeviceUtils.GetDeviceId();
+        Debug.Log(
+            $"WebSocketManager.Authenticate: userId={(string.IsNullOrEmpty(userId) ? "<none>" : userId)} jwt={(string.IsNullOrEmpty(jwt) ? "<none>" : "<present>")} refresh={(string.IsNullOrEmpty(refreshToken) ? "<none>" : "<present>")} deviceId={deviceId}"
+        );
 
         if (string.IsNullOrEmpty(jwt) || string.IsNullOrEmpty(userId))
         {
-            HandleAuthError("Cannot authenticate WebSocket: Missing JWT or UserID. Please log in first.");
+            HandleAuthError(
+                "Cannot authenticate WebSocket: Missing JWT or UserID. Please log in first."
+            );
             onComplete?.Invoke(false);
             return;
         }
 
-        if (loadingModal != null)
-            loadingModal.SetActive(true);
-        if (loadingAnimator != null)
-            loadingAnimator.StartAnimation("Authenticating");
+        ShowLoading("Authenticating");
 
         var authRequest = new WebSocketAuthRequest
         {
@@ -105,12 +116,20 @@ public class WebSocketManager : MonoBehaviour
             DeviceId = deviceId,
         };
 
-        _authenticator.Authenticate(authRequest, (response) =>
-            StartCoroutine(HandleAuthResponseWithAnimation(response, onComplete, loadSceneOnSuccess))
+        _authenticator.Authenticate(
+            authRequest,
+            response =>
+                StartCoroutine(
+                    HandleAuthResponseWithAnimation(response, onComplete, loadSceneOnSuccess)
+                )
         );
     }
 
-    private IEnumerator HandleAuthResponseWithAnimation(WebSocketAuthResponse response, Action<bool> onComplete, bool loadSceneOnSuccess)
+    private IEnumerator HandleAuthResponseWithAnimation(
+        WebSocketAuthResponse response,
+        Action<bool> onComplete,
+        bool loadSceneOnSuccess
+    )
     {
         float minAnimationTime = 0.5f;
         float startTime = Time.time;
@@ -121,20 +140,24 @@ public class WebSocketManager : MonoBehaviour
             yield return new WaitForSeconds(minAnimationTime - elapsedTime);
         }
 
-        if (loadingAnimator != null)
-            loadingAnimator.StopAnimation();
-        if (loadingModal != null)
-            loadingModal.SetActive(false);
+        HideLoading();
 
         if (response != null && response.Authenticated)
         {
             _sessionId = response.SessionId;
-            Debug.Log($"<color=green>WebSocket authenticated successfully. Session ID: {_sessionId}</color>");
+            Debug.Log(
+                $"<color=green>WebSocket authenticated successfully. Session ID: {_sessionId}</color>"
+            );
 
             Debug.Log("Firing OnSessionIdReady event.");
             OnSessionIdReady?.Invoke(_sessionId);
 
-            JwtManager.Instance.SetToken(response.Token, response.RefreshToken, PlayerManager.Instance.GetUserId(), JwtManager.ParseJwtExpiry(response.Token));
+            JwtManager.Instance.SetToken(
+                response.Token,
+                response.RefreshToken,
+                PlayerManager.Instance.GetUserId(),
+                JwtManager.ParseJwtExpiry(response.Token)
+            );
 
             try
             {
@@ -173,5 +196,99 @@ public class WebSocketManager : MonoBehaviour
             errorText.text = errorMessage;
             errorModal.SetActive(true);
         }
+    }
+
+    private void ShowLoading(string message)
+    {
+        // Prefer locally configured modal
+        if (loadingModal != null)
+        {
+            loadingModal.SetActive(true);
+            if (loadingAnimator != null)
+                loadingAnimator.StartAnimation(string.IsNullOrEmpty(message) ? "Loading" : message);
+            return;
+        }
+
+        // Fallback to SkinShopManager's loading if available
+        if (SkinShopManager.Instance != null && SkinShopManager.Instance.loadingModal != null)
+        {
+            _usedSkinShopLoading = true;
+            SkinShopManager.Instance.ShowLoading(
+                string.IsNullOrEmpty(message) ? "Loading" : message
+            );
+            return;
+        }
+
+        // Final fallback: create a minimal overlay once
+        EnsureRuntimeOverlay();
+        if (_runtimeLoadingOverlay != null)
+        {
+            _runtimeLoadingOverlay.SetActive(true);
+            if (_runtimeLoadingText != null)
+                _runtimeLoadingText.text = string.IsNullOrEmpty(message) ? "Loading" : message;
+        }
+    }
+
+    private void HideLoading()
+    {
+        if (loadingAnimator != null)
+            loadingAnimator.StopAnimation();
+        if (loadingModal != null)
+        {
+            loadingModal.SetActive(false);
+            return;
+        }
+        if (_usedSkinShopLoading && SkinShopManager.Instance != null)
+        {
+            SkinShopManager.Instance.HideLoading();
+            _usedSkinShopLoading = false;
+            return;
+        }
+        if (_runtimeLoadingOverlay != null)
+        {
+            _runtimeLoadingOverlay.SetActive(false);
+        }
+    }
+
+    private void EnsureRuntimeOverlay()
+    {
+        if (_runtimeLoadingOverlay != null)
+            return;
+
+        // Create a simple overlay under this manager so it persists across scenes
+        var canvasGO = new GameObject("RuntimeLoadingCanvas");
+        canvasGO.transform.SetParent(transform, false);
+        var canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = Int16.MaxValue; // ensure on top
+        canvasGO.AddComponent<CanvasScaler>();
+        canvasGO.AddComponent<GraphicRaycaster>();
+
+        var panelGO = new GameObject("OverlayPanel");
+        panelGO.transform.SetParent(canvasGO.transform, false);
+        var prt = panelGO.AddComponent<RectTransform>();
+        prt.anchorMin = Vector2.zero;
+        prt.anchorMax = Vector2.one;
+        prt.offsetMin = Vector2.zero;
+        prt.offsetMax = Vector2.zero;
+        var img = panelGO.AddComponent<UnityEngine.UI.Image>();
+        img.color = new Color(0, 0, 0, 0.5f);
+
+        var textGO = new GameObject("Message");
+        textGO.transform.SetParent(panelGO.transform, false);
+        var trt = textGO.AddComponent<RectTransform>();
+        trt.anchorMin = new Vector2(0.5f, 0.5f);
+        trt.anchorMax = new Vector2(0.5f, 0.5f);
+        trt.pivot = new Vector2(0.5f, 0.5f);
+        trt.sizeDelta = new Vector2(600, 120);
+        var tmp = textGO.AddComponent<TextMeshProUGUI>();
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.fontSize = 36;
+        tmp.text = "Loading";
+        tmp.color = Color.white;
+
+        _runtimeLoadingOverlay = canvasGO;
+        _runtimeLoadingText = tmp;
+        _runtimeLoadingOverlay.SetActive(false);
     }
 }

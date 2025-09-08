@@ -35,53 +35,46 @@ public class PlayerApiClient : MonoBehaviour
         Debug.Log($"Sending request to: {url}");
 
         // Create a UnityWebRequest object for a GET request
-        using (UnityWebRequest request = UnityWebRequest.Get(url))
+        var headers = new System.Collections.Generic.Dictionary<string, string>();
+        string token = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(token))
         {
-            // Player data requests require an authorization token
-            string token = JwtManager.Instance.GetJwt();
-            if (!string.IsNullOrEmpty(token))
-            {
-                request.SetRequestHeader("Authorization", "Bearer " + token);
-            }
-
-            // Assign the custom certificate handler
-            request.certificateHandler = PlayerApiCertificateHandler.Instance;
-
-            // Send the request and wait for a response
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                // Request was successful
-                Debug.Log("Request successful!");
-
-                // Get the raw JSON response text
-                string jsonResponse = request.downloadHandler.text;
-                Debug.Log($"Response JSON: {jsonResponse}");
-
-                // Use Newtonsoft.Json to parse the JSON into our PlayerResponse object
-                PlayerResponse player = JsonConvert.DeserializeObject<PlayerResponse>(jsonResponse);
-
-                // Now you can use the player data
-                Debug.Log(
-                    $"<color=green>Successfully fetched player: {player.userName} (ID: {player.userId})</color>"
-                );
-
-                onSuccess?.Invoke(player);
-            }
-            else
-            {
-                // An error occurred
-                Debug.LogError($"<color=red>Error fetching player data: {request.error}</color>");
-
-                // You can also check the HTTP status code
-                if (request.responseCode == 404)
-                {
-                    Debug.LogError("Player not found on the server (404).");
-                }
-                onError?.Invoke(request.error);
-            }
+            headers["Authorization"] = "Bearer " + token;
         }
+
+        yield return Net.HttpRequest.Send(
+            "GET",
+            url,
+            resp =>
+            {
+                if (resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    Debug.Log("Request successful!");
+                    string jsonResponse = resp.body;
+                    Debug.Log($"Response JSON: {jsonResponse}");
+                    PlayerResponse player = JsonConvert.DeserializeObject<PlayerResponse>(
+                        jsonResponse
+                    );
+                    Debug.Log(
+                        $"<color=green>Successfully fetched player: {player.userName} (ID: {player.userId})</color>"
+                    );
+                    onSuccess?.Invoke(player);
+                }
+                else
+                {
+                    Debug.LogError($"<color=red>Error fetching player data: {resp.error}</color>");
+                    if (resp.statusCode == 404)
+                    {
+                        Debug.LogError("Player not found on the server (404).");
+                    }
+                    onError?.Invoke(resp.error);
+                }
+            },
+            null,
+            headers,
+            PlayerApiCertificateHandler.Instance,
+            10
+        );
     }
 
     // You can use this for quick testing in the editor

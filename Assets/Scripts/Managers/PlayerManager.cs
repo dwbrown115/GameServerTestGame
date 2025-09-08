@@ -8,9 +8,23 @@ public class PlayerManager : MonoBehaviour
     public static PlayerManager Instance;
 
     private string playerDataPath;
+    private string playerDataDebugCopyPath;
     private string saltPath; // Shared with JwtManager
 
     private PlayerResponse currentPlayer;
+
+    [Header("Debug Persistence")]
+    [Tooltip(
+        "If true, saves player_data.dat as plaintext JSON instead of encrypted (temporary debugging only!)."
+    )]
+    [SerializeField]
+    private bool savePlaintext = false;
+
+    [Tooltip(
+        "If true, always write a plaintext JSON debug copy next to the encrypted file (player_data.debug.json)."
+    )]
+    [SerializeField]
+    private bool writeDebugCopy = false;
 
     // The derived key is cached for performance. Key derivation is expensive.
     private byte[] _derivedKey;
@@ -31,6 +45,7 @@ public class PlayerManager : MonoBehaviour
             Directory.CreateDirectory(debugFolder);
 
         playerDataPath = Path.Combine(debugFolder, "player_data.dat");
+        playerDataDebugCopyPath = Path.Combine(debugFolder, "player_data.debug.json");
         // Both managers will use the same salt file.
         saltPath = Path.Combine(debugFolder, "jwt_salt.dat");
 
@@ -115,16 +130,31 @@ public class PlayerManager : MonoBehaviour
             userId = currentPlayer.userId,
             skinId = existing?.skinId,
             hexValue = existing?.hexValue,
+            points = existing?.points ?? 0,
+            ownedSkinIds = existing?.ownedSkinIds,
         };
         string playerDataJson = JsonConvert.SerializeObject(persistentData);
         Debug.Log($"📝 Persisting player data (JSON): {playerDataJson}");
 
         try
         {
-            byte[] encryptedData = CryptoUtils.EncryptAES(playerDataJson, _derivedKey);
+            if (savePlaintext)
+            {
+                File.WriteAllText(playerDataPath, playerDataJson);
+                Debug.Log("💾 Saved plaintext player data (debug mode).");
+            }
+            else
+            {
+                byte[] encryptedData = CryptoUtils.EncryptAES(playerDataJson, _derivedKey);
+                File.WriteAllBytes(playerDataPath, encryptedData);
+                Debug.Log($"💾 Saved encrypted player data (size: {encryptedData.Length} bytes).");
+            }
 
-            File.WriteAllBytes(playerDataPath, encryptedData);
-            Debug.Log($"💾 Saved encrypted player data (size: {encryptedData.Length} bytes).");
+            if (writeDebugCopy)
+            {
+                File.WriteAllText(playerDataDebugCopyPath, playerDataJson);
+                Debug.Log($"🧪 Wrote debug copy: {playerDataDebugCopyPath}");
+            }
         }
         catch (Exception ex)
         {
@@ -148,23 +178,46 @@ public class PlayerManager : MonoBehaviour
 
         try
         {
-            byte[] encryptedData = File.ReadAllBytes(playerDataPath);
-            if (encryptedData.Length == 0)
+            // Read file and detect plaintext vs encrypted
+            byte[] rawBytes = File.ReadAllBytes(playerDataPath);
+            if (rawBytes.Length == 0)
             {
                 Debug.LogWarning("⚠️ Player data file is empty.");
                 return;
             }
 
-            string decryptedJson = CryptoUtils.DecryptAES(encryptedData, _derivedKey);
-
-            if (string.IsNullOrEmpty(decryptedJson))
+            string jsonText = null;
+            // If debug savePlaintext is on, treat as plaintext
+            if (savePlaintext)
             {
-                Debug.LogWarning("⚠️ Decrypted player data is empty. Clearing data file.");
+                jsonText = File.ReadAllText(playerDataPath);
+            }
+            else
+            {
+                // Heuristic: if file starts with '{' it's likely plaintext JSON even if flag is off
+                if (rawBytes[0] == (byte)'{')
+                {
+                    jsonText = File.ReadAllText(playerDataPath);
+                    Debug.LogWarning(
+                        "ℹ️ Detected plaintext player_data.dat while not in debug mode; loading as JSON."
+                    );
+                }
+                else
+                {
+                    jsonText = CryptoUtils.DecryptAES(rawBytes, _derivedKey);
+                }
+            }
+
+            if (string.IsNullOrEmpty(jsonText))
+            {
+                Debug.LogWarning(
+                    "⚠️ Player data JSON is empty after read/decrypt. Clearing data file."
+                );
                 ClearPlayerData();
                 return;
             }
 
-            var persistentData = JsonConvert.DeserializeObject<PersistentPlayerData>(decryptedJson);
+            var persistentData = JsonConvert.DeserializeObject<PersistentPlayerData>(jsonText);
 
             if (currentPlayer == null)
                 currentPlayer = new PlayerResponse();
@@ -172,7 +225,7 @@ public class PlayerManager : MonoBehaviour
             currentPlayer.userId = persistentData.userId;
             currentPlayer.userName = null; // This is session data, will be fetched after validation.
             Debug.Log(
-                $"✅ Loaded persistent player data: ID={currentPlayer.userId} SkinId={persistentData.skinId} Hex={persistentData.hexValue}"
+                $"✅ Loaded persistent player data: ID={currentPlayer.userId} SkinId={persistentData.skinId} Hex={persistentData.hexValue} Points={persistentData.points} OwnedSkins={(persistentData.ownedSkinIds != null ? string.Join(",", persistentData.ownedSkinIds) : "<none>")}"
             );
         }
         catch (Exception ex)
@@ -196,10 +249,21 @@ public class PlayerManager : MonoBehaviour
             byte[] encryptedData = File.ReadAllBytes(playerDataPath);
             if (encryptedData == null || encryptedData.Length == 0)
                 return null;
-            string json = CryptoUtils.DecryptAES(encryptedData, _derivedKey);
-            if (string.IsNullOrEmpty(json))
-                return null;
-            return JsonConvert.DeserializeObject<PersistentPlayerData>(json);
+            // Try plaintext if debug is enabled or file looks like JSON; else decrypt
+            if (savePlaintext || (encryptedData.Length > 0 && encryptedData[0] == (byte)'{'))
+            {
+                string jsonPT = File.ReadAllText(playerDataPath);
+                if (string.IsNullOrEmpty(jsonPT))
+                    return null;
+                return JsonConvert.DeserializeObject<PersistentPlayerData>(jsonPT);
+            }
+            else
+            {
+                string json = CryptoUtils.DecryptAES(encryptedData, _derivedKey);
+                if (string.IsNullOrEmpty(json))
+                    return null;
+                return JsonConvert.DeserializeObject<PersistentPlayerData>(json);
+            }
         }
         catch
         {
@@ -216,19 +280,61 @@ public class PlayerManager : MonoBehaviour
         Persist(existing);
     }
 
+    public void SetPoints(int points)
+    {
+        var existing = LoadPersistentUnsafe() ?? new PersistentPlayerData();
+        existing.userId = GetUserId();
+        existing.points = Mathf.Max(0, points);
+        Persist(existing);
+    }
+
+    public int GetPoints()
+    {
+        var p = LoadPersistentUnsafe();
+        return p?.points ?? 0;
+    }
+
+    public void SetOwnedSkins(string[] owned)
+    {
+        var existing = LoadPersistentUnsafe() ?? new PersistentPlayerData();
+        existing.userId = GetUserId();
+        existing.ownedSkinIds = owned;
+        Persist(existing);
+    }
+
+    public string[] GetOwnedSkins()
+    {
+        var p = LoadPersistentUnsafe();
+        return p?.ownedSkinIds;
+    }
+
     private void Persist(PersistentPlayerData data)
     {
-        if (_derivedKey == null)
-        {
-            Debug.LogError("❌ Cannot persist player data: encryption key not available.");
-            return;
-        }
         string json = JsonConvert.SerializeObject(data);
         try
         {
-            byte[] encrypted = CryptoUtils.EncryptAES(json, _derivedKey);
-            File.WriteAllBytes(playerDataPath, encrypted);
-            Debug.Log("💾 Saved player_data.dat with skin/color.");
+            if (savePlaintext)
+            {
+                File.WriteAllText(playerDataPath, json);
+                Debug.Log("💾 Saved player_data.dat (plaintext debug mode).");
+            }
+            else
+            {
+                if (_derivedKey == null)
+                {
+                    Debug.LogError("❌ Cannot persist player data: encryption key not available.");
+                    return;
+                }
+                byte[] encrypted = CryptoUtils.EncryptAES(json, _derivedKey);
+                File.WriteAllBytes(playerDataPath, encrypted);
+                Debug.Log("💾 Saved player_data.dat (encrypted).");
+            }
+
+            if (writeDebugCopy)
+            {
+                File.WriteAllText(playerDataDebugCopyPath, json);
+                Debug.Log($"🧪 Wrote debug copy: {playerDataDebugCopyPath}");
+            }
         }
         catch (Exception ex)
         {

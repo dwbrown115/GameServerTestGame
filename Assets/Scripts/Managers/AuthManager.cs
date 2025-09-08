@@ -98,16 +98,23 @@ public class AuthManager : MonoBehaviour
             DeviceId = DeviceUtils.GetDeviceId(),
         };
         string json = JsonConvert.SerializeObject(payload);
-        UnityWebRequest request = new UnityWebRequest(
-            endpoint + authEndpointPrefix + registerRoute,
-            "POST"
+        StartCoroutine(
+            Net.HttpRequest.Send(
+                "POST",
+                endpoint + authEndpointPrefix + registerRoute,
+                resp =>
+                {
+                    HandleBasicResponse("Register", resp, callback);
+                },
+                json,
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { "Content-Type", "application/json" },
+                },
+                CustomCertificateHandler.Instance,
+                10
+            )
         );
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        StartCoroutine(SendRequest(request, callback));
     }
 
     public void Login(string username, string password, Action<bool, string> callback)
@@ -121,23 +128,18 @@ public class AuthManager : MonoBehaviour
 
         string json = JsonConvert.SerializeObject(payload);
 
-        UnityWebRequest request = new UnityWebRequest(
-            endpoint + authEndpointPrefix + loginRoute,
-            "POST"
-        );
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
         StartCoroutine(
-            SendRequest(
-                request,
-                (success, response) =>
+            Net.HttpRequest.Send(
+                "POST",
+                endpoint + authEndpointPrefix + loginRoute,
+                resp =>
                 {
+                    bool success =
+                        resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success;
+                    string response = resp.body ?? string.Empty;
                     if (success)
                     {
                         Debug.Log($"🌐 Login raw response: {response}");
-
                         LoginResult loginResult = null;
                         try
                         {
@@ -167,9 +169,15 @@ public class AuthManager : MonoBehaviour
                             Debug.LogError($"❌ Failed to parse login result: {ex.Message}");
                         }
                     }
-
                     callback?.Invoke(success, response);
-                }
+                },
+                json,
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { "Content-Type", "application/json" },
+                },
+                CustomCertificateHandler.Instance,
+                10
             )
         );
     }
@@ -216,30 +224,29 @@ public class AuthManager : MonoBehaviour
 
         string payloadJson = JsonConvert.SerializeObject(payload);
 
-        UnityWebRequest request = new UnityWebRequest(
-            endpoint + playerEndpointPrefix + "/update",
-            "PATCH"
-        );
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(payloadJson);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
+        var headers = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "Content-Type", "application/json" },
+        };
         string token = JwtManager.Instance.GetJwt();
         if (!string.IsNullOrEmpty(token))
         {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
+            headers["Authorization"] = "Bearer " + token;
         }
         StartCoroutine(
-            SendRequest(
-                request,
-                (success, response) =>
+            Net.HttpRequest.Send(
+                "PATCH",
+                endpoint + playerEndpointPrefix + "/update",
+                resp =>
                 {
+                    bool success =
+                        resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success;
+                    string response = resp.body ?? string.Empty;
                     if (!success)
                     {
                         callback?.Invoke(false, response);
                         return;
                     }
-
                     try
                     {
                         var updateResponse = JsonConvert.DeserializeObject<UpdateResponse>(
@@ -248,10 +255,8 @@ public class AuthManager : MonoBehaviour
                         Debug.Log(
                             $"Update response: {JsonConvert.SerializeObject(updateResponse)}"
                         );
-
                         if (updateResponse.success)
                         {
-                            // If the username was successfully changed, update it in the PlayerManager
                             if (!string.IsNullOrEmpty(newUsername))
                             {
                                 PlayerManager.Instance.SetPlayerData(
@@ -271,7 +276,11 @@ public class AuthManager : MonoBehaviour
                         Debug.LogError($"Failed to parse update response: {ex.Message}");
                         callback?.Invoke(false, "Failed to parse server response.");
                     }
-                }
+                },
+                payloadJson,
+                headers,
+                CustomCertificateHandler.Instance,
+                10
             )
         );
     }
@@ -300,24 +309,24 @@ public class AuthManager : MonoBehaviour
 
         string json = JsonConvert.SerializeObject(payload);
 
-        UnityWebRequest request = new UnityWebRequest(
-            endpoint + authEndpointPrefix + logoutRoute,
-            "POST"
-        );
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        string token = JwtManager.Instance.GetJwt();
-        if (!string.IsNullOrEmpty(token))
+        var headersLogout = new System.Collections.Generic.Dictionary<string, string>
         {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
+            { "Content-Type", "application/json" },
+        };
+        string tokenLogout = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(tokenLogout))
+        {
+            headersLogout["Authorization"] = "Bearer " + tokenLogout;
         }
         StartCoroutine(
-            SendRequest(
-                request,
-                (success, response) =>
+            Net.HttpRequest.Send(
+                "POST",
+                endpoint + authEndpointPrefix + logoutRoute,
+                resp =>
                 {
+                    bool success =
+                        resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success;
+                    string response = resp.body ?? string.Empty;
                     Debug.Log($"Logout response: {response}");
                     Debug.Log($"Logout success: {success}");
                     if (success)
@@ -329,9 +338,12 @@ public class AuthManager : MonoBehaviour
                     {
                         Debug.LogWarning($"❌ Logout failed: {response}");
                     }
-
                     callback?.Invoke(success, response);
-                }
+                },
+                json,
+                headersLogout,
+                CustomCertificateHandler.Instance,
+                10
             )
         );
     }
@@ -348,25 +360,24 @@ public class AuthManager : MonoBehaviour
 
         string json = JsonConvert.SerializeObject(payload);
         string url = endpoint + authEndpointPrefix + "/validate";
-        UnityWebRequest request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
-
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        // Validation requires an authorization token
-        string token = JwtManager.Instance.GetJwt();
-        if (!string.IsNullOrEmpty(token))
+        var headersValidate = new System.Collections.Generic.Dictionary<string, string>
         {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
+            { "Content-Type", "application/json" },
+        };
+        string tokenVal = JwtManager.Instance.GetJwt();
+        if (!string.IsNullOrEmpty(tokenVal))
+        {
+            headersValidate["Authorization"] = "Bearer " + tokenVal;
         }
-
         StartCoroutine(
-            SendRequest(
-                request,
-                (success, response) =>
+            Net.HttpRequest.Send(
+                UnityWebRequest.kHttpVerbPOST,
+                url,
+                resp =>
                 {
+                    bool success =
+                        resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success;
+                    string response = resp.body ?? string.Empty;
                     if (success)
                     {
                         var loginResult = JsonConvert.DeserializeObject<LoginResult>(response);
@@ -375,12 +386,11 @@ public class AuthManager : MonoBehaviour
                             loginResult.refreshToken,
                             loginResult.userId,
                             JwtManager.ParseJwtExpiry(loginResult.token)
-                        ); // Update tokens in JwtManager
+                        );
                         callback?.Invoke(true, loginResult);
                     }
                     else
                     {
-                        // Check for specific refresh token expiry message from the server
                         if (
                             response.Contains(
                                 "No valid refresh token record found or it has expired"
@@ -394,34 +404,30 @@ public class AuthManager : MonoBehaviour
                         }
                         callback?.Invoke(false, null);
                     }
-                }
+                },
+                json,
+                headersValidate,
+                CustomCertificateHandler.Instance,
+                10
             )
         );
     }
 
-    private IEnumerator SendRequest(UnityWebRequest request, Action<bool, string> callback)
+    private void HandleBasicResponse(
+        string label,
+        Net.HttpResponse resp,
+        Action<bool, string> callback
+    )
     {
-        request.certificateHandler = CustomCertificateHandler.Instance;
-        yield return request.SendWebRequest();
-
-#if UNITY_2023_1_OR_NEWER
-        bool hasError = request.result != UnityWebRequest.Result.Success;
-        Debug.Log($"🛰️ Server response code: {hasError}");
-#else
-        bool hasError = request.isNetworkError || request.isHttpError;
-        Debug.Log($"🛰️ Server response code: {hasError}");
-#endif
-        // Log the raw response text for debugging.
-        Debug.Log($"🛰️ Server response code: {request.responseCode}");
-
-        string responseText = request.downloadHandler?.text ?? "";
-
+        bool hasError = resp.result != UnityWebRequest.Result.Success;
+        Debug.Log($"🛰️ {label} result hasError={hasError}");
+        Debug.Log($"🛰️ Server response code: {resp.statusCode}");
+        string responseText = resp.body ?? string.Empty;
         Debug.Log($"📨 Raw response: {responseText}");
-
         if (hasError)
         {
-            Debug.LogWarning($"❌ Request failed: {request.error} — Response: {responseText}");
-            if (request.responseCode == 401)
+            Debug.LogWarning($"❌ Request failed: {resp.error} — Response: {responseText}");
+            if (resp.statusCode == 401)
             {
                 Debug.LogWarning(
                     "Unauthorized (401). Token may be expired or invalid. Clearing token."
@@ -432,7 +438,7 @@ public class AuthManager : MonoBehaviour
         }
         else
         {
-            Debug.Log($"✅ Request to {request.url} successful. Response: {responseText}");
+            Debug.Log($"✅ Request successful. Response: {responseText}");
             callback?.Invoke(true, responseText);
         }
     }

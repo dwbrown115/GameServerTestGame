@@ -115,55 +115,60 @@ public class LeaderboardService : MonoBehaviour
             yield break;
         _isFetching = true;
         string url = apiBaseUrl.TrimEnd('/') + leaderboardPath;
-        using (var request = UnityWebRequest.Get(url))
+        var headers = new System.Collections.Generic.Dictionary<string, string>();
+        if (includeAuthHeader)
         {
-            if (includeAuthHeader)
+            string token = JwtManager.Instance != null ? JwtManager.Instance.GetJwt() : null;
+            if (!string.IsNullOrEmpty(token))
             {
-                string token = JwtManager.Instance != null ? JwtManager.Instance.GetJwt() : null;
-                if (!string.IsNullOrEmpty(token))
-                {
-                    request.SetRequestHeader("Authorization", "Bearer " + token);
-                }
-            }
-            request.certificateHandler = PlayerApiCertificateHandler.Instance;
-            request.timeout = 10;
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                string json = request.downloadHandler.text;
-                Debug.Log($"LeaderboardService: Raw JSON response: {json}");
-                try
-                {
-                    var response = JsonConvert.DeserializeObject<LeaderboardApiResponse>(json);
-                    if (response?.Payload == null)
-                    {
-                        RaiseError("Malformed leaderboard response.");
-                    }
-                    else
-                    {
-                        if (
-                            !string.IsNullOrEmpty(response.ResponseType)
-                            && response.ResponseType != "leaderboard_data_response"
-                        )
-                        {
-                            Debug.LogWarning(
-                                $"LeaderboardService: Unexpected response_type {response.ResponseType}"
-                            );
-                        }
-                        UpdateCache(response.Payload);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    RaiseError("Parse failure: " + ex.Message);
-                }
-            }
-            else
-            {
-                RaiseError($"HTTP {request.responseCode}: {request.error}");
+                headers["Authorization"] = "Bearer " + token;
             }
         }
+        yield return Net.HttpRequest.Send(
+            "GET",
+            url,
+            resp =>
+            {
+                if (resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    string json = resp.body;
+                    Debug.Log($"LeaderboardService: Raw JSON response: {json}");
+                    try
+                    {
+                        var response = JsonConvert.DeserializeObject<LeaderboardApiResponse>(json);
+                        if (response?.Payload == null)
+                        {
+                            RaiseError("Malformed leaderboard response.");
+                        }
+                        else
+                        {
+                            if (
+                                !string.IsNullOrEmpty(response.ResponseType)
+                                && response.ResponseType != "leaderboard_data_response"
+                            )
+                            {
+                                Debug.LogWarning(
+                                    $"LeaderboardService: Unexpected response_type {response.ResponseType}"
+                                );
+                            }
+                            UpdateCache(response.Payload);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        RaiseError("Parse failure: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    RaiseError($"HTTP {resp.statusCode}: {resp.error}");
+                }
+            },
+            null,
+            headers,
+            PlayerApiCertificateHandler.Instance,
+            10
+        );
         _isFetching = false;
     }
 
