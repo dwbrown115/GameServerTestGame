@@ -33,26 +33,7 @@ public class UserAssetsManager : MonoBehaviour
     [SerializeField]
     private bool verbose = true;
 
-    [Serializable]
-    private class UserAssetsResponse
-    {
-        [JsonProperty("response_type")]
-        public string ResponseType;
-
-        [JsonProperty("payload")]
-        public PayloadData Payload;
-    }
-
-    [Serializable]
-    private class PayloadData
-    {
-        [JsonProperty("Points")]
-        public int Points;
-
-        // Can be array of strings or array of objects with SkinId
-        [JsonProperty("Owned Skins")]
-        public JToken OwnedSkins;
-    }
+    // Deprecated typed models removed; we now parse flexibly to support multiple server shapes
 
     public event Action OnAssetsUpdated;
     public event Action<string> OnError;
@@ -120,52 +101,42 @@ public class UserAssetsManager : MonoBehaviour
                         // Some responses may have response_type/payload wrapper; handle both
                         if (verbose)
                             Debug.Log(LOG_TAG + " Response body: " + resp.body);
-                        var wrapped = JsonConvert.DeserializeObject<UserAssetsResponse>(resp.body);
                         int points = 0;
                         List<string> owned = null;
-                        if (wrapped?.Payload != null)
+                        var root = JToken.Parse(resp.body);
+                        if (root.Type == JTokenType.Object)
                         {
-                            points = wrapped.Payload.Points;
-                            owned = ExtractOwnedIds(wrapped.Payload.OwnedSkins);
+                            var jo = (JObject)root;
+                            // Support wrapper under 'payload' (snake/camel), else read from root
+                            var payload = (jo["payload"] as JObject) ?? (jo["Payload"] as JObject);
+                            var source = payload ?? jo;
+                            // Points: support 'points' and 'Points'
+                            points = (int?)source["points"] ?? (int?)source["Points"] ?? 0;
+                            // Owned: support camelCase, PascalCase, and legacy keys
+                            var ownedToken =
+                                source["ownedSkinIds"]
+                                ?? source["OwnedSkinIds"]
+                                ?? source["OwnedSkins"]
+                                ?? source["ownedSkins"]
+                                ?? source["Owned Skins"]
+                                ?? source["owned"]
+                                ?? source["skins"];
+                            owned = ExtractOwnedIds(ownedToken);
                             if (verbose)
                                 Debug.Log(
                                     LOG_TAG
-                                        + $" Parsed via wrapper -> Points={points} OwnedCount={(owned == null ? 0 : owned.Count)}"
+                                        + $" Parsed {(payload != null ? "via wrapper" : "from root")} -> Points={points} OwnedCount={(owned == null ? 0 : owned.Count)}"
                                 );
                         }
-                        else
+                        else if (root.Type == JTokenType.Array)
                         {
-                            // Try to parse directly; response could be an object or an array
-                            var token = JToken.Parse(resp.body);
-                            if (token.Type == JTokenType.Object)
-                            {
-                                var jo = (JObject)token;
-                                points = (int?)jo["Points"] ?? 0;
-                                var ownedToken =
-                                    jo["Owned Skins"]
-                                    ?? jo["OwnedSkinIds"]
-                                    ?? jo["OwnedSkins"]
-                                    ?? jo["ownedSkinIds"]
-                                    ?? jo["ownedSkins"]
-                                    ?? jo["owned"]
-                                    ?? jo["skins"];
-                                owned = ExtractOwnedIds(ownedToken);
-                                if (verbose)
-                                    Debug.Log(
-                                        LOG_TAG
-                                            + $" Parsed via object -> Points={points} OwnedCount={(owned == null ? 0 : owned.Count)}"
-                                    );
-                            }
-                            else if (token.Type == JTokenType.Array)
-                            {
-                                // Body is the owned skins array itself
-                                owned = ExtractOwnedIds(token);
-                                if (verbose)
-                                    Debug.Log(
-                                        LOG_TAG
-                                            + $" Parsed via top-level array -> OwnedCount={(owned == null ? 0 : owned.Count)}"
-                                    );
-                            }
+                            // Body is the owned skins array itself
+                            owned = ExtractOwnedIds(root);
+                            if (verbose)
+                                Debug.Log(
+                                    LOG_TAG
+                                        + $" Parsed via top-level array -> OwnedCount={(owned == null ? 0 : owned.Count)}"
+                                );
                         }
                         PlayerManager.Instance?.SetPoints(points);
                         PlayerManager.Instance?.SetOwnedSkins(owned?.ToArray());

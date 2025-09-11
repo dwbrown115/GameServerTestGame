@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -66,11 +67,62 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
     public Color ownedBorder = new Color32(80, 160, 240, 255);
     public Color activeBorder = new Color32(60, 200, 120, 255);
 
+    [Header("Scrolling")]
+    [Tooltip(
+        "If true, the content RectTransform height will be set to fit all rows for use with a parent ScrollRect."
+    )]
+    public bool autoResizeContentForScroll = true;
+
+    [Tooltip(
+        "If true, adjusts this RectTransform anchors/pivot to top-stretch horizontally, top-pivot for vertical scrolling."
+    )]
+    public bool adjustContentAnchorsForScroll = true;
+
+    public enum AnchorMode
+    {
+        TopStretch,
+        MiddleStretch,
+    }
+
+    [Tooltip(
+        "How the content RectTransform anchors/pivot should be set when scrolling is enabled. MiddleStretch centers vertically; TopStretch pins to top."
+    )]
+    public AnchorMode contentAnchorMode = AnchorMode.MiddleStretch;
+
+    [Tooltip(
+        "Minimum content height (pixels). Ensures the grid isn’t too short; useful to keep mid-stretch centered visually."
+    )]
+    public float minContentHeight = 1575f;
+
+    [Tooltip(
+        "If true, the runtime-created ScrollRect wrapper will stretch to fill its parent area."
+    )]
+    public bool fillWrapperToParent = false;
+
+    [Header("Scrolling Behavior")]
+    [Tooltip("If true, ScrollRect uses Clamped movement (no bounce). If false, Elastic.")]
+    public bool clampedScrolling = true;
+
+    [Tooltip("If true, enables ScrollRect inertia (momentum). Set false for tighter control.")]
+    public bool useInertia = false;
+
+    [Tooltip(
+        "If true and no parent ScrollRect exists, create one at runtime and make this RectTransform the Content."
+    )]
+    public bool autoWrapInScrollRect = true;
+
+    [Tooltip(
+        "Use RectMask2D on the viewport for clipping (recommended). If false, no clipping mask is added."
+    )]
+    public bool useRectMask2D = true;
+
     private GridLayoutGroup _grid;
     private Vector2 _lastComputedCellSize;
     private readonly List<GameObject> _spawned = new();
     private readonly Dictionary<string, ProgrammaticSkinItemState> _itemsBySkinId = new();
     private ProgrammaticSkinItemState _activeItem;
+    private UnityEngine.UI.ScrollRect _parentScrollRect;
+    private bool _didWrap;
 
     private void Awake()
     {
@@ -93,6 +145,27 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
         ApplyGridSettings();
         if (Application.isPlaying)
         {
+            // Cache parent scroll rect for diagnostics
+            _parentScrollRect = GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            if (_parentScrollRect == null)
+            {
+                if (autoWrapInScrollRect)
+                {
+                    EnsureScrollRectWrapper();
+                }
+                else
+                {
+                    Debug.Log(
+                        LOG_TAG
+                            + " No ScrollRect found in parents. For scrolling, place this grid inside a ScrollRect and set this RectTransform as its Content."
+                    );
+                }
+            }
+            else
+            {
+                EnsureExistingScrollRectConfigured(_parentScrollRect);
+            }
+
             // If we have a user but no owned skins loaded yet, request them now (no blocking spinner).
             if (PlayerManager.Instance != null)
             {
@@ -195,6 +268,8 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
     {
         Debug.Log(LOG_TAG + " Rebuild() start");
         ApplyGridSettings();
+        // Keep previous count so we only auto-snap on the very first build
+        int prevItemCount = _spawned.Count;
         Clear();
         // Ensure data readiness:
         if (SkinsService.Instance == null)
@@ -244,6 +319,18 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
             var itemGO = CreateItem(s, initialState);
             Debug.Log(LOG_TAG + $" Created item for {s.SkinId} with state {initialState}");
             _spawned.Add(itemGO);
+        }
+
+        // Resize content height for scrolling
+        if (autoResizeContentForScroll)
+        {
+            ResizeContentForScroll(skins.Count);
+        }
+
+        // Ensure we start at the top on the first build to avoid the first row appearing cut off
+        if (Application.isPlaying && prevItemCount == 0)
+        {
+            StartCoroutine(CoSnapToTopNextFrame());
         }
 
         // No loading modal here; grid renders immediately and will update if assets arrive later.
@@ -616,6 +703,11 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
     {
         // Live update when the container is resized
         ApplyGridSettings();
+        if (autoResizeContentForScroll && Application.isPlaying)
+        {
+            // Recalculate height based on current children count
+            ResizeContentForScroll(_spawned.Count);
+        }
     }
 
     private void OnValidate()
@@ -624,5 +716,245 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
         columns = Mathf.Max(1, columns);
         cellAspect = Mathf.Max(0.01f, cellAspect);
         ApplyGridSettings();
+        if (autoResizeContentForScroll)
+        {
+            ResizeContentForScroll(_spawned.Count);
+        }
+    }
+
+    private void ResizeContentForScroll(int itemCount)
+    {
+        var rt = transform as RectTransform;
+        if (rt == null)
+            return;
+
+        // Optionally enforce anchors for predictable behavior in a ScrollRect
+        if (adjustContentAnchorsForScroll)
+        {
+            ApplyContentAnchors(rt);
+        }
+
+        // Compute rows and total content height
+        int cols = Mathf.Max(1, columns);
+        int rows = Mathf.CeilToInt(itemCount / (float)cols);
+        float cellH = _grid != null ? _grid.cellSize.y : _lastComputedCellSize.y;
+
+        float totalPaddingY = Mathf.Max(0, paddingTop) + Mathf.Max(0, paddingBottom);
+        float totalSpacingY = spacing.y * Mathf.Max(0, rows - 1);
+        float contentHeight = totalPaddingY + rows * cellH + totalSpacingY;
+        if (minContentHeight > 0)
+            contentHeight = Mathf.Max(minContentHeight, contentHeight);
+
+        // Apply height while preserving current width (sizeDelta.x is controlled by anchors)
+        var sd = rt.sizeDelta;
+        sd.y = contentHeight;
+        rt.sizeDelta = sd;
+        // Center vertically if using middle-stretch
+        if (adjustContentAnchorsForScroll && contentAnchorMode == AnchorMode.MiddleStretch)
+        {
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, 0f);
+        }
+
+        Debug.Log(
+            LOG_TAG
+                + $" ResizeContentForScroll -> items={itemCount} rows={rows} cellH={cellH:F1} height={contentHeight:F1}"
+        );
+    }
+
+    private void EnsureScrollRectWrapper()
+    {
+        if (_didWrap)
+            return;
+
+        var contentRt = transform as RectTransform;
+        if (contentRt == null)
+            return;
+
+        var parentRt = contentRt.parent as RectTransform;
+        if (parentRt == null)
+            return;
+
+        // Create wrapper (ScrollRect) sibling in place of current content
+        var wrapperGO = new GameObject("SkinsScrollView", typeof(RectTransform));
+        var wrapperRt = wrapperGO.GetComponent<RectTransform>();
+        wrapperGO.transform.SetParent(parentRt, false);
+        if (fillWrapperToParent)
+        {
+            wrapperRt.anchorMin = new Vector2(0, 0);
+            wrapperRt.anchorMax = new Vector2(1, 1);
+            wrapperRt.pivot = new Vector2(0.5f, 0.5f);
+            wrapperRt.sizeDelta = Vector2.zero;
+            wrapperRt.anchoredPosition = Vector2.zero;
+        }
+        else
+        {
+            wrapperRt.anchorMin = contentRt.anchorMin;
+            wrapperRt.anchorMax = contentRt.anchorMax;
+            wrapperRt.pivot = contentRt.pivot;
+            wrapperRt.sizeDelta = contentRt.sizeDelta;
+            wrapperRt.anchoredPosition = contentRt.anchoredPosition;
+        }
+        wrapperGO.transform.SetSiblingIndex(contentRt.GetSiblingIndex());
+
+        // Create viewport under wrapper
+        var viewportGO = new GameObject("Viewport", typeof(RectTransform));
+        var viewportRt = viewportGO.GetComponent<RectTransform>();
+        viewportGO.transform.SetParent(wrapperRt, false);
+        viewportRt.anchorMin = new Vector2(0, 0);
+        viewportRt.anchorMax = new Vector2(1, 1);
+        viewportRt.pivot = new Vector2(0.5f, 0.5f);
+        viewportRt.offsetMin = Vector2.zero;
+        viewportRt.offsetMax = Vector2.zero;
+
+        // Optional clipping on viewport
+        if (useRectMask2D)
+        {
+            var img = viewportGO.AddComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0, 0, 0, 0); // invisible but enables raycasts
+            img.raycastTarget = true;
+            viewportGO.AddComponent<UnityEngine.UI.RectMask2D>();
+        }
+
+        // Move content under viewport and set anchors for vertical scrolling
+        contentRt.SetParent(viewportRt, false);
+        if (adjustContentAnchorsForScroll)
+        {
+            ApplyContentAnchors(contentRt);
+        }
+        contentRt.offsetMin = Vector2.zero;
+        contentRt.offsetMax = Vector2.zero;
+
+        // Add ScrollRect and wire references
+        var sr = wrapperGO.AddComponent<UnityEngine.UI.ScrollRect>();
+        sr.viewport = viewportRt;
+        sr.content = contentRt;
+        sr.horizontal = false;
+        sr.vertical = true;
+        sr.movementType = clampedScrolling
+            ? UnityEngine.UI.ScrollRect.MovementType.Clamped
+            : UnityEngine.UI.ScrollRect.MovementType.Elastic;
+        sr.inertia = useInertia;
+
+        _parentScrollRect = sr;
+        _didWrap = true;
+
+        Debug.Log(LOG_TAG + " Auto-wrapped grid into a ScrollRect with a clipped viewport.");
+    }
+
+    private void EnsureExistingScrollRectConfigured(UnityEngine.UI.ScrollRect sr)
+    {
+        if (sr == null)
+            return;
+
+        // Ensure content is this grid
+        var contentRt = transform as RectTransform;
+        if (sr.content != contentRt)
+            sr.content = contentRt;
+
+        // Ensure there's a viewport with clipping
+        var viewportRt = sr.viewport;
+        if (viewportRt == null)
+        {
+            // Try to find a child named Viewport
+            var t = sr.transform.Find("Viewport") as RectTransform;
+            if (t == null)
+            {
+                var viewportGO = new GameObject("Viewport", typeof(RectTransform));
+                viewportRt = viewportGO.GetComponent<RectTransform>();
+                viewportGO.transform.SetParent(sr.transform, false);
+                viewportRt.anchorMin = new Vector2(0, 0);
+                viewportRt.anchorMax = new Vector2(1, 1);
+                viewportRt.pivot = new Vector2(0.5f, 0.5f);
+                viewportRt.offsetMin = Vector2.zero;
+                viewportRt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                viewportRt = t;
+            }
+            sr.viewport = viewportRt;
+        }
+
+        // Ensure viewport has an Image and RectMask2D to clip children
+        var vpGo = viewportRt.gameObject;
+        var img = vpGo.GetComponent<UnityEngine.UI.Image>();
+        if (img == null)
+        {
+            img = vpGo.AddComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0, 0, 0, 0);
+            img.raycastTarget = true;
+        }
+        if (useRectMask2D && vpGo.GetComponent<UnityEngine.UI.RectMask2D>() == null)
+        {
+            vpGo.AddComponent<UnityEngine.UI.RectMask2D>();
+        }
+
+        // Ensure content is a child of viewport
+        if (contentRt.parent as RectTransform != viewportRt)
+        {
+            contentRt.SetParent(viewportRt, false);
+        }
+
+        // Ensure vertical scrolling and anchors for content
+        sr.horizontal = false;
+        sr.vertical = true;
+        if (adjustContentAnchorsForScroll)
+        {
+            ApplyContentAnchors(contentRt);
+        }
+        contentRt.offsetMin = Vector2.zero;
+        contentRt.offsetMax = Vector2.zero;
+
+        // Apply clamp/inertia settings
+        sr.movementType = clampedScrolling
+            ? UnityEngine.UI.ScrollRect.MovementType.Clamped
+            : UnityEngine.UI.ScrollRect.MovementType.Elastic;
+        sr.inertia = useInertia;
+
+        Debug.Log(LOG_TAG + " Configured existing ScrollRect (viewport/content/clipping).");
+    }
+
+    private void ApplyContentAnchors(RectTransform rt)
+    {
+        if (rt == null)
+            return;
+        switch (contentAnchorMode)
+        {
+            case AnchorMode.TopStretch:
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(0.5f, 1f);
+                break;
+            case AnchorMode.MiddleStretch:
+            default:
+                rt.anchorMin = new Vector2(0f, 0.5f);
+                rt.anchorMax = new Vector2(1f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Waits one frame for layout to settle, then snaps the ScrollRect to the top.
+    /// Prevents the top row from being partially cut off on first render.
+    /// </summary>
+    private IEnumerator CoSnapToTopNextFrame()
+    {
+        // Ensure the ScrollRect reference is up to date
+        if (_parentScrollRect == null)
+        {
+            _parentScrollRect = GetComponentInParent<UnityEngine.UI.ScrollRect>();
+        }
+        if (_parentScrollRect == null)
+            yield break;
+
+        // Wait one frame so content size/anchors are applied
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+
+        // Snap to top
+        _parentScrollRect.StopMovement();
+        _parentScrollRect.verticalNormalizedPosition = 1f;
+        Canvas.ForceUpdateCanvases();
     }
 }
