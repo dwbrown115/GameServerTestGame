@@ -99,9 +99,9 @@ public class PlayerWebSocketClient
                 {
                     Debug.Log("Deserializing SpawnItemResponse...");
                     var response = JsonConvert.DeserializeObject<SpawnItemResponse>(message);
-                    Debug.Log("Deserialization successful. Invoking callback...");
-                    _onSpawnItemResponse?.Invoke(response);
-                    Debug.Log("Callback invoked successfully.");
+                    Debug.Log("Deserialization successful. Invoking callback on main thread...");
+                    MainThreadDispatcher.Enqueue(() => _onSpawnItemResponse?.Invoke(response));
+                    Debug.Log("Callback enqueued successfully.");
                 }
             },
             {
@@ -109,7 +109,7 @@ public class PlayerWebSocketClient
                 (message) =>
                 {
                     var response = JsonConvert.DeserializeObject<PlayerPingResponse>(message);
-                    _onPlayerPingResponse?.Invoke(response);
+                    MainThreadDispatcher.Enqueue(() => _onPlayerPingResponse?.Invoke(response));
                 }
             },
             {
@@ -117,7 +117,7 @@ public class PlayerWebSocketClient
                 (message) =>
                 {
                     var response = JsonConvert.DeserializeObject<ClaimObjectResponse>(message);
-                    _onClaimObjectResponse?.Invoke(response);
+                    MainThreadDispatcher.Enqueue(() => _onClaimObjectResponse?.Invoke(response));
                 }
             },
         };

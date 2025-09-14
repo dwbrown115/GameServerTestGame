@@ -11,15 +11,30 @@ public static class ShopApiClient
     [Serializable]
     public class ActiveSkinApiResponse
     {
-        [JsonProperty("response_type")] public string ResponseType;
-        [JsonProperty("userId")] public string UserId;
-        [JsonProperty("skinId")] public string SkinId;
-        [JsonProperty("hexValue")] public string HexValue; // optional
-        [JsonProperty("status")] public string Status; // Ok | Bad
-        [JsonProperty("message")] public string Message; // optional
+        [JsonProperty("response_type")]
+        public string ResponseType;
+
+        [JsonProperty("userId")]
+        public string UserId;
+
+        [JsonProperty("skinId")]
+        public string SkinId;
+
+        [JsonProperty("hexValue")]
+        public string HexValue; // optional
+
+        [JsonProperty("status")]
+        public string Status; // Ok | Bad
+
+        [JsonProperty("message")]
+        public string Message; // optional
     }
 
-    public static IEnumerator BuySkin(string userId, string skinId, Action<ActiveSkinApiResponse, string> onDone)
+    public static IEnumerator BuySkin(
+        string userId,
+        string skinId,
+        Action<ActiveSkinApiResponse, string> onDone
+    )
     {
         string url = ApiBaseUrl.TrimEnd('/') + "/api/Shop/buy-skin";
         string body = JsonConvert.SerializeObject(new { userId, skinId });
@@ -35,7 +50,11 @@ public static class ShopApiClient
         );
     }
 
-    public static IEnumerator SetActiveSkin(string userId, string skinId, Action<ActiveSkinApiResponse, string> onDone)
+    public static IEnumerator SetActiveSkin(
+        string userId,
+        string skinId,
+        Action<ActiveSkinApiResponse, string> onDone
+    )
     {
         string url = ApiBaseUrl.TrimEnd('/') + "/api/Shop/active-skin";
         string body = JsonConvert.SerializeObject(new { userId, skinId });
@@ -51,9 +70,15 @@ public static class ShopApiClient
         );
     }
 
-    public static IEnumerator GetActiveSkin(string userId, Action<ActiveSkinApiResponse, string> onDone)
+    public static IEnumerator GetActiveSkin(
+        string userId,
+        Action<ActiveSkinApiResponse, string> onDone
+    )
     {
-        string url = ApiBaseUrl.TrimEnd('/') + "/api/Shop/active-skin/" + Uri.EscapeDataString(userId ?? string.Empty);
+        string url =
+            ApiBaseUrl.TrimEnd('/')
+            + "/api/Shop/active-skin/"
+            + Uri.EscapeDataString(userId ?? string.Empty);
         var headers = BuildAuthHeaders();
         yield return Net.HttpRequest.Send(
             "GET",
@@ -66,7 +91,10 @@ public static class ShopApiClient
         );
     }
 
-    private static void HandleResponse(Net.HttpResponse resp, Action<ActiveSkinApiResponse, string> onDone)
+    private static void HandleResponse(
+        Net.HttpResponse resp,
+        Action<ActiveSkinApiResponse, string> onDone
+    )
     {
         if (resp.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
         {
@@ -79,7 +107,8 @@ public static class ShopApiClient
                     return;
                 }
                 // Normalize status casing
-                if (!string.IsNullOrEmpty(parsed.Status)) parsed.Status = parsed.Status.Trim();
+                if (!string.IsNullOrEmpty(parsed.Status))
+                    parsed.Status = parsed.Status.Trim();
                 onDone?.Invoke(parsed, null);
             }
             catch (Exception ex)

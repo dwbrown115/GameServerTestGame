@@ -16,14 +16,14 @@ public class ScoreUI : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe to the OnScoreChanged event from the Collectible class.
-        Collectible.OnScoreChanged += UpdateScoreText;
+        // Subscribe to central score event aggregator.
+        ScoreEvents.OnScoreChanged += UpdateScoreText;
     }
 
     private void OnDisable()
     {
         // Unsubscribe from the event when the object is disabled to prevent memory leaks.
-        Collectible.OnScoreChanged -= UpdateScoreText;
+        ScoreEvents.OnScoreChanged -= UpdateScoreText;
     }
 
     private void Start()

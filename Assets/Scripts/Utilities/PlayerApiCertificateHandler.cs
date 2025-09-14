@@ -1,6 +1,6 @@
+using System.Security.Cryptography.X509Certificates;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Security.Cryptography.X509Certificates;
 
 // This is a separate certificate handler specifically for the PlayerApiClient to avoid any potential state conflicts.
 public class PlayerApiCertificateHandler : CertificateHandler
@@ -24,7 +24,8 @@ public class PlayerApiCertificateHandler : CertificateHandler
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
     {
-        if (_isInitialized) return;
+        if (_isInitialized)
+            return;
 
         Debug.Log("PlayerApiCertificateHandler: Initializing...");
         var certAsset = Resources.Load<TextAsset>("server.crt");

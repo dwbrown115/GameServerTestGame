@@ -603,6 +603,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f917b967edab14973bdc480503dbb1b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pointsText: {fileID: 0}
+  errorText: {fileID: 0}
+  loadingModal: {fileID: 0}
+  loadingAnimator: {fileID: 0}
 --- !u!1001 &660118972
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -611,6 +615,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1479330355183561418, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
+      propertyPath: writeDebugCopy
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3262395535121418598, guid: 6d9eb310d7dda4c868a912ef0e88e5ca, type: 3}
       propertyPath: m_Name
       value: Auth

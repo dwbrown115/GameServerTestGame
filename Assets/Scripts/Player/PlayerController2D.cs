@@ -27,7 +27,7 @@ public class PlayerController2D : MonoBehaviour
     private TaskCompletionSource<bool> _lastPingResponseReceived = new TaskCompletionSource<bool>();
 
     private PlayerWebSocketClient _playerWebSocketClient;
-    public PrefabSpawner prefabSpawner; // Reference to PrefabSpawner
+    public MonoBehaviour spawnResponseHandler; // Assign a component that implements ISpawnItemResponseHandler
 
     private void Awake()
     {
@@ -40,22 +40,79 @@ public class PlayerController2D : MonoBehaviour
         // Apply saved color to the player's sprite if available
         TryApplySavedColor();
         LoadCredentials();
-        _playerWebSocketClient = new PlayerWebSocketClient(
-            serverAddress,
-            sessionId,
-            playerId,
-            positionUpdateRate,
-            playerRadius,
-            _lastSpawnAttempt,
-            HandlePlayerPingResponse,
-            prefabSpawner.HandleSpawnResponse, // Pass the handler from PrefabSpawner
-            HandleClaimObjectResponse, // Add this handler
-            (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"),
-            () => Debug.Log("PlayerWebSocketClient: Connected!"),
-            () => Debug.Log("PlayerWebSocketClient: Disconnected!")
-        );
-        ValidatedObjectsManager.Initialize(_playerWebSocketClient);
-        await _playerWebSocketClient.ConnectAsync();
+        System.Action<SpawnItemResponse> onSpawn = null;
+
+        // Auto-wire a handler if none assigned (find any component with HandleSpawnResponse)
+        if (spawnResponseHandler == null)
+        {
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            {
+                var mbType = mb.GetType();
+                var miCheck = mbType.GetMethod(
+                    "HandleSpawnResponse",
+                    new Type[] { typeof(SpawnItemResponse) }
+                );
+                if (miCheck != null)
+                {
+                    spawnResponseHandler = mb;
+                    Debug.Log(
+                        $"Auto-wired spawnResponseHandler to {mb.GetType().Name} on {mb.gameObject.name}"
+                    );
+                    break;
+                }
+            }
+        }
+        if (spawnResponseHandler != null)
+        {
+            var type = spawnResponseHandler.GetType();
+            var mi = type.GetMethod(
+                "HandleSpawnResponse",
+                new Type[] { typeof(SpawnItemResponse) }
+            );
+            if (mi != null)
+            {
+                onSpawn = (SpawnItemResponse r) =>
+                {
+                    mi.Invoke(spawnResponseHandler, new object[] { r });
+                };
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"spawnResponseHandler set to {type.Name} but no HandleSpawnResponse(SpawnItemResponse) method was found."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                "No spawnResponseHandler assigned or auto-wired. Spawns will not be handled."
+            );
+        }
+
+        if (!GameMode.Offline)
+        {
+            _playerWebSocketClient = new PlayerWebSocketClient(
+                serverAddress,
+                sessionId,
+                playerId,
+                positionUpdateRate,
+                playerRadius,
+                _lastSpawnAttempt,
+                HandlePlayerPingResponse,
+                onSpawn,
+                HandleClaimObjectResponse,
+                (error) => Debug.LogError($"PlayerWebSocketClient Error: {error}"),
+                () => Debug.Log("PlayerWebSocketClient: Connected!"),
+                () => Debug.Log("PlayerWebSocketClient: Disconnected!")
+            );
+            ValidatedObjectsManager.Initialize(_playerWebSocketClient);
+            await _playerWebSocketClient.ConnectAsync();
+        }
+        else
+        {
+            ValidatedObjectsManager.Initialize(null);
+        }
     }
 
     private void TryApplySavedColor()
@@ -102,13 +159,13 @@ public class PlayerController2D : MonoBehaviour
     private void OnEnable()
     {
         moveAction.Enable();
-        CountdownTimer.OnCountdownFinished += DisableMovement;
+        GameOverController.OnCountdownFinished += DisableMovement;
     }
 
     private async void OnDisable()
     {
         moveAction.Disable();
-        CountdownTimer.OnCountdownFinished -= DisableMovement;
+        GameOverController.OnCountdownFinished -= DisableMovement;
 
         if (_playerWebSocketClient != null)
         {
@@ -133,7 +190,10 @@ public class PlayerController2D : MonoBehaviour
             return;
 
         rb.linearVelocity = moveInput * moveSpeed;
-        _ = _playerWebSocketClient.SendPositionAsync(transform.position, _lastSpawnAttempt);
+        if (!GameMode.Offline && _playerWebSocketClient != null)
+        {
+            _ = _playerWebSocketClient.SendPositionAsync(transform.position, _lastSpawnAttempt);
+        }
     }
 
     private void DisableMovement()
@@ -228,7 +288,7 @@ public class PlayerController2D : MonoBehaviour
             );
             PlayerPrefs.SetInt("PlayerScore", response.ServerScore);
             PlayerPrefs.Save();
-            Collectible.InvokeOnScoreChanged(response.ServerScore);
+            TryInvokeScoreChanged(response.ServerScore);
         }
 
         if (_isGameOver)
@@ -250,13 +310,45 @@ public class PlayerController2D : MonoBehaviour
             PlayerPrefs.SetInt("PlayerScore", newScore);
             PlayerPrefs.Save();
 
-            Collectible.InvokeOnScoreChanged(newScore);
+            TryInvokeScoreChanged(newScore);
         }
     }
 
     public void SetLastSpawnAttempt(DateTime spawnTime)
     {
         _lastSpawnAttempt = spawnTime;
+    }
+
+    // Use reflection to avoid a hard compile-time dependency on Collectible while still
+    // notifying any listeners if that class exists in this build.
+    private void TryInvokeScoreChanged(int newScore)
+    {
+        try
+        {
+            Type targetType = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                targetType = asm.GetType("Collectible");
+                if (targetType != null)
+                {
+                    break;
+                }
+            }
+            if (targetType == null)
+            {
+                return;
+            }
+
+            var mi = targetType.GetMethod(
+                "InvokeOnScoreChanged",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static
+            );
+            mi?.Invoke(null, new object[] { newScore });
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"TryInvokeScoreChanged failed: {ex.Message}");
+        }
     }
 
     public void RequestSpawn(float spawnRadius)
@@ -272,6 +364,19 @@ public class PlayerController2D : MonoBehaviour
             SpawnAttemptTimestamp = DateTime.UtcNow,
             SpawnRadius = spawnRadius,
         };
-        _ = _playerWebSocketClient.SendSpawnRequestAsync(request);
+        if (!GameMode.Offline)
+        {
+            _ = _playerWebSocketClient.SendSpawnRequestAsync(request);
+        }
+        else
+        {
+            var offline = FindAnyObjectByType<OfflineSpawnService>();
+            if (offline == null)
+            {
+                var go = new GameObject("OfflineSpawnService");
+                offline = go.AddComponent<OfflineSpawnService>();
+            }
+            offline.RequestSpawn(request);
+        }
     }
 }

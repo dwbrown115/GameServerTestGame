@@ -1,10 +1,10 @@
+using TMPro; // Added for TMP_Text
 using UnityEngine;
 using UnityEngine.EventSystems; // Required for controlling UI focus
 using UnityEngine.InputSystem;
 using UnityEngine.UI; // Required for the Selectable class
-using TMPro; // Added for TMP_Text
 
-public class CountdownTimer : MonoBehaviour
+public class GameOverController : MonoBehaviour
 {
     [Header("Timer Settings")]
     [Tooltip("The duration of the countdown in seconds.")]
@@ -17,6 +17,7 @@ public class CountdownTimer : MonoBehaviour
     private GameObject gameOverModal;
 
     public PlayerController2D playerController2D; // Reference to the PlayerController2D
+    public PlayerHealth playerHealth; // Reference to PlayerHealth for health-based game over
 
     // Event to notify listeners when the countdown finishes.
     public static event System.Action OnCountdownFinished;
@@ -63,6 +64,21 @@ public class CountdownTimer : MonoBehaviour
         uiActionMap?.Disable();
 
         currentTime = countdownDuration;
+
+        if (playerHealth == null && playerController2D != null)
+        {
+            playerHealth = playerController2D.GetComponent<PlayerHealth>();
+        }
+        if (playerHealth == null)
+        {
+            var player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+                playerHealth = player.GetComponent<PlayerHealth>();
+        }
+        if (playerHealth != null)
+        {
+            playerHealth.OnDied += TriggerGameOver;
+        }
     }
 
     private void Update()
@@ -80,23 +96,34 @@ public class CountdownTimer : MonoBehaviour
             currentTime = 0;
             OnTimeChanged?.Invoke(currentTime);
             isRunning = false;
-            if (gameOverModal != null)
-            {
-                gameOverModal.SetActive(true);
-                // For robust UI navigation, explicitly set the first selectable element.
-                // This helps ensure the button can be immediately used with keyboard/gamepad.
-                var selectable = gameOverModal.GetComponentInChildren<Selectable>();
-                if (selectable != null)
-                    EventSystem.current.SetSelectedGameObject(selectable.gameObject);
-            }
-
-            // Switch to the UI action map to enable menu navigation.
-            playerActionMap?.Disable();
-            uiActionMap?.Enable();
-
-            
-
+            ShowGameOver();
             OnCountdownFinished?.Invoke();
         }
+    }
+
+    private void TriggerGameOver()
+    {
+        if (!isRunning)
+            return;
+        isRunning = false;
+        currentTime = 0;
+        OnTimeChanged?.Invoke(currentTime);
+        ShowGameOver();
+        OnCountdownFinished?.Invoke();
+    }
+
+    private void ShowGameOver()
+    {
+        if (gameOverModal != null)
+        {
+            gameOverModal.SetActive(true);
+            var selectable = gameOverModal.GetComponentInChildren<Selectable>();
+            if (selectable != null)
+                EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+        }
+
+        // Switch to the UI action map to enable menu navigation.
+        playerActionMap?.Disable();
+        uiActionMap?.Enable();
     }
 }

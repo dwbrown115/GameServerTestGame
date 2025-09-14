@@ -13,12 +13,12 @@ public class TimeUI : MonoBehaviour
 
     private void OnEnable()
     {
-        CountdownTimer.OnTimeChanged += UpdateTimeText;
+        GameOverController.OnTimeChanged += UpdateTimeText;
     }
 
     private void OnDisable()
     {
-        CountdownTimer.OnTimeChanged -= UpdateTimeText;
+        GameOverController.OnTimeChanged -= UpdateTimeText;
     }
 
     private void UpdateTimeText(float remainingTime)

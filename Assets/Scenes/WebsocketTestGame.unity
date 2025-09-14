@@ -768,7 +768,7 @@ MonoBehaviour:
   moveSpeed: 5
   positionUpdateRate: 1
   playerRadius: 5
-  prefabSpawner: {fileID: 1366457488}
+  spawnResponseHandler: {fileID: 0}
 --- !u!61 &332118772
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -2104,10 +2104,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1153261255}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f6f667ffd69a49a181bf1052688edb2, type: 3}
+  m_Script: {fileID: 11500000, guid: baff6eda64972451088c5ea1be7da5a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  validationInterval: 1
+  validationInterval: 5
 --- !u!1 &1177181803
 GameObject:
   m_ObjectHideFlags: 0
@@ -2373,7 +2373,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1366457489}
-  - component: {fileID: 1366457488}
+  - component: {fileID: 1366457490}
   m_Layer: 0
   m_Name: CollectableSpawner
   m_TagString: Untagged
@@ -2381,23 +2381,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1366457488
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1366457487}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e724734d10b44fe7aa8099f1126142b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerTransform: {fileID: 332118775}
-  prefabToSpawn: {fileID: 7068094009286804774, guid: 1d8b9b609a0c542fea7403f883555296, type: 3}
-  spawnInterval: 1
-  spawnRadius: 5
-  playerController: {fileID: 332118771}
 --- !u!4 &1366457489
 Transform:
   m_ObjectHideFlags: 0
@@ -2413,6 +2396,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1366457490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1366457487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d531a725664b4b0c8893ae1c9cbdfc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTransform: {fileID: 332118775}
+  prefabToSpawn: {fileID: 7068094009286804774, guid: 1d8b9b609a0c542fea7403f883555296, type: 3}
+  spawnInterval: 1
+  spawnRadius: 5
+  playerController: {fileID: 332118771}
 --- !u!1001 &1836834351
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2634,7 +2634,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4190198066082816369, guid: 1d8b9b609a0c542fea7403f883555296, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

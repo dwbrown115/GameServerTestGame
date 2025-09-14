@@ -12,6 +12,23 @@ public class WebSocketManager : MonoBehaviour
     public static WebSocketManager Instance { get; private set; }
     public static event Action<string> OnSessionIdReady;
 
+    [Header("Gameplay Mode")]
+    [Tooltip(
+        "When enabled, the game runs in Offline mode (no WebSocket). Useful for local testing."
+    )]
+    [SerializeField]
+    private bool offlineMode = true;
+
+    public bool OfflineMode
+    {
+        get => offlineMode;
+        set
+        {
+            offlineMode = value;
+            ApplyOfflineMode();
+        }
+    }
+
     // --- Dependencies ---
     [Header("Dependencies")]
     [Tooltip("The authenticator component used to verify WebSocket connections.")]
@@ -56,6 +73,9 @@ public class WebSocketManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
         Debug.Log($"WebSocketManager instance set: {gameObject.name}");
 
+        // Ensure GameMode reflects inspector value as early as possible
+        ApplyOfflineMode();
+
         if (_authenticator == null)
         {
             _authenticator = gameObject.AddComponent<WebSocketAuthenticator>();
@@ -77,6 +97,18 @@ public class WebSocketManager : MonoBehaviour
         errorModal.SetActive(false);
         if (loadingModal != null)
             loadingModal.SetActive(false);
+    }
+
+    private void OnValidate()
+    {
+        // Keep static flag in sync while editing; safe as a simple boolean.
+        ApplyOfflineMode();
+    }
+
+    private void ApplyOfflineMode()
+    {
+        GameMode.Offline = offlineMode;
+        Debug.Log($"WebSocketManager: OfflineMode set to {offlineMode}");
     }
 
     public void AuthenticateWebSocket()
