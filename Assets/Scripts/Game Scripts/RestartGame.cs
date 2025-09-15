@@ -33,6 +33,18 @@ public class RestartGame : MonoBehaviour
         Debug.Log("RestartCurrentSceneCoroutine started.");
         Time.timeScale = 1f;
 
+        // In Offline mode, skip server authentication and just reload the scene
+        if (GameMode.Offline)
+        {
+            Debug.Log("Restart: Offline mode detected. Reloading scene without server auth.");
+            if (loadingAnimator != null)
+                loadingAnimator.StopAnimation();
+            if (loadingModal != null)
+                loadingModal.SetActive(false);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            yield break;
+        }
+
         if (websocketManager == null)
         {
             // Attempt to find the instance again, in case Start() hasn't run yet for some reason.

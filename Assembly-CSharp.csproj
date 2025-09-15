@@ -48,7 +48,10 @@
     <Analyzer Include="/Applications/Unity/Hub/Editor/6000.1.14f1/Unity.app/Contents/Tools/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets/Scripts/Mechanics/MechanicContext.cs" />
     <Compile Include="Assets/Scripts/Managers/LeaderboardRowView.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/MechanicKind.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/IMechanic.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerController2D.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
@@ -61,6 +64,7 @@
     <Compile Include="Assets/Scripts/Combat/Projectile.cs" />
     <Compile Include="Assets/Scripts/UI/ProgrammaticSkinsGrid.cs" />
     <Compile Include="Assets/Scripts/Net/HttpRequest.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/Neuteral/OrbitMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/CustomCertificateHandler.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark02.cs" />
     <Compile Include="Assets/Scripts/Combat/PlayerProjectileShooter.cs" />
@@ -69,12 +73,15 @@
     <Compile Include="Assets/Scripts/ScreenScripts/ChangeUserInfoScreen.cs" />
     <Compile Include="Assets/Scripts/Utilities/ISpawnItemResponseHandler.cs" />
     <Compile Include="Assets/Scripts/Utilities/PlayerApiCertificateHandler.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/Neuteral/ProjectileMechanic.cs" />
     <Compile Include="Assets/Scripts/UI/SkinsGridView.cs" />
+    <Compile Include="Assets/Scripts/UI/MobHealthBar.cs" />
     <Compile Include="Assets/Scripts/Auth/RegisterScript.cs" />
     <Compile Include="Assets/Scripts/Utilities/MainThreadDispatcher.cs" />
     <Compile Include="Assets/Scripts/Managers/GameMode.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_ExampleScript_01.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMPro_InstructionOverlay.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/Corruption/DrainMechanic.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexShakeB.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Utilities/IsNumberValid.cs" />
@@ -93,6 +100,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/ShaderPropAnimator.cs" />
     <Compile Include="Assets/Scripts/Auth/JwtValidator.cs" />
     <Compile Include="Assets/Scripts/UI/HealthBarUI.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/MechanicTargetSetter.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextInfoDebugTool.cs" />
     <Compile Include="Assets/Scripts/Managers/GameStateManager.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/CountdownTimer.cs" />
@@ -131,12 +139,16 @@
     <Compile Include="Assets/Scripts/Managers/SkinsService.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/RestartGame.cs" />
     <Compile Include="Assets/Scripts/Auth/LogoutScript.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/Neuteral/AuraMechanic.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/DropdownSample.cs" />
     <Compile Include="Assets/Scripts/Utilities/LoadingTextAnimator.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexColorCycler.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/PayloadTriggerRelay.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/MechanicHost.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerHealth.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/ObjectSpin.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_PhoneNumberValidator.cs" />
+    <Compile Include="Assets/Scripts/Mechanics/Purity/RegenerationMechanic.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerWebSocketClient.cs" />
     <Compile Include="Assets/Scripts/Managers/SkinsCacheCleaner.cs" />
     <Compile Include="Assets/Scripts/Mob/MobHealth.cs" />

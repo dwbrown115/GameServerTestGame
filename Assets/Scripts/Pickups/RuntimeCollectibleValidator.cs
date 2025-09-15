@@ -10,6 +10,13 @@ public class RuntimeCollectibleValidator : MonoBehaviour
 
     void Start()
     {
+        if (GameMode.Offline)
+        {
+            Debug.Log(
+                "RuntimeCollectibleValidator: Offline mode detected; skipping runtime validation."
+            );
+            return;
+        }
         // Initial validation on scene load
         ValidateActiveCollectibles();
         // Start periodic validation
@@ -20,6 +27,10 @@ public class RuntimeCollectibleValidator : MonoBehaviour
     {
         while (true)
         {
+            if (GameMode.Offline)
+            {
+                yield break; // Don't run validations in offline mode
+            }
             if (GameStateManager.IsGameOver)
             {
                 yield break; // Exit the coroutine
@@ -35,6 +46,12 @@ public class RuntimeCollectibleValidator : MonoBehaviour
             FindObjectsSortMode.None
         );
         HashSet<string> validatedObjectIds = ValidatedObjectsManager.GetValidatedObjectIds();
+
+        // If we have no baseline of validated IDs (e.g., offline or no file), skip destructive checks.
+        if (validatedObjectIds == null || validatedObjectIds.Count == 0)
+        {
+            return;
+        }
         HashSet<string> encounteredObjectIds = new HashSet<string>(); // To check for duplicates in scene
 
         foreach (Collectible collectible in collectiblesInScene)

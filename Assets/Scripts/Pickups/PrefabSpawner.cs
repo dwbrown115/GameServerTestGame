@@ -27,12 +27,12 @@ public class PrefabSpawner : MonoBehaviour, ISpawnItemResponseHandler
 
     private void OnEnable()
     {
-    GameOverController.OnCountdownFinished += StopSpawning;
+        GameOverController.OnCountdownFinished += StopSpawning;
     }
 
     private void OnDisable()
     {
-    GameOverController.OnCountdownFinished -= StopSpawning;
+        GameOverController.OnCountdownFinished -= StopSpawning;
     }
 
     private void Start()
@@ -52,7 +52,8 @@ public class PrefabSpawner : MonoBehaviour, ISpawnItemResponseHandler
         {
             Debug.Log("SpawnLoop: Waiting for spawn interval.");
             yield return new WaitForSeconds(spawnInterval);
-            if (_stopped) yield break;
+            if (_stopped)
+                yield break;
             Debug.Log("SpawnLoop: Requesting spawn from playerController.");
             playerController.RequestSpawn(spawnRadius);
         }
@@ -103,8 +104,8 @@ public class PrefabSpawner : MonoBehaviour, ISpawnItemResponseHandler
 
     private void StopSpawning()
     {
-    _stopped = true;
-    StopAllCoroutines();
+        _stopped = true;
+        StopAllCoroutines();
     }
 
     private void OnDrawGizmosSelected()

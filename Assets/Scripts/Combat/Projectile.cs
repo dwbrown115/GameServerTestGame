@@ -4,12 +4,17 @@ using UnityEngine;
 [RequireComponent(typeof(CircleCollider2D))]
 public class Projectile : MonoBehaviour
 {
-    [Header("Config")] public float speed = 8f;
+    [Header("Config")]
+    public float speed = 8f;
     public int damage = 10;
     public float lifetime = 3f;
     public bool destroyOnHit = true;
 
-    [Header("Runtime")] public Vector2 direction = Vector2.right;
+    [Tooltip("Only apply damage to objects tagged 'Mob' (or their parents)")]
+    public bool requireMobTag = true;
+
+    [Header("Runtime")]
+    public Vector2 direction = Vector2.right;
     public Transform owner;
 
     private Rigidbody2D _rb;
@@ -45,7 +50,8 @@ public class Projectile : MonoBehaviour
     {
         owner = ownerTransform;
         // Ignore collision with owner's colliders
-        if (owner == null) return;
+        if (owner == null)
+            return;
         var ownerColliders = owner.GetComponentsInChildren<Collider2D>();
         foreach (var oc in ownerColliders)
         {
@@ -55,9 +61,22 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other == null) return;
+        if (other == null)
+            return;
         if (owner != null && (other.transform == owner || other.transform.IsChildOf(owner)))
             return; // ignore owner
+
+        if (requireMobTag)
+        {
+            var t = other.transform;
+            bool isMob = t.CompareTag("Mob") || (t.parent != null && t.parent.CompareTag("Mob"));
+            if (!isMob)
+            {
+                if (destroyOnHit)
+                    Expire();
+                return;
+            }
+        }
 
         var dmg = other.GetComponentInParent<IDamageable>();
         if (dmg != null && dmg.IsAlive)
@@ -65,7 +84,8 @@ public class Projectile : MonoBehaviour
             Vector2 hitPoint = other.ClosestPoint(transform.position);
             Vector2 hitNormal = (Vector2)(other.transform.position - transform.position).normalized;
             dmg.TakeDamage(damage, hitPoint, hitNormal);
-            if (destroyOnHit) Expire();
+            if (destroyOnHit)
+                Expire();
             return;
         }
 

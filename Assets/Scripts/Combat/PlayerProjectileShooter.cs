@@ -33,13 +33,13 @@ public class PlayerProjectileShooter : MonoBehaviour
 
     private void OnEnable()
     {
-    GameOverController.OnCountdownFinished += StopFiring;
+        GameOverController.OnCountdownFinished += StopFiring;
         _loop = StartCoroutine(FireLoop());
     }
 
     private void OnDisable()
     {
-    GameOverController.OnCountdownFinished -= StopFiring;
+        GameOverController.OnCountdownFinished -= StopFiring;
         if (_loop != null)
             StopCoroutine(_loop);
     }
@@ -49,7 +49,8 @@ public class PlayerProjectileShooter : MonoBehaviour
         var wait = new WaitForSeconds(Mathf.Max(0.01f, spawnInterval));
         while (true)
         {
-            if (_stopped) yield break;
+            if (_stopped)
+                yield break;
             FireOnce();
             yield return wait;
         }
