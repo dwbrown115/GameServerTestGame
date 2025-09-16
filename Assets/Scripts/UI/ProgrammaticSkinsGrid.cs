@@ -390,9 +390,7 @@ public class ProgrammaticSkinsGrid : MonoBehaviour
         swRt.anchoredPosition = new Vector2(0, 0);
         var swImg = swatch.AddComponent<Image>();
         var hex = skin.HexValue;
-        if (!string.IsNullOrEmpty(hex) && !hex.StartsWith("#"))
-            hex = "#" + hex;
-        if (ColorUtility.TryParseHtmlString(hex, out var col))
+        if (ColorUtils.TryParse(hex, out var col))
             swImg.color = col;
         else
             swImg.color = Color.gray;

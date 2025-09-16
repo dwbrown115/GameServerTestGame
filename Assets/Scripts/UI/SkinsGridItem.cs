@@ -32,16 +32,10 @@ public class SkinsGridItem : MonoBehaviour
         if (colorSwatch != null)
         {
             var hex = skin.HexValue;
-            if (!string.IsNullOrEmpty(hex) && !hex.StartsWith("#"))
-                hex = "#" + hex;
-            if (ColorUtility.TryParseHtmlString(hex, out var col))
-            {
+            if (ColorUtils.TryParse(hex, out var col))
                 colorSwatch.color = col;
-            }
             else
-            {
                 colorSwatch.color = Color.gray; // fallback
-            }
         }
 
         // Price

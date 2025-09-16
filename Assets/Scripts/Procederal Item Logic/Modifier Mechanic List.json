@@ -1,0 +1,26 @@
+[
+  {
+    "MechanicName": "Orbit",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/OrbitMechanic.cs",
+    "Properties": [
+      { "radius": 2 },
+      { "angularSpeedDeg": 20 },
+      { "startAngleDeg": 0 },
+      { "NumberOfItemsToSpawn": 1 }
+    ],
+    "MechanicOverrides": [
+      { "DestroyOnHit": false },
+      { "disableSelfSpeed": true },
+      { "direction": "clockwise" },
+      { "spawnOnInterval": false },
+      { "radius": 1 },
+      { "spawnBehavior": "orbit" }
+    ]
+  },
+  {
+    "MechanicName": "Drain",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DrainMechanic.cs",
+    "Properties": [{ "LifeStealPercent": 0.2 }, { "lifeStealChance": 0.1 }],
+    "MechanicOverrides": []
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "MechanicName": "Projectile",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/ProjectileMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "DestroyOnHit": true },
+      { "damage": 10 },
+      { "speed": 10 },
+      { "disableSelfSpeed": false },
+      { "direction": "right" },
+      { "spriteType": "circle" },
+      { "spriteColor": "#FFFFFF" },
+      { "lifetime": 5 },
+      { "spawnBehavior": "neutral" },
+      { "NumberOfItemsToSpawn": 1 },
+      { "spawnOnInterval": true },
+      { "interval": 0.5 },
+      { "radius": 0.5 }
+    ],
+    "IncompatibleWith": []
+  },
+  {
+    "MechanicName": "Aura",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/AuraMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 5 },
+      { "radius": 2 },
+      { "interval": 0.1 },
+      { "spriteType": "circle" },
+      { "spriteColor": "#00000080" }
+    ],
+    "IncompatibleWith": ["Orbit"]
+  }
+]

@@ -2461,7 +2461,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: auraRadius
-      value: 4
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: orbitRadius
@@ -2469,15 +2469,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: payloadName
-      value: Orbit + Projectile
+      value: Aura + Drain
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: auraInterval
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: payloadCount
-      value: 4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: spriteColor.a
-      value: 0.87058824
+      value: 0.7019608
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: spriteColor.b
@@ -2496,12 +2500,20 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: mechanicRadius
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: overrideDamage
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
-      propertyPath: primaryMechanic
+      propertyPath: overrideRadius
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: primaryMechanic
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: autoCreatePayload
@@ -2509,7 +2521,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: secondaryMechanic
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: overrideAuraRadius
@@ -2524,7 +2536,19 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: overrideAuraInterval
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: projectileDestroyOnHit
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: overrideAuraShowVisualization
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 783996855052916072, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: overrideProjectileDestroyOnHit
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3735445250991727513, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}

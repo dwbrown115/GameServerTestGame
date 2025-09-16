@@ -183,10 +183,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   moveSpeed: 2
-  stoppingDistance: 1.25
+  stoppingDistance: 0.34
   attackInterval: 1
   attackDamage: 10
-  attackRange: 1.5
+  attackRange: 0.4
 --- !u!114 &8016562993352729926
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -21,10 +21,21 @@ public class SimpleMobAI : MonoBehaviour
 
     private Rigidbody2D _rb;
     private float _lastAttackTime;
+    private bool _stopped;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void OnEnable()
+    {
+        GameOverController.OnCountdownFinished += StopAllActions;
+    }
+
+    private void OnDisable()
+    {
+        GameOverController.OnCountdownFinished -= StopAllActions;
     }
 
     private void Start()
@@ -39,6 +50,12 @@ public class SimpleMobAI : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (_stopped)
+        {
+            if (_rb != null)
+                _rb.linearVelocity = Vector2.zero;
+            return;
+        }
         if (target == null)
         {
             _rb.linearVelocity = Vector2.zero;
@@ -66,6 +83,13 @@ public class SimpleMobAI : MonoBehaviour
             _rb.linearVelocity = Vector2.zero;
             TryAttack();
         }
+    }
+
+    private void StopAllActions()
+    {
+        _stopped = true;
+        if (_rb != null)
+            _rb.linearVelocity = Vector2.zero;
     }
 
     private void TryAttack()

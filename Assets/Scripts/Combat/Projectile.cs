@@ -19,6 +19,7 @@ public class Projectile : MonoBehaviour
 
     private Rigidbody2D _rb;
     private CircleCollider2D _col;
+    private bool _stopped;
 
     private void Awake()
     {
@@ -37,10 +38,17 @@ public class Projectile : MonoBehaviour
         {
             Invoke(nameof(Expire), lifetime);
         }
+        GameOverController.OnCountdownFinished += StopMovement;
     }
 
     public void Launch()
     {
+        if (_stopped)
+        {
+            if (_rb != null)
+                _rb.linearVelocity = Vector2.zero;
+            return;
+        }
         if (direction.sqrMagnitude < 0.0001f)
             return;
         _rb.linearVelocity = direction.normalized * speed;
@@ -100,5 +108,17 @@ public class Projectile : MonoBehaviour
     {
         CancelInvoke();
         Destroy(gameObject);
+    }
+
+    private void OnDisable()
+    {
+        GameOverController.OnCountdownFinished -= StopMovement;
+    }
+
+    private void StopMovement()
+    {
+        _stopped = true;
+        if (_rb != null)
+            _rb.linearVelocity = Vector2.zero;
     }
 }

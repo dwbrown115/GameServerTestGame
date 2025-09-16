@@ -123,30 +123,23 @@ public class PlayerController2D : MonoBehaviour
                 PlayerManager.Instance != null ? PlayerManager.Instance.GetSavedSkinHex() : null;
             if (!string.IsNullOrEmpty(hex))
             {
-                if (!hex.StartsWith("#"))
-                    hex = "#" + hex;
-                if (ColorUtility.TryParseHtmlString(hex, out var color))
+                var sr = GetComponent<SpriteRenderer>() ?? GetComponentInChildren<SpriteRenderer>();
+                if (sr != null)
                 {
-                    var sr = GetComponent<SpriteRenderer>();
-                    if (sr == null)
+                    if (ColorUtils.TryApply(sr, hex))
                     {
-                        sr = GetComponentInChildren<SpriteRenderer>();
-                    }
-                    if (sr != null)
-                    {
-                        sr.color = color;
                         Debug.Log($"Applied player color from saved hex {hex}.");
                     }
                     else
                     {
-                        Debug.LogWarning(
-                            $"TryApplySavedColor: No SpriteRenderer found on player or children. Hex={hex}"
-                        );
+                        Debug.LogWarning($"TryApplySavedColor: Invalid hex format: {hex}");
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"TryApplySavedColor: Invalid hex format: {hex}");
+                    Debug.LogWarning(
+                        $"TryApplySavedColor: No SpriteRenderer found on player or children. Hex={hex}"
+                    );
                 }
             }
         }
