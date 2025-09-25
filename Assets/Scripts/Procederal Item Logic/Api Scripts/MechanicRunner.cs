@@ -38,9 +38,18 @@ namespace Game.Procederal.Api
         private void Update()
         {
             float dt = Time.deltaTime;
-            for (int i = 0; i < _mechanics.Count; i++)
+            for (int i = 0; i < _mechanics.Count; )
             {
+                // UnityEngine.Object null semantics: cast to Object to detect destroyed components
+                var unityObj = _mechanics[i] as UnityEngine.Object;
+                if (unityObj == null)
+                {
+                    // Component has been destroyed; remove from list
+                    _mechanics.RemoveAt(i);
+                    continue;
+                }
                 _mechanics[i].Tick(dt);
+                i++;
             }
         }
     }

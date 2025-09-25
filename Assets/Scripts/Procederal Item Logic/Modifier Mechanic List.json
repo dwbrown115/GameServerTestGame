@@ -1,7 +1,26 @@
 [
   {
+    "MechanicName": "RippleOnHit",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/RippleOnHitMechanic.cs",
+    "MechanicAttribute": "Chaos",
+    "Properties": [
+      { "startRadius": 0.5 },
+      { "endDiameter": 6.0 },
+      { "growDuration": 0.6 },
+      { "edgeThickness": 0.1 },
+      { "rippleDamage": 10 },
+      { "chainChance": 0.5 },
+      { "maxChains": 3 },
+      { "excludeOwner": true },
+      { "requireMobTag": true },
+      { "debugLogs": false }
+    ],
+    "MechanicOverrides": []
+  },
+  {
     "MechanicName": "Orbit",
     "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/OrbitMechanic.cs",
+    "MechanicAttribute": "Neuteral",
     "Properties": [
       { "radius": 2 },
       { "angularSpeedDeg": 20 },
@@ -18,9 +37,62 @@
     ]
   },
   {
+    "MechanicName": "Bounce",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/BounceMechanic.cs",
+    "MechanicAttribute": "Chaos",
+    "Properties": [
+      { "baseDestroyChance": 0.2 },
+      { "destroyChanceIncreasePerBounce": 0.1 },
+      { "idleLifetime": 2.0 },
+      { "debugLogs": false }
+    ],
+    "MechanicOverrides": []
+  },
+  {
     "MechanicName": "Drain",
     "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DrainMechanic.cs",
+    "MechanicAttribute": "Corruption",
     "Properties": [{ "LifeStealPercent": 0.2 }, { "lifeStealChance": 0.1 }],
+    "MechanicOverrides": []
+  },
+  {
+    "MechanicName": "Lock",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Order/LockMechanic.cs",
+    "MechanicAttribute": "Order",
+    "Properties": [{ "Stun Time": 1.5 }],
+    "MechanicOverrides": []
+  },
+  {
+    "MechanicName": "Track",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Order/TrackMechanic.cs",
+    "MechanicAttribute": "Order",
+    "Properties": [],
+    "MechanicOverrides": []
+  },
+  {
+    "MechanicName": "DamageOverTime",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DamageOverTimeMechanic.cs",
+    "MechanicAttribute": "Corruption",
+    "Properties": [
+      { "damagePerTick": 2 },
+      { "interval": 0.5 },
+      { "duration": 3 },
+      { "allowStacking": true },
+      { "effectId": "generic" }
+    ],
+    "MechanicOverrides": []
+  },
+  {
+    "MechanicName": "Explosion",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/ExplosionMechanic.cs",
+    "MechanicAttribute": "Chaos",
+    "Properties": [
+      { "radius": 3.0 },
+      { "baseDamage": 20 },
+      { "minDamageFraction": 0.1 },
+      { "excludeOwner": false },
+      { "debugLogs": false }
+    ],
     "MechanicOverrides": []
   }
 ]

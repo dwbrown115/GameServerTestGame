@@ -159,7 +159,57 @@ namespace Mechanics.Neuteral
                 if (debugLogs)
                     Debug.Log($"[ProjectileMechanic] Damaged {other.name} for {damage}", this);
 
-                if (destroyOnHit)
+                // Explosion modifier: trigger radial damage from the hit point (affects players and mobs)
+                var explode = GetComponent<Mechanics.Chaos.ExplosionMechanic>();
+                if (explode != null)
+                {
+                    explode.TriggerExplosion(hitPoint);
+                }
+
+                // Ripple-on-hit modifier: start a ripple chain at the hit point
+                var rippleOnHit = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
+                if (rippleOnHit != null)
+                {
+                    rippleOnHit.TriggerFrom(other.transform, hitPoint);
+                }
+
+                // Apply Lock modifier if present on this payload
+                var locker = GetComponent<Mechanics.Order.LockMechanic>();
+                if (locker != null)
+                {
+                    locker.TryApplyTo(other.transform);
+                }
+
+                // Apply DamageOverTime modifier if present on this payload
+                var dot = GetComponent<Mechanics.Corruption.DamageOverTimeMechanic>();
+                if (dot != null)
+                    dot.TryApplyTo(other.transform);
+
+                // Bounce modifier handling takes precedence over simple destroyOnHit
+                var bounce = GetComponent<Mechanics.Chaos.BounceMechanic>();
+                if (bounce != null)
+                {
+                    if (bounce.TryHandleHit(out bool shouldDestroy, out Vector2 newDir))
+                    {
+                        if (shouldDestroy)
+                        {
+                            if (_ctx.Payload != null)
+                            {
+                                if (debugLogs)
+                                    Debug.Log("[ProjectileMechanic] Bounce decided destroy", this);
+                                Object.Destroy(_ctx.Payload.gameObject);
+                            }
+                        }
+                        else
+                        {
+                            // apply new direction and continue moving
+                            direction = newDir;
+                            if (_ctx.PayloadRb2D != null)
+                                _ctx.PayloadRb2D.linearVelocity = direction * speed;
+                        }
+                    }
+                }
+                else if (destroyOnHit)
                 {
                     if (_ctx.Payload != null)
                     {

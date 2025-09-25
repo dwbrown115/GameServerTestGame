@@ -15,6 +15,16 @@ namespace Game.Procederal
         Orbit,
         Aura,
         Drain,
+        Beam,
+        Lock,
+        Track,
+        Strike,
+        DamageOverTime,
+        Bounce,
+        Explosion,
+        Whip,
+        Ripple,
+        RippleOnHit,
     }
 
     [Serializable]
@@ -42,6 +52,27 @@ namespace Game.Procederal
                     return MechanicKind.Aura;
                 case "drain":
                     return MechanicKind.Drain;
+                case "beam":
+                    return MechanicKind.Beam;
+                case "lock":
+                    return MechanicKind.Lock;
+                case "track":
+                    return MechanicKind.Track;
+                case "strike":
+                    return MechanicKind.Strike;
+                case "damageovertime":
+                case "dot":
+                    return MechanicKind.DamageOverTime;
+                case "bounce":
+                    return MechanicKind.Bounce;
+                case "explosion":
+                    return MechanicKind.Explosion;
+                case "whip":
+                    return MechanicKind.Whip;
+                case "ripple":
+                    return MechanicKind.Ripple;
+                case "rippleonhit":
+                    return MechanicKind.RippleOnHit;
                 default:
                     return MechanicKind.None;
             }
@@ -191,6 +222,23 @@ namespace Game.Procederal
 
         public bool debugLogs = false;
 
+        [Header("Spawn Controls")]
+        [Tooltip(
+            "If > 0, overrides ItemParams.subItemCount and forces this many children per primary that supports multiple (e.g., Projectile, Whip)."
+        )]
+        public int generatorChildrenCount = 0;
+
+        [Header("Modifier Auto-Apply")]
+        [Tooltip(
+            "When true, any modifiers listed in the instruction will be auto-applied wherever compatible (sub-items and spawner children)."
+        )]
+        public bool autoApplyCompatibleModifiers = true;
+
+        [Tooltip(
+            "Modifier names to skip globally when auto-applying (case-insensitive). Example: Bounce, Orbit."
+        )]
+        public List<string> autoApplyModifierDenyList = new List<string>();
+
         [Header("Mechanic Lists (JSON)")]
         [Tooltip(
             "Primary Mechanic List JSON (TextAsset). If null, will try Resources.Load('Primary Mechanic List')"
@@ -244,15 +292,27 @@ namespace Game.Procederal
                 case MechanicKind.Aura:
                     BuildAura(root, instruction, p, subItems);
                     break;
+                case MechanicKind.Beam:
+                    BuildBeam(root, instruction, p, subItems);
+                    break;
+                case MechanicKind.Strike:
+                    BuildStrike(root, instruction, p, subItems);
+                    break;
+                case MechanicKind.Whip:
+                    BuildWhip(root, instruction, p, subItems);
+                    break;
+                case MechanicKind.Ripple:
+                    BuildRipple(root, instruction, p, subItems);
+                    break;
                 default:
                     Log($"Unsupported primary mechanic '{instruction.primary}'.");
                     break;
             }
-
-            // If any global modifiers were specified outside the primary flow, add them to all
-            // sub-items (e.g., server may send secondary mods that weren't consumed)
-            if (instruction.HasSecondary(MechanicKind.Drain))
-                AddModifierToAll(subItems, MechanicKind.Drain, p);
+            if (autoApplyCompatibleModifiers && subItems.Count > 0)
+            {
+                foreach (var mk in GetModifiersToApply(instruction))
+                    AddModifierToAll(subItems, mk, p);
+            }
 
             // Ensure a runner exists to drive IMechanic.Tick for generated mechanics
             var runner = root.GetComponent<Game.Procederal.Api.MechanicRunner>();
@@ -264,6 +324,236 @@ namespace Game.Procederal
             return root;
         }
 
+        private void BuildRipple(
+            GameObject root,
+            ItemInstruction instruction,
+            ItemParams p,
+            List<GameObject> subItems
+        )
+        {
+            // Pull Ripple defaults from JSON
+            var json = LoadAndMergeJsonSettings("Ripple");
+
+            // Settings
+            float startRadius = 1f;
+            if (json.TryGetValue("startRadius", out var sr))
+            {
+                if (sr is float fsr)
+                    startRadius = Mathf.Max(0f, fsr);
+                else if (sr is int isr)
+                    startRadius = Mathf.Max(0f, isr);
+            }
+            float endDiameter = 8f;
+            if (json.TryGetValue("endDiameter", out var ed))
+            {
+                if (ed is float fed)
+                    endDiameter = Mathf.Max(0.01f, fed);
+                else if (ed is int ied)
+                    endDiameter = Mathf.Max(0.01f, ied);
+            }
+            float growDuration = 1.5f;
+            if (json.TryGetValue("growDuration", out var gd))
+            {
+                if (gd is float fgd)
+                    growDuration = Mathf.Max(0.01f, fgd);
+                else if (gd is int igd)
+                    growDuration = Mathf.Max(0.01f, igd);
+            }
+            float edgeThickness = 0.2f;
+            if (json.TryGetValue("edgeThickness", out var et))
+            {
+                if (et is float fet)
+                    edgeThickness = Mathf.Max(0.01f, fet);
+                else if (et is int iet)
+                    edgeThickness = Mathf.Max(0.01f, iet);
+            }
+            int damage = 5;
+            if (json.TryGetValue("damage", out var dmg))
+            {
+                if (dmg is int id)
+                    damage = id;
+                else if (dmg is float fd)
+                    damage = Mathf.RoundToInt(fd);
+            }
+            bool showViz = true;
+            if (json.TryGetValue("showVisualization", out var sv))
+            {
+                if (sv is bool b)
+                    showViz = b;
+                else if (sv is string s && bool.TryParse(s, out var pb))
+                    showViz = pb;
+            }
+            Color vizColor = Color.cyan;
+            if (json.TryGetValue("spriteColor", out var sc))
+            {
+                Color c;
+                if (TryParseColor(sc, out c))
+                    vizColor = c;
+            }
+            bool spawnOnInterval = false;
+            if (json.TryGetValue("spawnOnInterval", out var soi))
+            {
+                if (soi is bool b)
+                    spawnOnInterval = b;
+                else if (soi is string ss && bool.TryParse(ss, out var pb))
+                    spawnOnInterval = pb;
+            }
+            int numberToSpawn = 1;
+            if (
+                json.TryGetValue("numberOfItemsToSpawn", out var nts)
+                || json.TryGetValue("NumberOfItemsToSpawn", out nts)
+            )
+            {
+                if (nts is int ni)
+                    numberToSpawn = Mathf.Max(1, ni);
+                else if (nts is float nf)
+                    numberToSpawn = Mathf.Max(1, Mathf.RoundToInt(nf));
+                else if (nts is string ns && int.TryParse(ns, out var nsi))
+                    numberToSpawn = Mathf.Max(1, nsi);
+            }
+            float interval = 0.5f;
+            if (json.TryGetValue("interval", out var iv))
+            {
+                if (iv is float fiv)
+                    interval = Mathf.Max(0.01f, fiv);
+                else if (iv is int iiv)
+                    interval = Mathf.Max(0.01f, iiv);
+                else if (iv is string siv && float.TryParse(siv, out var pf))
+                    interval = Mathf.Max(0.01f, pf);
+            }
+
+            if (spawnOnInterval)
+            {
+                var spawner = root.AddComponent<Game.Procederal.Api.RippleIntervalSpawner>();
+                spawner.generator = this;
+                spawner.owner = owner != null ? owner : transform;
+                spawner.interval = interval;
+                // Respect generator-level override when provided
+                spawner.countPerInterval = Mathf.Max(
+                    1,
+                    generatorChildrenCount > 0 ? generatorChildrenCount : numberToSpawn
+                );
+                spawner.startRadius = startRadius;
+                spawner.endDiameter = endDiameter;
+                spawner.growDuration = growDuration;
+                spawner.edgeThickness = edgeThickness;
+                spawner.damage = damage;
+                spawner.excludeOwner = true;
+                spawner.requireMobTag = true;
+                spawner.showVisualization = showViz;
+                spawner.vizColor = vizColor;
+                spawner.debugLogs = p.debugLogs || debugLogs;
+
+                // Auto-apply compatible instruction modifiers to spawned ripples
+                if (autoApplyCompatibleModifiers)
+                {
+                    foreach (var mk in GetModifiersToApply(instruction))
+                    {
+                        switch (mk)
+                        {
+                            case MechanicKind.RippleOnHit:
+                                spawner.AddModifierSpec(
+                                    "RippleOnHit",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Drain:
+                                // Ensure the owner has Drain so ripple damage can report to it
+                                EnsureOwnerDrain(
+                                    spawner.owner != null ? spawner.owner : transform,
+                                    p
+                                );
+                                break;
+                            // Other modifiers like Explosion/DoT aren't wired into RippleMechanic yet; skip for now
+                        }
+                    }
+                }
+                return;
+            }
+
+            // One-shot ripple instance
+            var go = new GameObject("Ripple");
+            go.transform.SetParent(root.transform, false);
+            go.transform.localPosition = Vector3.zero;
+            AddMechanicByName(
+                go,
+                "Ripple",
+                new (string key, object val)[]
+                {
+                    ("startRadius", startRadius),
+                    ("endDiameter", endDiameter),
+                    ("growDuration", growDuration),
+                    ("edgeThickness", edgeThickness),
+                    ("damage", damage),
+                    ("excludeOwner", true),
+                    ("requireMobTag", true),
+                    ("showVisualization", showViz),
+                    ("vizColor", vizColor),
+                    ("debugLogs", p.debugLogs || debugLogs),
+                }
+            );
+            InitializeMechanics(go, owner, target);
+            subItems.Add(go);
+        }
+
+        private void BuildWhip(
+            GameObject root,
+            ItemInstruction instruction,
+            ItemParams p,
+            List<GameObject> subItems
+        )
+        {
+            // Up to 4 whips in cardinal directions
+            int desired = p != null ? p.subItemCount : 1;
+            if (generatorChildrenCount > 0)
+                desired = generatorChildrenCount;
+            int count = Mathf.Clamp(Mathf.Max(1, desired), 1, 4);
+            string[] dirs = new[] { "right", "up", "left", "down" };
+            // Attach a controller to allow runtime spawning of more arcs
+            var set = root.AddComponent<Game.Procederal.Api.WhipArcSet>();
+            set.generator = this;
+            set.owner = owner != null ? owner : transform;
+            set.target = target;
+            set.debugLogs = p.debugLogs || debugLogs;
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject($"Whip_{i}");
+                go.transform.SetParent(root.transform, false);
+                go.transform.localPosition = Vector3.zero;
+
+                var json = LoadAndMergeJsonSettings("Whip");
+                var settings = new List<(string key, object val)>();
+                // Apply JSON props if present
+                if (json.TryGetValue("outerRadius", out var or))
+                    settings.Add(("outerRadius", or));
+                if (json.TryGetValue("width", out var w))
+                    settings.Add(("width", w));
+                if (json.TryGetValue("arcLengthDeg", out var ad))
+                    settings.Add(("arcLengthDeg", ad));
+                if (json.TryGetValue("drawDuration", out var dd))
+                    settings.Add(("drawDuration", dd));
+                if (json.TryGetValue("interval", out var iv))
+                    settings.Add(("interval", iv));
+                if (json.TryGetValue("damagePerInterval", out var dmg))
+                    settings.Add(("damagePerInterval", dmg));
+                if (json.TryGetValue("showVisualization", out var sv))
+                    settings.Add(("showVisualization", sv));
+                if (json.TryGetValue("spriteColor", out var sc))
+                    settings.Add(("vizColor", sc));
+
+                // Direction per index
+                settings.Add(("direction", dirs[i % dirs.Length]));
+                settings.Add(("excludeOwner", true));
+                settings.Add(("requireMobTag", true));
+                settings.Add(("debugLogs", p.debugLogs || debugLogs));
+
+                AddMechanicByName(go, "Whip", settings.ToArray());
+                InitializeMechanics(go, owner, target);
+                subItems.Add(go);
+            }
+            set.RefreshDirs();
+        }
+
         private void BuildProjectileSet(
             GameObject root,
             ItemInstruction instruction,
@@ -271,7 +561,10 @@ namespace Game.Procederal
             List<GameObject> subItems
         )
         {
-            int count = Mathf.Max(1, p.subItemCount);
+            int desired = p != null ? p.subItemCount : 1;
+            if (generatorChildrenCount > 0)
+                desired = generatorChildrenCount;
+            int count = Mathf.Max(1, desired);
             float baseAngle = p.startAngleDeg;
             bool wantOrbit = instruction.HasSecondary(MechanicKind.Orbit);
             // Visual defaults from JSON (allows spriteType/spriteColor overrides)
@@ -390,7 +683,9 @@ namespace Game.Procederal
                 orbitSpawner.angularSpeedDeg = p.orbitSpeedDeg > 0 ? p.orbitSpeedDeg : 90f;
                 orbitSpawner.useInterval = spawnOnInterval;
                 orbitSpawner.interval = spawnInterval;
-                orbitSpawner.countPerInterval = Mathf.Max(1, numberToSpawn);
+                // Use generatorChildrenCount override when provided
+                int orbitCount = generatorChildrenCount > 0 ? generatorChildrenCount : count;
+                orbitSpawner.countPerInterval = Mathf.Max(1, orbitCount);
                 orbitSpawner.spriteType = spriteType;
                 orbitSpawner.customSpritePath = customPath;
                 orbitSpawner.spriteColor = projColor;
@@ -456,18 +751,10 @@ namespace Game.Procederal
                     }
                 }
 
-                // If not using interval, spawn exactly one now and align to startAngleDeg
+                // If not using interval, spawn the desired number now
                 if (!orbitSpawner.useInterval)
                 {
-                    orbitSpawner.Spawn(1);
-                    var items = orbitSpawner.Items;
-                    if (items != null && items.Count > 0)
-                    {
-                        var last = items[items.Count - 1];
-                        var orbit = last.GetComponent<Mechanics.Neuteral.OrbitMechanic>();
-                        if (orbit != null)
-                            orbit.SetAngleDeg(baseAngle, repositionNow: true);
-                    }
+                    orbitSpawner.Spawn(Mathf.Max(1, orbitCount));
                 }
                 // subItems intentionally left empty; OrbitSpawnBehavior manages its children
                 return;
@@ -480,7 +767,10 @@ namespace Game.Procederal
                 spawner.generator = this;
                 spawner.owner = owner != null ? owner : transform;
                 spawner.interval = spawnInterval;
-                spawner.countPerInterval = Mathf.Max(1, numberToSpawn);
+                // Use generatorChildrenCount override when provided
+                int intervalCount =
+                    generatorChildrenCount > 0 ? generatorChildrenCount : numberToSpawn;
+                spawner.countPerInterval = Mathf.Max(1, intervalCount);
                 spawner.spawnRadius = Mathf.Max(0f, spawnRadius);
                 spawner.lifetime = lifetime;
                 spawner.spriteType = spriteType;
@@ -511,38 +801,55 @@ namespace Game.Procederal
                     }
                     // If set to 'orbit' but no orbit modifier, we keep IntervalSpawner; orbit behavior is handled above
                 }
-                // Modifiers for spawned projectiles
-                if (instruction.HasSecondary(MechanicKind.Drain))
+                // Auto-apply compatible instruction modifiers to spawned projectiles
+                if (autoApplyCompatibleModifiers)
                 {
-                    spawner.applyDrain = true;
-                    spawner.drainLifeStealRatio = Mathf.Clamp01(p.lifeStealRatio);
-                    // Register modifier spec so future non-owner modifiers can be applied to children
-                    spawner.AddModifierSpec(
-                        "Drain",
-                        ("lifeStealRatio", spawner.drainLifeStealRatio)
-                    );
-                }
-                // If Drain is selected as a modifier, ensure a DrainMechanic exists under the owner so projectile hits can heal
-                if (instruction.HasSecondary(MechanicKind.Drain))
-                {
-                    Transform drainOwner = spawner.owner != null ? spawner.owner : transform;
-                    if (drainOwner != null)
+                    foreach (var mk in GetModifiersToApply(instruction))
                     {
-                        var existingDrain =
-                            drainOwner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
-                        if (existingDrain == null)
+                        switch (mk)
                         {
-                            // Attach Drain to the owner (not to the projectile root) so all projectiles can report to it
-                            AddMechanicByName(
-                                drainOwner.gameObject,
-                                "Drain",
-                                new (string key, object val)[]
-                                {
-                                    ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
-                                    ("debugLogs", p.debugLogs || debugLogs),
-                                }
-                            );
-                            InitializeMechanics(drainOwner.gameObject, drainOwner, target);
+                            case MechanicKind.Drain:
+                                spawner.applyDrain = true;
+                                spawner.drainLifeStealRatio = Mathf.Clamp01(p.lifeStealRatio);
+                                spawner.AddModifierSpec(
+                                    "Drain",
+                                    ("lifeStealRatio", spawner.drainLifeStealRatio)
+                                );
+                                EnsureOwnerDrain(
+                                    spawner.owner != null ? spawner.owner : transform,
+                                    p
+                                );
+                                break;
+                            case MechanicKind.Lock:
+                                spawner.AddModifierSpec("Lock");
+                                break;
+                            case MechanicKind.Track:
+                                spawner.AddModifierSpec("Track");
+                                break;
+                            case MechanicKind.DamageOverTime:
+                                spawner.AddModifierSpec(
+                                    "DamageOverTime",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Bounce:
+                                spawner.AddModifierSpec("Bounce");
+                                break;
+                            case MechanicKind.Explosion:
+                                spawner.AddModifierSpec(
+                                    "Explosion",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.RippleOnHit:
+                                spawner.AddModifierSpec(
+                                    "RippleOnHit",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Orbit:
+                                // Skip: orbit behavior is managed by OrbitSpawnBehavior path
+                                break;
                         }
                     }
                 }
@@ -720,6 +1027,171 @@ namespace Game.Procederal
             subItems.Add(go);
         }
 
+        private void BuildBeam(
+            GameObject root,
+            ItemInstruction instruction,
+            ItemParams p,
+            List<GameObject> subItems
+        )
+        {
+            // Pull Beam defaults from JSON
+            var beamJson = LoadAndMergeJsonSettings("Beam");
+
+            // Visual color if provided (for debug sprites)
+            Color vizColor = Color.white;
+            if (beamJson.TryGetValue("spriteColor", out var sc))
+            {
+                Color c;
+                if (TryParseColor(sc, out c))
+                    vizColor = c;
+            }
+
+            // Build common Beam settings that apply to each instance
+            var beamSettings = new List<(string key, object val)>();
+            if (beamJson.TryGetValue("maxDistance", out var md))
+                beamSettings.Add(("maxDistance", md));
+            if (beamJson.TryGetValue("speed", out var sp))
+                beamSettings.Add(("speed", sp));
+            if (beamJson.TryGetValue("extendSpeed", out var es))
+                beamSettings.Add(("extendSpeed", es));
+            if (beamJson.TryGetValue("direction", out var dir))
+                beamSettings.Add(("direction", dir));
+            if (beamJson.TryGetValue("radius", out var br))
+                beamSettings.Add(("radius", br)); // width alias handled by settings helper
+            if (beamJson.TryGetValue("beamWidth", out var bw))
+                beamSettings.Add(("beamWidth", bw));
+            if (beamJson.TryGetValue("damagePerInterval", out var dpi))
+                beamSettings.Add(("damagePerInterval", dpi));
+            if (beamJson.TryGetValue("damage", out var dmg))
+                beamSettings.Add(("damage", dmg));
+            if (beamJson.TryGetValue("interval", out var iv))
+                beamSettings.Add(("interval", iv));
+            // Enforce default filters
+            beamSettings.Add(("requireMobTag", true));
+            beamSettings.Add(("excludeOwner", true));
+            beamSettings.Add(("showVisualization", true));
+            beamSettings.Add(("vizColor", vizColor));
+            beamSettings.Add(("debugLogs", p.debugLogs || debugLogs));
+
+            // Spawn behavior toggles (interval-based spawning)
+            bool spawnOnInterval = false;
+            if (beamJson.TryGetValue("spawnOnInterval", out var soi))
+            {
+                if (soi is bool b)
+                    spawnOnInterval = b;
+                else if (soi is string ss && bool.TryParse(ss, out var pb))
+                    spawnOnInterval = pb;
+            }
+            int numberToSpawn = 1;
+            if (
+                beamJson.TryGetValue("numberOfItemsToSpawn", out var nts)
+                || beamJson.TryGetValue("NumberOfItemsToSpawn", out nts)
+            )
+            {
+                if (nts is int ni)
+                    numberToSpawn = Mathf.Max(1, ni);
+                else if (nts is float nf)
+                    numberToSpawn = Mathf.Max(1, Mathf.RoundToInt(nf));
+                else if (nts is string ns && int.TryParse(ns, out var nsi))
+                    numberToSpawn = Mathf.Max(1, nsi);
+            }
+            float spawnInterval = 0.5f;
+            if (beamJson.TryGetValue("interval", out var biv))
+            {
+                if (biv is float fiv)
+                    spawnInterval = Mathf.Max(0.01f, fiv);
+                else if (biv is int iiv)
+                    spawnInterval = Mathf.Max(0.01f, iiv);
+                else if (biv is string siv && float.TryParse(siv, out var pf))
+                    spawnInterval = Mathf.Max(0.01f, pf);
+            }
+            // Spawn placement resolver selection
+            string spawnBehavior = null;
+            if (beamJson.TryGetValue("spawnBehavior", out var sbRaw))
+                spawnBehavior = (sbRaw as string)?.Trim();
+            string spawnBehaviorNorm = string.IsNullOrEmpty(spawnBehavior)
+                ? null
+                : spawnBehavior.ToLowerInvariant();
+            float spawnRadius = 0f;
+            if (beamJson.TryGetValue("spawnRadius", out var srv))
+            {
+                if (srv is float fr)
+                    spawnRadius = Mathf.Max(0f, fr);
+                else if (srv is int ir)
+                    spawnRadius = Mathf.Max(0f, ir);
+                else if (srv is string sr && float.TryParse(sr, out var pr))
+                    spawnRadius = Mathf.Max(0f, pr);
+            }
+
+            if (spawnOnInterval)
+            {
+                // Attach a beam-specific interval spawner so the parent persists
+                var spawner = root.AddComponent<BeamIntervalSpawner>();
+                spawner.generator = this;
+                spawner.owner = owner != null ? owner : transform;
+                spawner.interval = spawnInterval;
+                spawner.countPerInterval = Mathf.Max(1, numberToSpawn);
+                spawner.debugLogs = p.debugLogs || debugLogs;
+
+                // Choose resolver per spawnBehavior
+                if (!string.IsNullOrEmpty(spawnBehaviorNorm))
+                {
+                    if (spawnBehaviorNorm == "chaos")
+                    {
+                        var chaos =
+                            root.GetComponent<Game.Procederal.Api.ChaosSpawnPosition>()
+                            ?? root.AddComponent<Game.Procederal.Api.ChaosSpawnPosition>();
+                        spawner.spawnResolverBehaviour = chaos;
+                    }
+                    else if (spawnBehaviorNorm == "neuteral" || spawnBehaviorNorm == "neutral")
+                    {
+                        var neu =
+                            root.GetComponent<Game.Procederal.Api.NeutralSpawnPositon>()
+                            ?? root.AddComponent<Game.Procederal.Api.NeutralSpawnPositon>();
+                        spawner.spawnResolverBehaviour = neu;
+                    }
+                }
+
+                // Pass per-beam settings
+                spawner.SetBeamSettings(beamSettings.ToArray());
+                // Apply spawn radius on the spawner (resolver will receive it via TryGetSpawn)
+                spawner.spawnRadius = spawnRadius;
+                // Propagate DoT modifier to spawned beams if selected
+                if (instruction.HasSecondary(MechanicKind.DamageOverTime))
+                {
+                    spawner.AddModifierSpec(
+                        "DamageOverTime",
+                        ("debugLogs", p.debugLogs || debugLogs)
+                    );
+                }
+                // Propagate Bounce modifier to spawned beams if selected
+                if (instruction.HasSecondary(MechanicKind.Bounce))
+                {
+                    spawner.AddModifierSpec("Bounce", ("debugLogs", p.debugLogs || debugLogs));
+                }
+                // Propagate Explosion modifier to spawned beams if selected
+                if (instruction.HasSecondary(MechanicKind.Explosion))
+                {
+                    spawner.AddModifierSpec("Explosion", ("debugLogs", p.debugLogs || debugLogs));
+                }
+                // Propagate RippleOnHit to spawned beams if selected
+                if (instruction.HasSecondary(MechanicKind.RippleOnHit))
+                {
+                    spawner.AddModifierSpec("RippleOnHit", ("debugLogs", p.debugLogs || debugLogs));
+                }
+                // Do not create a one-off beam now; spawner will handle periodic creation
+                return;
+            }
+
+            // Single-shot beam
+            var go = new GameObject("Beam");
+            go.transform.SetParent(root.transform, false);
+            go.transform.localPosition = Vector3.zero;
+            AddMechanicByName(go, "Beam", beamSettings.ToArray());
+            InitializeMechanics(go, owner, target);
+            subItems.Add(go);
+        }
+
         public void AddModifierToAll(List<GameObject> subItems, MechanicKind kind, ItemParams p)
         {
             if (subItems == null)
@@ -730,7 +1202,48 @@ namespace Game.Procederal
                     continue;
                 switch (kind)
                 {
+                    case MechanicKind.RippleOnHit:
+                        // Attach RippleOnHit to supported primaries; skip on incompatible like Orbit-only constructs
+                        // It's compatible with Projectile, Beam, Strike, Aura, Ripple (spawns independent rings on hit), but skip Whip for now.
+                        if (go.GetComponent<Mechanics.Neuteral.WhipMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'RippleOnHit' on Whip.");
+                            break;
+                        }
+                        AddMechanicByName(
+                            go,
+                            "RippleOnHit",
+                            new (string key, object val)[]
+                            {
+                                ("debugLogs", p.debugLogs || debugLogs),
+                            }
+                        );
+                        break;
                     case MechanicKind.Orbit:
+                        // Skip Orbit if the target is a Beam (incompatible)
+                        if (go.GetComponent<Mechanics.Neuteral.BeamMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Orbit' on Beam.");
+                            break;
+                        }
+                        // Skip Orbit on Whip
+                        if (go.GetComponent<Mechanics.Neuteral.WhipMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Orbit' on Whip.");
+                            break;
+                        }
+                        // Skip Orbit on Ripple
+                        if (go.GetComponent<Mechanics.Neuteral.RippleMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Orbit' on Ripple.");
+                            break;
+                        }
+                        // Skip Orbit on Strike (incompatible by design)
+                        if (go.GetComponent<Mechanics.Neuteral.StrikeMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Orbit' on Strike.");
+                            break;
+                        }
                         // Ensure projectile (if present) does not self-drive when Orbit is added later
                         SetExistingMechanicSetting(go, "Projectile", "disableSelfSpeed", true);
                         AddMechanicByName(
@@ -754,6 +1267,41 @@ namespace Game.Procederal
                             SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", val);
                         }
                         break;
+                    case MechanicKind.Explosion:
+                        AddMechanicByName(
+                            go,
+                            "Explosion",
+                            new (string key, object val)[]
+                            {
+                                ("debugLogs", p.debugLogs || debugLogs),
+                            }
+                        );
+                        break;
+                    case MechanicKind.Bounce:
+                        // Incompatible with Aura, Strike, and Whip primaries
+                        if (go.GetComponent<Mechanics.Neuteral.AuraMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Bounce' on Aura.");
+                            break;
+                        }
+                        if (go.GetComponent<Mechanics.Neuteral.StrikeMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Bounce' on Strike.");
+                            break;
+                        }
+                        if (go.GetComponent<Mechanics.Neuteral.WhipMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Bounce' on Whip.");
+                            break;
+                        }
+                        // Also incompatible on Ripple
+                        if (go.GetComponent<Mechanics.Neuteral.RippleMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Bounce' on Ripple.");
+                            break;
+                        }
+                        AddMechanicByName(go, "Bounce", new (string key, object val)[] { });
+                        break;
                     case MechanicKind.Drain:
                         AddMechanicByName(
                             go,
@@ -767,9 +1315,86 @@ namespace Game.Procederal
                             }
                         );
                         break;
+                    case MechanicKind.Lock:
+                        // No overrides; rely on JSON defaults (e.g., "Stun Time")
+                        AddMechanicByName(go, "Lock", new (string key, object val)[] { });
+                        break;
+                    case MechanicKind.Track:
+                        // Skip Track on Strike (incompatible by design)
+                        if (go.GetComponent<Mechanics.Neuteral.StrikeMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Track' on Strike.");
+                            break;
+                        }
+                        // Skip Track on Ripple
+                        if (go.GetComponent<Mechanics.Neuteral.RippleMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'Track' on Ripple.");
+                            break;
+                        }
+                        // No overrides; rely on JSON defaults on other primaries
+                        AddMechanicByName(go, "Track", new (string key, object val)[] { });
+                        break;
+                    case MechanicKind.DamageOverTime:
+                        // Skip DoT on Whip for now
+                        if (go.GetComponent<Mechanics.Neuteral.WhipMechanic>() != null)
+                        {
+                            Log($"Skipping incompatible modifier 'DamageOverTime' on Whip.");
+                            break;
+                        }
+                        // Ensure projectile (if present) does not self-drive when DamageOverTime is added later
+                        SetExistingMechanicSetting(go, "Projectile", "disableSelfSpeed", true);
+                        AddMechanicByName(
+                            go,
+                            "DamageOverTime",
+                            new (string key, object val)[]
+                            {
+                                ("interval", p.drainInterval),
+                                ("damagePerInterval", p.drainDamage),
+                            }
+                        );
+                        break;
                 }
                 InitializeMechanics(go, owner, target);
             }
+        }
+
+        private void BuildStrike(
+            GameObject root,
+            ItemInstruction instruction,
+            ItemParams p,
+            List<GameObject> subItems
+        )
+        {
+            var go = new GameObject("Strike");
+            go.transform.SetParent(root.transform, false);
+            go.transform.localPosition = Vector3.zero;
+
+            var strikeJson = LoadAndMergeJsonSettings("Strike");
+            Color vizColor = Color.black;
+            if (strikeJson.TryGetValue("spriteColor", out var sc))
+            {
+                Color c;
+                if (TryParseColor(sc, out c))
+                    vizColor = c;
+            }
+
+            var settings = new List<(string key, object val)>();
+            if (strikeJson.TryGetValue("interval", out var iv))
+                settings.Add(("interval", iv));
+            if (strikeJson.TryGetValue("damagePerInterval", out var dmg))
+                settings.Add(("damagePerInterval", dmg));
+            if (strikeJson.TryGetValue("damage", out var dmg2))
+                settings.Add(("damage", dmg2));
+            settings.Add(("requireMobTag", true));
+            settings.Add(("excludeOwner", true));
+            settings.Add(("showVisualization", true));
+            settings.Add(("vizColor", vizColor));
+            settings.Add(("debugLogs", p.debugLogs || debugLogs));
+
+            AddMechanicByName(go, "Strike", settings.ToArray());
+            InitializeMechanics(go, owner, target);
+            subItems.Add(go);
         }
 
         public Component AddMechanicByName(
@@ -890,6 +1515,161 @@ namespace Game.Procederal
                 Debug.Log($"[ProcederalItemGenerator] {msg}", this);
         }
 
+        // --- Auto-apply helpers ---
+        private bool IsDenied(string modifierName)
+        {
+            if (autoApplyModifierDenyList == null || autoApplyModifierDenyList.Count == 0)
+                return false;
+            foreach (var s in autoApplyModifierDenyList)
+            {
+                if (
+                    !string.IsNullOrWhiteSpace(s)
+                    && !string.IsNullOrWhiteSpace(modifierName)
+                    && string.Equals(
+                        s.Trim(),
+                        modifierName.Trim(),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                    return true;
+            }
+            return false;
+        }
+
+        private HashSet<MechanicKind> GetModifiersToApply(ItemInstruction instruction)
+        {
+            var set = new HashSet<MechanicKind>();
+            if (
+                !autoApplyCompatibleModifiers
+                || instruction == null
+                || instruction.secondary == null
+            )
+                return set;
+            foreach (var s in instruction.secondary)
+            {
+                var kind = ItemInstruction.ParseKind(s);
+                if (kind == MechanicKind.None)
+                    continue;
+                string modName = s?.Trim();
+                if (string.IsNullOrWhiteSpace(modName) || IsDenied(modName))
+                    continue;
+                if (!ShouldApplyModifierForPrimary(instruction.primary, modName))
+                    continue;
+                set.Add(kind);
+            }
+            return set;
+        }
+
+        private bool ShouldApplyModifierForPrimary(string primaryName, string modifierName)
+        {
+            if (string.IsNullOrWhiteSpace(primaryName) || string.IsNullOrWhiteSpace(modifierName))
+                return false;
+            // Check JSON-based incompatibilities from Primary Mechanic List
+            var incompatible = LoadStringArrayForMechanic(primaryName, "IncompatibleWith");
+            foreach (var s in incompatible)
+            {
+                if (string.Equals(s, modifierName, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            return true;
+        }
+
+        private List<string> LoadStringArrayForMechanic(string mechanicName, string arrayName)
+        {
+            var primaryJson =
+                primaryMechanicListJson != null
+                    ? primaryMechanicListJson
+                    : Resources.Load<TextAsset>("Primary Mechanic List");
+            var list = new List<string>();
+            string json = primaryJson != null ? primaryJson.text : null;
+            if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(mechanicName))
+                return list;
+            int searchPos = 0;
+            var comp = StringComparison.OrdinalIgnoreCase;
+            while (true)
+            {
+                int nameKey = json.IndexOf("\"MechanicName\"", searchPos, comp);
+                if (nameKey < 0)
+                    return list;
+                int colon = json.IndexOf(':', nameKey);
+                if (colon < 0)
+                    return list;
+                int q1 = json.IndexOf('"', colon + 1);
+                if (q1 < 0)
+                    return list;
+                int q2 = json.IndexOf('"', q1 + 1);
+                if (q2 < 0)
+                    return list;
+                string found = json.Substring(q1 + 1, q2 - q1 - 1);
+                searchPos = q2 + 1;
+                if (!string.Equals(found, mechanicName, comp))
+                    continue;
+                int arrKey = json.IndexOf("\"" + arrayName + "\"", searchPos, comp);
+                if (arrKey < 0)
+                    return list;
+                int arrColon = json.IndexOf(':', arrKey);
+                if (arrColon < 0)
+                    return list;
+                int open = json.IndexOf('[', arrColon);
+                if (open < 0)
+                    return list;
+                int depth = 0;
+                int i = open;
+                for (; i < json.Length; i++)
+                {
+                    char c = json[i];
+                    if (c == '[')
+                        depth++;
+                    else if (c == ']')
+                    {
+                        depth--;
+                        if (depth == 0)
+                            break;
+                    }
+                }
+                if (i >= json.Length)
+                    return list;
+                string inner = json.Substring(open + 1, i - open - 1);
+                // Extract quoted strings
+                int p = 0;
+                while (true)
+                {
+                    int s1 = inner.IndexOf('"', p);
+                    if (s1 < 0)
+                        break;
+                    int s2 = inner.IndexOf('"', s1 + 1);
+                    if (s2 < 0)
+                        break;
+                    string val = inner.Substring(s1 + 1, s2 - s1 - 1);
+                    if (!string.IsNullOrWhiteSpace(val))
+                        list.Add(val);
+                    p = s2 + 1;
+                }
+                return list;
+            }
+        }
+
+        private void EnsureOwnerDrain(Transform drainOwner, ItemParams p)
+        {
+            if (drainOwner == null)
+                return;
+            var existingDrain =
+                drainOwner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
+            if (existingDrain == null)
+            {
+                AddMechanicByName(
+                    drainOwner.gameObject,
+                    "Drain",
+                    new (string key, object val)[]
+                    {
+                        ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
+                        ("debugLogs", p.debugLogs || debugLogs),
+                    }
+                );
+                InitializeMechanics(drainOwner.gameObject, drainOwner, target);
+            }
+        }
+
         // --- JSON settings helpers ---
         private Dictionary<string, object> LoadAndMergeJsonSettings(string mechanicName)
         {
@@ -904,6 +1684,23 @@ namespace Game.Procederal
                 dict[kv.Key] = kv.Value;
             NormalizeSettings(mechanicName, dict);
             return dict;
+        }
+
+        // Exposed for trusted internal API components (e.g., WhipArcSet)
+        public static Dictionary<string, object> LoadAndMergeForExternal(string mechanicName)
+        {
+            // Create a temporary generator to leverage JSON resolution logic; we rely on Resources fallback
+            var temp = new GameObject("_JsonHelper").AddComponent<ProcederalItemGenerator>();
+            try
+            {
+                var src = temp.LoadAndMergeJsonSettings(mechanicName);
+                return new Dictionary<string, object>(src, StringComparer.OrdinalIgnoreCase);
+            }
+            finally
+            {
+                if (temp != null)
+                    GameObject.DestroyImmediate(temp.gameObject);
+            }
         }
 
         private Dictionary<string, object> LoadKvpArrayForMechanic(

@@ -22,6 +22,7 @@ public class SimpleMobAI : MonoBehaviour
     private Rigidbody2D _rb;
     private float _lastAttackTime;
     private bool _stopped;
+    private StunController _stun;
 
     private void Awake()
     {
@@ -51,6 +52,14 @@ public class SimpleMobAI : MonoBehaviour
     private void FixedUpdate()
     {
         if (_stopped)
+        {
+            if (_rb != null)
+                _rb.linearVelocity = Vector2.zero;
+            return;
+        }
+        if (_stun == null)
+            _stun = GetComponent<StunController>();
+        if (_stun != null && _stun.IsStunned)
         {
             if (_rb != null)
                 _rb.linearVelocity = Vector2.zero;

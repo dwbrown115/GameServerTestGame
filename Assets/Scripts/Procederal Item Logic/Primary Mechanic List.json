@@ -33,5 +33,74 @@
       { "spriteColor": "#00000080" }
     ],
     "IncompatibleWith": ["Orbit"]
+  },
+  {
+    "MechanicName": "Beam",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/BeamMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 3 },
+      { "interval": 0.1 },
+      { "radius": 0.5 },
+      { "speed": 20 },
+      { "maxDistance": 8 },
+      { "direction": "right" },
+      { "spriteColor": "#FFFFFFFF" },
+      { "spawnOnInterval": true }
+    ],
+    "IncompatibleWith": ["Orbit", "DamageOverTime"]
+  },
+  {
+    "MechanicName": "Strike",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/StrikeMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 10 },
+      { "interval": 0.5 },
+      { "spriteColor": "#000000FF" },
+      { "showVisualization": true }
+    ],
+    "IncompatibleWith": ["Orbit", "Track"]
+  },
+  {
+    "MechanicName": "Ripple",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/RippleMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "startRadius": 1.0 },
+      { "endDiameter": 8.0 },
+      { "growDuration": 1.5 },
+      { "edgeThickness": 0.1 },
+      { "damage": 2 },
+      { "showVisualization": true },
+      { "spriteColor": "#4CB2FF99" },
+      { "spawnOnInterval": true },
+      { "interval": 0.6 },
+      { "NumberOfItemsToSpawn": 1 }
+    ],
+    "IncompatibleWith": ["Orbit", "Track", "Bounce"]
+  },
+  {
+    "MechanicName": "Whip",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/WhipMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 5 },
+      { "interval": 0.1 },
+      { "outerRadius": 2.0 },
+      { "width": 3.0 },
+      { "arcLengthDeg": 160 },
+      { "drawDuration": 0.5 },
+      { "edgeOnly": true },
+      { "edgeThickness": 0.1 },
+      { "direction": "right" },
+      { "showVisualization": true },
+      { "spriteColor": "#FF990060" }
+    ],
+    "IncompatibleWith": ["Orbit", "Bounce", "DamageOverTime", "Track"]
   }
 ]

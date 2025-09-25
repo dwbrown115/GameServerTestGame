@@ -1,16 +1,16 @@
 using UnityEngine;
 
-/// Attach to the payload to relay trigger events up to the MechanicHost and its mechanics.
+/// Attach to the payload to relay trigger events up the hierarchy to any listeners (MechanicRunner or others).
 public class PayloadTriggerRelay : MonoBehaviour
 {
-    private MechanicHost _host;
     public bool debugLogs = false;
 
     private void Awake()
     {
-        _host = GetComponentInParent<MechanicHost>();
-        if (_host != null)
-            debugLogs = _host.debugLogs;
+        // Optionally, pick up a debug flag from a component on parents if present
+        var runner = GetComponentInParent<Game.Procederal.Api.MechanicRunner>();
+        if (runner != null)
+            debugLogs = runner.debugLogs;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -22,22 +22,11 @@ public class PayloadTriggerRelay : MonoBehaviour
                 this
             );
         }
-        if (_host != null)
-        {
-            _host.SendMessage(
-                "OnPayloadTriggerEnter2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
-        else
-        {
-            gameObject.SendMessageUpwards(
-                "OnPayloadTriggerEnter2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
+        gameObject.SendMessageUpwards(
+            "OnPayloadTriggerEnter2D",
+            other,
+            SendMessageOptions.DontRequireReceiver
+        );
     }
 
     private void OnTriggerStay2D(Collider2D other)
@@ -49,22 +38,11 @@ public class PayloadTriggerRelay : MonoBehaviour
                 this
             );
         }
-        if (_host != null)
-        {
-            _host.SendMessage(
-                "OnPayloadTriggerStay2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
-        else
-        {
-            gameObject.SendMessageUpwards(
-                "OnPayloadTriggerStay2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
+        gameObject.SendMessageUpwards(
+            "OnPayloadTriggerStay2D",
+            other,
+            SendMessageOptions.DontRequireReceiver
+        );
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -76,21 +54,10 @@ public class PayloadTriggerRelay : MonoBehaviour
                 this
             );
         }
-        if (_host != null)
-        {
-            _host.SendMessage(
-                "OnPayloadTriggerExit2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
-        else
-        {
-            gameObject.SendMessageUpwards(
-                "OnPayloadTriggerExit2D",
-                other,
-                SendMessageOptions.DontRequireReceiver
-            );
-        }
+        gameObject.SendMessageUpwards(
+            "OnPayloadTriggerExit2D",
+            other,
+            SendMessageOptions.DontRequireReceiver
+        );
     }
 }

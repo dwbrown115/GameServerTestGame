@@ -143,6 +143,7 @@ namespace Mechanics.Neuteral
                 );
 
             int totalDamage = 0;
+            bool anyDamaged = false;
             for (int i = 0; i < count; i++)
             {
                 var c = _hits[i];
@@ -170,16 +171,46 @@ namespace Mechanics.Neuteral
                 Vector2 dir = ((Vector2)c.transform.position - center).normalized;
                 dmg.TakeDamage(damagePerInterval, dir, Vector2.zero);
                 totalDamage += damagePerInterval;
+                anyDamaged = true;
                 if (debugLogs)
                     Debug.Log(
                         $"[AuraMechanic] Damaged {c.name} -> {dmg.GetType().Name} for {damagePerInterval}",
                         this
                     );
+
+                // Apply Lock modifier if present on this payload
+                var locker = GetComponent<Mechanics.Order.LockMechanic>();
+                if (locker != null)
+                {
+                    locker.TryApplyTo(c.transform);
+                }
+                // Apply DoT if present on this payload
+                var dot = GetComponent<Mechanics.Corruption.DamageOverTimeMechanic>();
+                if (dot != null)
+                {
+                    dot.TryApplyTo(c.transform);
+                }
             }
 
             if (_drain != null && totalDamage > 0)
             {
                 _drain.ReportDamage(totalDamage);
+            }
+
+            // If explosion modifier present, trigger one explosion at the aura center when any target is damaged this tick
+            if (anyDamaged)
+            {
+                var explode = GetComponent<Mechanics.Chaos.ExplosionMechanic>();
+                if (explode != null)
+                {
+                    explode.TriggerExplosion(center);
+                }
+                // Ripple-on-hit modifier: also optionally trigger a ripple chain from the aura center
+                var rippleOnHit = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
+                if (rippleOnHit != null)
+                {
+                    rippleOnHit.TriggerFrom(null, center);
+                }
             }
         }
 

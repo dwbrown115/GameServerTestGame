@@ -1,24 +1,31 @@
 using UnityEngine;
 
-/// Simple helper to assign a target to a MechanicHost at runtime.
+/// Simple helper to assign a target to mechanics/runners at runtime without depending on MechanicHost.
 public class MechanicTargetSetter : MonoBehaviour
 {
-    public MechanicHost host;
+    [Tooltip("Optional specific receiver to send SetTarget to. If null, will send upwards.")]
+    public Component targetReceiver;
     public Transform target;
 
     private void Reset()
     {
-        if (host == null)
-            host = GetComponent<MechanicHost>();
+        // Nothing to auto-assign; prefer SendMessageUpwards pattern
     }
 
     private void Start()
     {
-        if (host == null)
-            host = GetComponent<MechanicHost>();
-        if (host != null)
-            host.GetType(); // no-op to keep reference
-        if (host != null)
-            host.SendMessage("SetTarget", target, SendMessageOptions.DontRequireReceiver);
+        if (targetReceiver != null)
+        {
+            targetReceiver.SendMessage("SetTarget", target, SendMessageOptions.DontRequireReceiver);
+        }
+        else
+        {
+            // Broadcast upwards so either MechanicRunner or any listener can capture it
+            gameObject.SendMessageUpwards(
+                "SetTarget",
+                target,
+                SendMessageOptions.DontRequireReceiver
+            );
+        }
     }
 }

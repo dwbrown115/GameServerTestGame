@@ -41,6 +41,17 @@ public class ItemGenerationController : MonoBehaviour
     public bool debugLogs = false;
     public int rngSeed = 0;
 
+    [Tooltip("When true (and offline), force a fixed selection instead of random.")]
+    public bool debugUseFixedSelection = false;
+
+    [Tooltip(
+        "Name of the primary mechanic to force (must match JSON entry, e.g., 'Projectile', 'Aura', 'Drain', 'Beam')."
+    )]
+    public string debugPrimary = "";
+
+    [Tooltip("Optional modifier mechanic names to add (must match JSON entries).")]
+    public string[] debugSecondary;
+
     private IItemSelectionProvider _selectionProvider;
 
     private void Awake()
@@ -74,22 +85,50 @@ public class ItemGenerationController : MonoBehaviour
 
         if (isOffline)
         {
-            // Resolve JSONs from generator; fallback to Resources by name
-            var primary =
-                generator.primaryMechanicListJson != null
-                    ? generator.primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var modifier =
-                generator.modifierMechanicListJson != null
-                    ? generator.modifierMechanicListJson
-                    : Resources.Load<TextAsset>("Modifier Mechanic List");
+            if (debugUseFixedSelection && !string.IsNullOrWhiteSpace(debugPrimary))
+            {
+                // Use fixed selection specified in inspector
+                instr = new ItemInstruction
+                {
+                    primary = debugPrimary,
+                    secondary = new System.Collections.Generic.List<string>(),
+                };
+                if (debugSecondary != null)
+                {
+                    for (int i = 0; i < debugSecondary.Length; i++)
+                    {
+                        var s = debugSecondary[i];
+                        if (!string.IsNullOrWhiteSpace(s))
+                            instr.secondary.Add(s.Trim());
+                    }
+                }
+                parms = new ItemParams();
+                if (debugLogs)
+                {
+                    Debug.Log(
+                        $"[ItemGenerationController] Debug fixed selection => primary={instr.primary} secondary=[{string.Join(",", instr.secondary)}]"
+                    );
+                }
+            }
+            else
+            {
+                // Resolve JSONs from generator; fallback to Resources by name
+                var primary =
+                    generator.primaryMechanicListJson != null
+                        ? generator.primaryMechanicListJson
+                        : Resources.Load<TextAsset>("Primary Mechanic List");
+                var modifier =
+                    generator.modifierMechanicListJson != null
+                        ? generator.modifierMechanicListJson
+                        : Resources.Load<TextAsset>("Modifier Mechanic List");
 
-            System.Random rng = (rngSeed != 0) ? new System.Random(rngSeed) : null;
-            var combo = OfflineItemGeneratorApi.MakeRandom(primary, modifier, rng);
-            instr = combo.instruction;
-            parms = combo.parameters;
-            if (debugLogs)
-                Debug.Log($"[ItemGenerationController] Offline selection => {combo.debug}");
+                System.Random rng = (rngSeed != 0) ? new System.Random(rngSeed) : null;
+                var combo = OfflineItemGeneratorApi.MakeRandom(primary, modifier, rng);
+                instr = combo.instruction;
+                parms = combo.parameters;
+                if (debugLogs)
+                    Debug.Log($"[ItemGenerationController] Offline selection => {combo.debug}");
+            }
         }
         else
         {
