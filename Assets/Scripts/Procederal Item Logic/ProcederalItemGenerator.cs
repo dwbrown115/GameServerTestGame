@@ -25,6 +25,7 @@ namespace Game.Procederal
         Whip,
         Ripple,
         RippleOnHit,
+        SwordSlash,
     }
 
     [Serializable]
@@ -73,6 +74,10 @@ namespace Game.Procederal
                     return MechanicKind.Ripple;
                 case "rippleonhit":
                     return MechanicKind.RippleOnHit;
+                case "swordslash":
+                case "sword":
+                case "slash":
+                    return MechanicKind.SwordSlash;
                 default:
                     return MechanicKind.None;
             }
@@ -304,6 +309,9 @@ namespace Game.Procederal
                 case MechanicKind.Ripple:
                     BuildRipple(root, instruction, p, subItems);
                     break;
+                case MechanicKind.SwordSlash:
+                    BuildSwordSlash(root, instruction, p, subItems);
+                    break;
                 default:
                     Log($"Unsupported primary mechanic '{instruction.primary}'.");
                     break;
@@ -495,6 +503,221 @@ namespace Game.Procederal
             InitializeMechanics(go, owner, target);
             subItems.Add(go);
         }
+
+        // Sword Slash: emits a series of crescent outlines that travel forward, keeping their initial size.
+        // Implemented by composing a static SwordSlashPayload (crescent collider/line) with a ProjectileMechanic for motion.
+        private void BuildSwordSlash(
+            GameObject root,
+            ItemInstruction instruction,
+            ItemParams p,
+            List<GameObject> subItems
+        )
+        {
+            // JSON defaults (if present)
+            var json = LoadAndMergeJsonSettings("SwordSlash");
+            int seriesCount = 3;
+            float intervalBetween = 0.08f;
+            bool spawnOnInterval = false;
+            float seriesInterval = 0.8f;
+            float outerRadius = 1.5f;
+            float width = 0.5f;
+            float arcLen = 120f;
+            bool edgeOnly = true;
+            float edgeThickness = 0.2f;
+            int damage = 8;
+            float speed = 12f;
+            Color color = Color.white;
+
+            ReadIf(json, "seriesCount", ref seriesCount);
+            ReadIf(json, "intervalBetween", ref intervalBetween);
+            ReadIf(json, "spawnOnInterval", ref spawnOnInterval);
+            ReadIf(json, "interval", ref seriesInterval);
+            ReadIf(json, "outerRadius", ref outerRadius);
+            ReadIf(json, "width", ref width);
+            ReadIf(json, "arcLengthDeg", ref arcLen);
+            ReadIf(json, "edgeOnly", ref edgeOnly);
+            ReadIf(json, "edgeThickness", ref edgeThickness);
+            ReadIf(json, "damage", ref damage);
+            ReadIf(json, "speed", ref speed);
+            if (json.TryGetValue("spriteColor", out var sc))
+                TryParseColor(sc, out color);
+
+            // If interval-based spawning is requested, attach a spawner and route all creation through it
+            if (spawnOnInterval)
+            {
+                var spawner = root.AddComponent<Game.Procederal.Api.SwordSlashIntervalSpawner>();
+                spawner.generator = this;
+                spawner.owner = owner != null ? owner : transform;
+                spawner.interval = Mathf.Max(0.01f, seriesInterval);
+                spawner.seriesCount = Mathf.Max(1, seriesCount);
+                spawner.intervalBetween = Mathf.Max(0f, intervalBetween);
+                spawner.outerRadius = Mathf.Max(0.0001f, outerRadius);
+                spawner.width = Mathf.Max(0.0001f, width);
+                spawner.arcLengthDeg = Mathf.Clamp(arcLen, 1f, 359f);
+                spawner.edgeOnly = edgeOnly;
+                spawner.edgeThickness = Mathf.Max(0.0001f, edgeThickness);
+                spawner.vizColor = color;
+                spawner.damage = Mathf.Max(0, damage);
+                spawner.speed = Mathf.Max(0.01f, speed);
+                spawner.excludeOwner = true;
+                spawner.requireMobTag = true;
+                // If Track is applied, aim each burst toward nearest enemy
+                spawner.aimAtNearestEnemy = instruction.HasSecondary(MechanicKind.Track);
+                spawner.debugLogs = p.debugLogs || debugLogs;
+
+                // Propagate compatible modifiers to spawned slashes
+                if (autoApplyCompatibleModifiers)
+                {
+                    foreach (var mk in GetModifiersToApply(instruction))
+                    {
+                        switch (mk)
+                        {
+                            case MechanicKind.Drain:
+                                EnsureOwnerDrain(
+                                    spawner.owner != null ? spawner.owner : transform,
+                                    p
+                                );
+                                spawner.AddModifierSpec(
+                                    "Drain",
+                                    ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Lock:
+                                spawner.AddModifierSpec("Lock");
+                                break;
+                            case MechanicKind.DamageOverTime:
+                                spawner.AddModifierSpec(
+                                    "DamageOverTime",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Bounce:
+                                spawner.AddModifierSpec("Bounce");
+                                break;
+                            case MechanicKind.Explosion:
+                                spawner.AddModifierSpec(
+                                    "Explosion",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.RippleOnHit:
+                                spawner.AddModifierSpec(
+                                    "RippleOnHit",
+                                    ("debugLogs", p.debugLogs || debugLogs)
+                                );
+                                break;
+                            case MechanicKind.Track:
+                                // Skip adding Track mechanic directly; handled by aimAtNearestEnemy
+                                break;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Direction: player movement by default
+            Vector2 dir = Vector2.right;
+            var ownerT = owner != null ? owner : transform;
+            var ownerRb = ownerT != null ? ownerT.GetComponent<Rigidbody2D>() : null;
+            if (ownerRb != null && ownerRb.linearVelocity.sqrMagnitude > 0.01f)
+                dir = ownerRb.linearVelocity.normalized;
+
+            // If Track modifier is applied, spawn facing nearest enemy
+            if (instruction.HasSecondary(MechanicKind.Track))
+            {
+                var nearest = FindNearestMob(ownerT);
+                if (nearest != null)
+                {
+                    Vector2 to = (Vector2)(nearest.position - ownerT.position);
+                    if (to.sqrMagnitude > 1e-6f)
+                        dir = to.normalized;
+                }
+            }
+
+            // Spawn a series of slashes offset in space so they appear as a moving train
+            int count = Mathf.Max(1, seriesCount);
+            float spacing = Mathf.Max(0f, intervalBetween) * Mathf.Max(0.01f, speed);
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject($"SwordSlash_{i}");
+                go.transform.SetParent(root.transform, false);
+                // World placement relative to owner so series starts stretched behind and moves forward
+                if (ownerT != null)
+                    go.transform.position = ownerT.position - (Vector3)(dir * spacing * i);
+                else
+                    go.transform.localPosition = Vector3.zero;
+                go.layer = ownerT != null ? ownerT.gameObject.layer : go.layer;
+
+                // Add payload (static crescent geometry)
+                var payload = go.AddComponent<Mechanics.Neuteral.SwordSlashPayload>();
+                payload.outerRadius = outerRadius;
+                payload.width = width;
+                payload.arcLengthDeg = arcLen;
+                payload.edgeOnly = edgeOnly;
+                payload.edgeThickness = edgeThickness;
+                payload.showVisualization = true;
+                payload.vizColor = color;
+
+                // Orient the crescent so its forward (local +X) matches the travel direction
+                go.transform.right = dir;
+
+                // Motion and damage
+                AddMechanicByName(
+                    go,
+                    "Projectile",
+                    new (string key, object val)[]
+                    {
+                        ("direction", dir),
+                        ("speed", speed),
+                        ("damage", damage),
+                        ("requireMobTag", true),
+                        ("excludeOwner", true),
+                        ("destroyOnHit", true),
+                    }
+                );
+
+                // Rigidbody for reliable trigger events and physics
+                var rb = go.GetComponent<Rigidbody2D>();
+                if (rb == null)
+                    rb = go.AddComponent<Rigidbody2D>();
+                rb.bodyType = RigidbodyType2D.Dynamic;
+                rb.gravityScale = 0f;
+                rb.freezeRotation = true;
+                rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+                InitializeMechanics(go, owner, target);
+
+                // Safety lifetime
+                go.AddComponent<_AutoDestroyAfterSeconds>().seconds = 4f;
+
+                subItems.Add(go);
+            }
+        }
+
+        private static Transform FindNearestMob(Transform from)
+        {
+            var mobs = GameObject.FindGameObjectsWithTag("Mob");
+            if (mobs == null || mobs.Length == 0)
+                return null;
+            float best = float.MaxValue;
+            Transform bestT = null;
+            foreach (var go in mobs)
+            {
+                if (go == null)
+                    continue;
+                float d2 = (go.transform.position - from.position).sqrMagnitude;
+                if (d2 < best)
+                {
+                    best = d2;
+                    bestT = go.transform;
+                }
+            }
+            return bestT;
+        }
+
+        // no delayed activation helper needed; we space instances in world instead
 
         private void BuildWhip(
             GameObject root,
@@ -1515,6 +1738,44 @@ namespace Game.Procederal
                 Debug.Log($"[ProcederalItemGenerator] {msg}", this);
         }
 
+        // Small JSON helpers
+        private static void ReadIf(Dictionary<string, object> dict, string key, ref int val)
+        {
+            if (dict != null && dict.TryGetValue(key, out var v))
+            {
+                if (v is int vi)
+                    val = vi;
+                else if (v is float vf)
+                    val = Mathf.RoundToInt(vf);
+                else if (v is string vs && int.TryParse(vs, out var pi))
+                    val = pi;
+            }
+        }
+
+        private static void ReadIf(Dictionary<string, object> dict, string key, ref float val)
+        {
+            if (dict != null && dict.TryGetValue(key, out var v))
+            {
+                if (v is float vf)
+                    val = vf;
+                else if (v is int vi)
+                    val = vi;
+                else if (v is string vs && float.TryParse(vs, out var pf))
+                    val = pf;
+            }
+        }
+
+        private static void ReadIf(Dictionary<string, object> dict, string key, ref bool val)
+        {
+            if (dict != null && dict.TryGetValue(key, out var v))
+            {
+                if (v is bool vb)
+                    val = vb;
+                else if (v is string vs && bool.TryParse(vs, out var pb))
+                    val = pb;
+            }
+        }
+
         // --- Auto-apply helpers ---
         private bool IsDenied(string modifierName)
         {
@@ -1667,6 +1928,19 @@ namespace Game.Procederal
                     }
                 );
                 InitializeMechanics(drainOwner.gameObject, drainOwner, target);
+            }
+        }
+
+        private class _AutoDestroyAfterSeconds : MonoBehaviour
+        {
+            public float seconds = 5f;
+            private float _t;
+
+            private void Update()
+            {
+                _t += Time.deltaTime;
+                if (_t >= seconds)
+                    Destroy(gameObject);
             }
         }
 

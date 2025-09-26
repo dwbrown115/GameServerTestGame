@@ -98,6 +98,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DrainMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Purity/RegenerationMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/NeutralSpawnPositon.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlashPayload.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Utilities/IsNumberValid.cs" />
     <Compile Include="Assets/Scripts/Managers/WebsocketManager.cs" />
@@ -182,6 +183,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Examples/FixedSelectionProvider.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_PhoneNumberValidator.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerWebSocketClient.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SwordSlashIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Mob/StunController.cs" />
     <Compile Include="Assets/Scripts/Managers/SkinsCacheCleaner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/AuraMechanic.cs" />

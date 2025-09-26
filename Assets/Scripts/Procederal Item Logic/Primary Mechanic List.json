@@ -102,5 +102,25 @@
       { "spriteColor": "#FF990060" }
     ],
     "IncompatibleWith": ["Orbit", "Bounce", "DamageOverTime", "Track"]
+  },
+  {
+    "MechanicName": "SwordSlash",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlashPayload.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "seriesCount": 3 },
+      { "intervalBetween": 0.08 },
+      { "spawnOnInterval": true },
+      { "interval": 0.8 },
+      { "outerRadius": 1.6 },
+      { "width": 0.6 },
+      { "arcLengthDeg": 120 },
+      { "edgeOnly": true },
+      { "edgeThickness": 0.1 },
+      { "speed": 12 },
+      { "damage": 8 },
+      { "spriteColor": "#FFFFFFFF" }
+    ],
+    "IncompatibleWith": ["Orbit"]
   }
 ]
