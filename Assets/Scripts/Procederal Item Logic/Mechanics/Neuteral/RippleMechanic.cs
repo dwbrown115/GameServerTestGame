@@ -32,6 +32,9 @@ namespace Mechanics.Neuteral
         public bool requireMobTag = true;
         public bool excludeOwner = true;
 
+        [Tooltip("If false, colliders on the Player (tag 'Player') are ignored by the ripple.")]
+        public bool includePlayer = false;
+
         [Header("Visualization")]
         public bool showVisualization = true;
         public Color vizColor = new Color(0.3f, 0.7f, 1f, 0.6f);
@@ -143,6 +146,8 @@ namespace Mechanics.Neuteral
                     continue; // already hit by this ripple
                 if (excludeOwner && IsOwnerRelated(c))
                     continue;
+                if (!includePlayer && IsPlayerRelated(c))
+                    continue;
                 if (requireMobTag && !HasMobTagInParents(c.transform))
                     continue;
                 var dmg = c.GetComponentInParent<IDamageable>();
@@ -204,6 +209,26 @@ namespace Mechanics.Neuteral
                     return true;
             }
             return c.transform.root == o.root;
+        }
+
+        private bool IsPlayerRelated(Collider2D c)
+        {
+            if (c == null)
+                return false;
+            Transform t = c.transform;
+            while (t != null)
+            {
+                if (t.CompareTag("Player"))
+                    return true;
+                t = t.parent;
+            }
+            if (c.attachedRigidbody != null)
+            {
+                var rt = c.attachedRigidbody.transform;
+                if (rt.CompareTag("Player"))
+                    return true;
+            }
+            return false;
         }
     }
 }

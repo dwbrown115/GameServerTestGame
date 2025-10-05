@@ -7,6 +7,9 @@ namespace Game.Procederal.Api
     /// Spawns items that are intended to orbit around an owner/target.
     /// Supports interval-based spawning and manual spawning. Keeps items evenly spaced.
     [DisallowMultipleComponent]
+    [System.Obsolete(
+        "OrbitSpawnBehavior is deprecated. Attach OrbitMechanic directly to spawned children or use content JSON to add Orbit mechanics instead of this spawner."
+    )]
     public class OrbitSpawnBehavior : MonoBehaviour
     {
         [Header("Wiring")]
@@ -53,6 +56,10 @@ namespace Game.Procederal.Api
         private readonly List<GameObject> _items = new();
         private float _timer;
         private bool _stopped;
+
+        // Event so children (or external systems) can react to count/angle changes in a data-driven way.
+        // Args: (newCount)
+        public System.Action<int> OnOrbitChildGroupChanged;
 
         private void OnEnable()
         {
@@ -122,7 +129,7 @@ namespace Game.Procederal.Api
                 // Collider + RB
                 var cc = go.AddComponent<CircleCollider2D>();
                 cc.isTrigger = true;
-                cc.radius = 1f; // unit; scale drives visual size
+                cc.radius = 0.5f; // adjusted projectile collider radius
                 go.layer = (owner != null ? owner.gameObject.layer : go.layer);
                 var rb = go.AddComponent<Rigidbody2D>();
                 rb.bodyType = RigidbodyType2D.Kinematic;
@@ -178,6 +185,9 @@ namespace Game.Procederal.Api
                 // Re-apply overrides across all children to ensure consistency
                 ApplyOverridesToChildren();
 
+                // Notify listeners of updated group size
+                OnOrbitChildGroupChanged?.Invoke(_items.Count);
+
                 var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
                     runner.RegisterTree(transform);
@@ -215,6 +225,7 @@ namespace Game.Procederal.Api
         {
             _items.Remove(go);
             RedistributeAngles();
+            OnOrbitChildGroupChanged?.Invoke(_items.Count);
         }
 
         private void RedistributeAngles(bool alignToClosestOfLast = false)
@@ -242,7 +253,15 @@ namespace Game.Procederal.Api
                     orbit.angularSpeedDeg = angularSpeedDeg;
                     orbit.SetAngleDeg(angle, repositionNow: true);
                 }
+                // Ensure sequence tag exists / updated
+                var tag = _items[i].GetComponent<Game.Procederal.Api.SequenceIndexTag>();
+                if (tag == null)
+                    tag = _items[i].AddComponent<Game.Procederal.Api.SequenceIndexTag>();
+                tag.index = i;
+                tag.total = n;
             }
+            // After redistribution, broadcast current count (angles implicitly updated)
+            OnOrbitChildGroupChanged?.Invoke(n);
         }
 
         private void StopSpawning()

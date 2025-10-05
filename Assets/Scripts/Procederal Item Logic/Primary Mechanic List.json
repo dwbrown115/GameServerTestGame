@@ -12,11 +12,11 @@
       { "spriteType": "circle" },
       { "spriteColor": "#FFFFFF" },
       { "lifetime": 5 },
-      { "spawnBehavior": "neutral" },
-      { "NumberOfItemsToSpawn": 1 },
-      { "spawnOnInterval": true },
+      { "spawnBehavior": "interval" },
+      { "childrenToSpawn": 1 },
       { "interval": 0.5 },
-      { "radius": 0.5 }
+      { "radius": 0.5 },
+      { "immediateFirstBurst": false }
     ],
     "IncompatibleWith": []
   },
@@ -30,9 +30,12 @@
       { "radius": 2 },
       { "interval": 0.1 },
       { "spriteType": "circle" },
-      { "spriteColor": "#00000080" }
+      { "spriteColor": "#00000080" },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
     ],
-    "IncompatibleWith": ["Orbit"]
+    "IncompatibleWith": ["Orbit", "Track"]
   },
   {
     "MechanicName": "Beam",
@@ -41,13 +44,24 @@
       { "AllowMultiple": false },
       { "DestroyOnHit": false },
       { "damagePerInterval": 3 },
-      { "interval": 0.1 },
+      { "damageInterval": 0.25 },
+      { "spawnInterval": 1.0 },
       { "radius": 0.5 },
-      { "speed": 20 },
-      { "maxDistance": 8 },
+      { "speed": 10 },
+      { "lifetime": 5.0 },
       { "direction": "right" },
       { "spriteColor": "#FFFFFFFF" },
-      { "spawnOnInterval": true }
+      { "spawnBehavior": "interval" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false },
+      { "preserveHeadOnRedirect": true },
+      { "anchorTailToPlayer": true },
+      { "segmentOnRedirect": true },
+      { "debugLogs": true },
+      { "isSegmented": true },
+      { "segments": ["head", "tail"] },
+      { "bounceSegment": "head" },
+      { "drainSegments": "head tail" }
     ],
     "IncompatibleWith": ["Orbit", "DamageOverTime"]
   },
@@ -60,9 +74,12 @@
       { "damagePerInterval": 10 },
       { "interval": 0.5 },
       { "spriteColor": "#000000FF" },
-      { "showVisualization": true }
+      { "showVisualization": true },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
     ],
-    "IncompatibleWith": ["Orbit", "Track"]
+    "IncompatibleWith": ["Orbit", "Track", "Bounce"]
   },
   {
     "MechanicName": "Ripple",
@@ -75,11 +92,13 @@
       { "growDuration": 1.5 },
       { "edgeThickness": 0.1 },
       { "damage": 2 },
+      { "includePlayer": false },
       { "showVisualization": true },
       { "spriteColor": "#4CB2FF99" },
-      { "spawnOnInterval": true },
+      { "spawnBehavior": "interval" },
       { "interval": 0.6 },
-      { "NumberOfItemsToSpawn": 1 }
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
     ],
     "IncompatibleWith": ["Orbit", "Track", "Bounce"]
   },
@@ -99,7 +118,10 @@
       { "edgeThickness": 0.1 },
       { "direction": "right" },
       { "showVisualization": true },
-      { "spriteColor": "#FF990060" }
+      { "spriteColor": "#FF990060" },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
     ],
     "IncompatibleWith": ["Orbit", "Bounce", "DamageOverTime", "Track"]
   },
@@ -119,7 +141,9 @@
       { "edgeThickness": 0.1 },
       { "speed": 12 },
       { "damage": 8 },
-      { "spriteColor": "#FFFFFFFF" }
+      { "spriteColor": "#FFFFFFFF" },
+      { "spawnBehavior": "sequence" },
+      { "childrenToSpawn": 3 }
     ],
     "IncompatibleWith": ["Orbit"]
   }

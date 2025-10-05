@@ -51,6 +51,9 @@ namespace Mechanics.Neuteral
                     this
                 );
             GameOverController.OnCountdownFinished += StopOrbit;
+            // After initial placement, redistribute among siblings so spacing reflects total count
+            if (transform.parent != null)
+                Game.Procederal.Api.OrbitDistribution.Redistribute(transform.parent);
         }
 
         public void Tick(float dt)
@@ -104,6 +107,9 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= StopOrbit;
+            // When one orbiting child disappears, re-space remaining siblings
+            if (transform != null && transform.parent != null)
+                Game.Procederal.Api.OrbitDistribution.Redistribute(transform.parent);
         }
 
         private void StopOrbit()

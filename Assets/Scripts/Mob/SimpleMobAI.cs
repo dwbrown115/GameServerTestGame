@@ -62,7 +62,16 @@ public class SimpleMobAI : MonoBehaviour
         if (_stun != null && _stun.IsStunned)
         {
             if (_rb != null)
+            {
+                if (_rb.linearVelocity.sqrMagnitude > 0f)
+                {
+                    Debug.Log(
+                        $"[SimpleMobAI] Stunned; clearing velocity from {_rb.linearVelocity} on {name}",
+                        this
+                    );
+                }
                 _rb.linearVelocity = Vector2.zero;
+            }
             return;
         }
         if (target == null)

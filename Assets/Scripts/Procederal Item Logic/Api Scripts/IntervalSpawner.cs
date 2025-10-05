@@ -168,7 +168,7 @@ namespace Game.Procederal.Api
                 // Collider and RB
                 var cc = go.AddComponent<CircleCollider2D>();
                 cc.isTrigger = true;
-                cc.radius = 1f;
+                cc.radius = 0.5f;
                 go.layer = (owner != null ? owner.gameObject.layer : go.layer);
                 var rb = go.AddComponent<Rigidbody2D>();
                 rb.bodyType = RigidbodyType2D.Dynamic;

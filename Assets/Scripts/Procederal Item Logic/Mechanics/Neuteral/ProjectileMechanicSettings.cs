@@ -25,6 +25,22 @@ namespace Mechanics.Neuteral
                 comp.destroyOnHit = doh;
             if (TryGet<bool>(s, "debugLogs", out var dl))
                 comp.debugLogs = dl;
+            if (TryGet<string>(s, "spriteType", out var st))
+                comp.spriteType = st;
+            if (TryGet<string>(s, "customSpritePath", out var csp))
+                comp.customSpritePath = csp;
+            if (s.TryGetValue("spriteColor", out var scRaw))
+            {
+                if (scRaw is Color col)
+                    comp.spriteColor = col;
+                else if (scRaw is string scs)
+                {
+                    if (ColorUtility.TryParseHtmlString(scs, out var parsed))
+                        comp.spriteColor = parsed;
+                    else if (TryColorName(scs, out var named))
+                        comp.spriteColor = named;
+                }
+            }
         }
 
         private static bool TryGet<T>(IDictionary<string, object> s, string key, out T value)
@@ -37,6 +53,11 @@ namespace Mechanics.Neuteral
                     if (raw is T tv)
                     {
                         value = tv;
+                        return true;
+                    }
+                    if (typeof(T) == typeof(string) && raw != null)
+                    {
+                        value = (T)(object)raw.ToString();
                         return true;
                     }
                     if (
@@ -68,6 +89,43 @@ namespace Mechanics.Neuteral
                     }
                 }
                 catch { }
+            }
+            return false;
+        }
+
+        private static bool TryColorName(string name, out Color c)
+        {
+            c = Color.white;
+            switch (name.Trim().ToLowerInvariant())
+            {
+                case "red":
+                    c = Color.red;
+                    return true;
+                case "green":
+                    c = Color.green;
+                    return true;
+                case "blue":
+                    c = Color.blue;
+                    return true;
+                case "white":
+                    c = Color.white;
+                    return true;
+                case "black":
+                    c = Color.black;
+                    return true;
+                case "yellow":
+                    c = Color.yellow;
+                    return true;
+                case "cyan":
+                    c = Color.cyan;
+                    return true;
+                case "magenta":
+                    c = Color.magenta;
+                    return true;
+                case "gray":
+                case "grey":
+                    c = Color.gray;
+                    return true;
             }
             return false;
         }

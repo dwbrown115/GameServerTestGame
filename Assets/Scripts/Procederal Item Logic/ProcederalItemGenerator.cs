@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Procederal.Api;
+using Game.Procederal.Core;
 using UnityEngine;
 
 // High-level, data-driven item builder that composes existing Mechanics on sub-items (children)
@@ -208,13 +209,7 @@ namespace Game.Procederal
             return _unitSquareSprite;
         }
 
-        private static bool TryParseColor(object raw, out Color color)
-        {
-            color = Color.white;
-            if (raw is string s)
-                return ColorUtils.TryParse(s, out color);
-            return false;
-        }
+        // Moved to Core.Config.TryParseColor
 
         [Tooltip("Parent under which items will be created if not specified.")]
         public Transform defaultParent;
@@ -276,6 +271,17 @@ namespace Game.Procederal
             }
             p ??= new ItemParams();
 
+            // Ensure central registry is initialized (enables future OTA swaps)
+            var primaryJsonAsset =
+                primaryMechanicListJson != null
+                    ? primaryMechanicListJson
+                    : Resources.Load<TextAsset>("Primary Mechanic List");
+            var modifierJsonAsset =
+                modifierMechanicListJson != null
+                    ? modifierMechanicListJson
+                    : Resources.Load<TextAsset>("Modifier Mechanic List");
+            MechanicsRegistry.Instance.EnsureInitialized(primaryJsonAsset, modifierJsonAsset);
+
             string secondaryLabel =
                 (instruction.secondary != null && instruction.secondary.Count > 0)
                     ? "+" + string.Join("+", instruction.secondary)
@@ -289,32 +295,15 @@ namespace Game.Procederal
 
             var subItems = new List<GameObject>();
 
-            switch (instruction.GetPrimaryKind())
+            var kind = instruction.GetPrimaryKind();
+            var builder = Game.Procederal.Core.Builders.PrimaryBuilders.Get(kind);
+            if (builder == null)
             {
-                case MechanicKind.Projectile:
-                    BuildProjectileSet(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.Aura:
-                    BuildAura(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.Beam:
-                    BuildBeam(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.Strike:
-                    BuildStrike(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.Whip:
-                    BuildWhip(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.Ripple:
-                    BuildRipple(root, instruction, p, subItems);
-                    break;
-                case MechanicKind.SwordSlash:
-                    BuildSwordSlash(root, instruction, p, subItems);
-                    break;
-                default:
-                    Log($"Unsupported primary mechanic '{instruction.primary}'.");
-                    break;
+                Log($"Unsupported primary mechanic '{instruction.primary}'.");
+            }
+            else
+            {
+                builder.Build(this, root, instruction, p, subItems);
             }
             if (autoApplyCompatibleModifiers && subItems.Count > 0)
             {
@@ -332,7 +321,7 @@ namespace Game.Procederal
             return root;
         }
 
-        private void BuildRipple(
+        internal void BuildRipple(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -395,7 +384,7 @@ namespace Game.Procederal
             if (json.TryGetValue("spriteColor", out var sc))
             {
                 Color c;
-                if (TryParseColor(sc, out c))
+                if (Config.TryParseColor(sc, out c))
                     vizColor = c;
             }
             bool spawnOnInterval = false;
@@ -454,28 +443,7 @@ namespace Game.Procederal
 
                 // Auto-apply compatible instruction modifiers to spawned ripples
                 if (autoApplyCompatibleModifiers)
-                {
-                    foreach (var mk in GetModifiersToApply(instruction))
-                    {
-                        switch (mk)
-                        {
-                            case MechanicKind.RippleOnHit:
-                                spawner.AddModifierSpec(
-                                    "RippleOnHit",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Drain:
-                                // Ensure the owner has Drain so ripple damage can report to it
-                                EnsureOwnerDrain(
-                                    spawner.owner != null ? spawner.owner : transform,
-                                    p
-                                );
-                                break;
-                            // Other modifiers like Explosion/DoT aren't wired into RippleMechanic yet; skip for now
-                        }
-                    }
-                }
+                    ForwardModifiersToSpawner(spawner, instruction, p);
                 return;
             }
 
@@ -506,7 +474,7 @@ namespace Game.Procederal
 
         // Sword Slash: emits a series of crescent outlines that travel forward, keeping their initial size.
         // Implemented by composing a static SwordSlashPayload (crescent collider/line) with a ProjectileMechanic for motion.
-        private void BuildSwordSlash(
+        internal void BuildSwordSlash(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -528,19 +496,19 @@ namespace Game.Procederal
             float speed = 12f;
             Color color = Color.white;
 
-            ReadIf(json, "seriesCount", ref seriesCount);
-            ReadIf(json, "intervalBetween", ref intervalBetween);
-            ReadIf(json, "spawnOnInterval", ref spawnOnInterval);
-            ReadIf(json, "interval", ref seriesInterval);
-            ReadIf(json, "outerRadius", ref outerRadius);
-            ReadIf(json, "width", ref width);
-            ReadIf(json, "arcLengthDeg", ref arcLen);
-            ReadIf(json, "edgeOnly", ref edgeOnly);
-            ReadIf(json, "edgeThickness", ref edgeThickness);
-            ReadIf(json, "damage", ref damage);
-            ReadIf(json, "speed", ref speed);
+            Config.ReadIf(json, "seriesCount", ref seriesCount);
+            Config.ReadIf(json, "intervalBetween", ref intervalBetween);
+            Config.ReadIf(json, "spawnOnInterval", ref spawnOnInterval);
+            Config.ReadIf(json, "interval", ref seriesInterval);
+            Config.ReadIf(json, "outerRadius", ref outerRadius);
+            Config.ReadIf(json, "width", ref width);
+            Config.ReadIf(json, "arcLengthDeg", ref arcLen);
+            Config.ReadIf(json, "edgeOnly", ref edgeOnly);
+            Config.ReadIf(json, "edgeThickness", ref edgeThickness);
+            Config.ReadIf(json, "damage", ref damage);
+            Config.ReadIf(json, "speed", ref speed);
             if (json.TryGetValue("spriteColor", out var sc))
-                TryParseColor(sc, out color);
+                Config.TryParseColor(sc, out color);
 
             // If interval-based spawning is requested, attach a spawner and route all creation through it
             if (spawnOnInterval)
@@ -567,52 +535,7 @@ namespace Game.Procederal
 
                 // Propagate compatible modifiers to spawned slashes
                 if (autoApplyCompatibleModifiers)
-                {
-                    foreach (var mk in GetModifiersToApply(instruction))
-                    {
-                        switch (mk)
-                        {
-                            case MechanicKind.Drain:
-                                EnsureOwnerDrain(
-                                    spawner.owner != null ? spawner.owner : transform,
-                                    p
-                                );
-                                spawner.AddModifierSpec(
-                                    "Drain",
-                                    ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Lock:
-                                spawner.AddModifierSpec("Lock");
-                                break;
-                            case MechanicKind.DamageOverTime:
-                                spawner.AddModifierSpec(
-                                    "DamageOverTime",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Bounce:
-                                spawner.AddModifierSpec("Bounce");
-                                break;
-                            case MechanicKind.Explosion:
-                                spawner.AddModifierSpec(
-                                    "Explosion",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.RippleOnHit:
-                                spawner.AddModifierSpec(
-                                    "RippleOnHit",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Track:
-                                // Skip adding Track mechanic directly; handled by aimAtNearestEnemy
-                                break;
-                        }
-                    }
-                }
+                    ForwardModifiersToSpawner(spawner, instruction, p);
                 return;
             }
 
@@ -719,7 +642,7 @@ namespace Game.Procederal
 
         // no delayed activation helper needed; we space instances in world instead
 
-        private void BuildWhip(
+        internal void BuildWhip(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -777,7 +700,7 @@ namespace Game.Procederal
             set.RefreshDirs();
         }
 
-        private void BuildProjectileSet(
+        internal void BuildProjectileSet(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -803,7 +726,7 @@ namespace Game.Procederal
             Color projColor = Color.white;
             if (projectileJson.TryGetValue("spriteColor", out var sc))
             {
-                if (!TryParseColor(sc, out projColor))
+                if (!Config.TryParseColor(sc, out projColor))
                     projColor = Color.white;
             }
 
@@ -895,93 +818,7 @@ namespace Game.Procederal
                 }
             }
 
-            // If Orbit is selected (either via modifier or spawnBehavior override), route through OrbitSpawnBehavior
-            bool routeOrbitBehavior = wantOrbit || string.Equals(spawnBehaviorNorm, "orbit");
-            if (routeOrbitBehavior)
-            {
-                var orbitSpawner = root.AddComponent<Game.Procederal.Api.OrbitSpawnBehavior>();
-                orbitSpawner.generator = this;
-                orbitSpawner.owner = owner != null ? owner : transform;
-                orbitSpawner.orbitRadius = p.orbitRadius;
-                orbitSpawner.angularSpeedDeg = p.orbitSpeedDeg > 0 ? p.orbitSpeedDeg : 90f;
-                orbitSpawner.useInterval = spawnOnInterval;
-                orbitSpawner.interval = spawnInterval;
-                // Use generatorChildrenCount override when provided
-                int orbitCount = generatorChildrenCount > 0 ? generatorChildrenCount : count;
-                orbitSpawner.countPerInterval = Mathf.Max(1, orbitCount);
-                orbitSpawner.spriteType = spriteType;
-                orbitSpawner.customSpritePath = customPath;
-                orbitSpawner.spriteColor = projColor;
-                // Visual scale for orbit children can be overridden by Orbit JSON radius; defaults to projectileSize
-                float orbitVisualScale = p.projectileSize;
-                var orbitJson = LoadAndMergeJsonSettings("Orbit");
-                if (orbitJson.TryGetValue("radius", out var or))
-                {
-                    if (or is float fo)
-                        orbitVisualScale = Mathf.Max(0.0001f, fo);
-                    else if (or is int io)
-                        orbitVisualScale = Mathf.Max(0.0001f, io);
-                    else if (or is string so && float.TryParse(so, out var po))
-                        orbitVisualScale = Mathf.Max(0.0001f, po);
-                }
-                // If Orbit modifier specifies destroyOnHit override, apply it to child projectiles via flags
-                if (orbitJson.TryGetValue("destroyOnHit", out var odh))
-                {
-                    bool val = false;
-                    if (odh is bool bt)
-                        val = bt;
-                    else if (odh is string s && bool.TryParse(s, out var pb))
-                        val = pb;
-                    orbitSpawner.overrideDestroyOnHit = true;
-                    orbitSpawner.destroyOnHit = val;
-                    // If we explicitly disable destroyOnHit, also disable lifetime auto-destroy
-                    if (!val)
-                        orbitSpawner.lifetime = -1f;
-                }
-                orbitSpawner.childScale = orbitVisualScale;
-                // Child projectile behavior
-                orbitSpawner.damage = p.projectileDamage;
-                // Do not force destroyOnHit here; allow Orbit MechanicOverrides to decide (set above) or child defaults
-                orbitSpawner.excludeOwner = true;
-                orbitSpawner.requireMobTag = true;
-                orbitSpawner.lifetime = lifetime;
-                orbitSpawner.debugLogs = p.debugLogs || debugLogs;
-
-                // Ensure owner-level Drain if selected
-                if (instruction.HasSecondary(MechanicKind.Drain))
-                {
-                    orbitSpawner.applyDrain = true;
-                    orbitSpawner.drainLifeStealRatio = Mathf.Clamp01(p.lifeStealRatio);
-                    Transform drainOwner =
-                        orbitSpawner.owner != null ? orbitSpawner.owner : transform;
-                    if (drainOwner != null)
-                    {
-                        var existingDrain =
-                            drainOwner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
-                        if (existingDrain == null)
-                        {
-                            AddMechanicByName(
-                                drainOwner.gameObject,
-                                "Drain",
-                                new (string key, object val)[]
-                                {
-                                    ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
-                                    ("debugLogs", p.debugLogs || debugLogs),
-                                }
-                            );
-                            InitializeMechanics(drainOwner.gameObject, drainOwner, target);
-                        }
-                    }
-                }
-
-                // If not using interval, spawn the desired number now
-                if (!orbitSpawner.useInterval)
-                {
-                    orbitSpawner.Spawn(Mathf.Max(1, orbitCount));
-                }
-                // subItems intentionally left empty; OrbitSpawnBehavior manages its children
-                return;
-            }
+            // (Deprecated orbit spawner path removed) Orbit now handled by static spawn + OrbitMechanic components.
 
             // Non-orbit path: if JSON requests interval spawning for projectiles, attach a spawner and skip static creation
             if (spawnOnInterval)
@@ -1024,58 +861,9 @@ namespace Game.Procederal
                     }
                     // If set to 'orbit' but no orbit modifier, we keep IntervalSpawner; orbit behavior is handled above
                 }
-                // Auto-apply compatible instruction modifiers to spawned projectiles
+                // Auto-apply compatible instruction modifiers to spawned projectiles (generic)
                 if (autoApplyCompatibleModifiers)
-                {
-                    foreach (var mk in GetModifiersToApply(instruction))
-                    {
-                        switch (mk)
-                        {
-                            case MechanicKind.Drain:
-                                spawner.applyDrain = true;
-                                spawner.drainLifeStealRatio = Mathf.Clamp01(p.lifeStealRatio);
-                                spawner.AddModifierSpec(
-                                    "Drain",
-                                    ("lifeStealRatio", spawner.drainLifeStealRatio)
-                                );
-                                EnsureOwnerDrain(
-                                    spawner.owner != null ? spawner.owner : transform,
-                                    p
-                                );
-                                break;
-                            case MechanicKind.Lock:
-                                spawner.AddModifierSpec("Lock");
-                                break;
-                            case MechanicKind.Track:
-                                spawner.AddModifierSpec("Track");
-                                break;
-                            case MechanicKind.DamageOverTime:
-                                spawner.AddModifierSpec(
-                                    "DamageOverTime",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Bounce:
-                                spawner.AddModifierSpec("Bounce");
-                                break;
-                            case MechanicKind.Explosion:
-                                spawner.AddModifierSpec(
-                                    "Explosion",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.RippleOnHit:
-                                spawner.AddModifierSpec(
-                                    "RippleOnHit",
-                                    ("debugLogs", p.debugLogs || debugLogs)
-                                );
-                                break;
-                            case MechanicKind.Orbit:
-                                // Skip: orbit behavior is managed by OrbitSpawnBehavior path
-                                break;
-                        }
-                    }
-                }
+                    ForwardModifiersToSpawner(spawner, instruction, p);
                 // subItems intentionally left empty; spawner will create at runtime
                 return;
             }
@@ -1116,7 +904,7 @@ namespace Game.Procederal
                 // Collider (trigger)
                 var cc = go.AddComponent<CircleCollider2D>();
                 cc.isTrigger = true;
-                cc.radius = 1f; // use radius=1 as requested; scale still affects world size
+                cc.radius = 0.5f; // adjusted default projectile collider radius
 
                 // Physics body for velocity-based motion if ProjectileMechanic uses Rigidbody2D
                 if (go.GetComponent<Rigidbody2D>() == null)
@@ -1168,7 +956,7 @@ namespace Game.Procederal
             }
         }
 
-        private void BuildAura(
+        internal void BuildAura(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -1224,7 +1012,7 @@ namespace Game.Procederal
             if (auraJson.TryGetValue("spriteColor", out var asc))
             {
                 Color c;
-                if (TryParseColor(asc, out c))
+                if (Config.TryParseColor(asc, out c))
                     auraVizColor = c;
             }
 
@@ -1250,7 +1038,7 @@ namespace Game.Procederal
             subItems.Add(go);
         }
 
-        private void BuildBeam(
+        internal void BuildBeam(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -1265,7 +1053,7 @@ namespace Game.Procederal
             if (beamJson.TryGetValue("spriteColor", out var sc))
             {
                 Color c;
-                if (TryParseColor(sc, out c))
+                if (Config.TryParseColor(sc, out c))
                     vizColor = c;
             }
 
@@ -1319,7 +1107,27 @@ namespace Game.Procederal
                     numberToSpawn = Mathf.Max(1, nsi);
             }
             float spawnInterval = 0.5f;
-            if (beamJson.TryGetValue("interval", out var biv))
+            bool gotSpawnInterval = false;
+            if (beamJson.TryGetValue("spawnInterval", out var spiv))
+            {
+                if (spiv is float fsv)
+                {
+                    spawnInterval = Mathf.Max(0.01f, fsv);
+                    gotSpawnInterval = true;
+                }
+                else if (spiv is int isv)
+                {
+                    spawnInterval = Mathf.Max(0.01f, isv);
+                    gotSpawnInterval = true;
+                }
+                else if (spiv is string ssv && float.TryParse(ssv, out var psv))
+                {
+                    spawnInterval = Mathf.Max(0.01f, psv);
+                    gotSpawnInterval = true;
+                }
+            }
+            // Backward compatibility: fall back to legacy 'interval' only if spawnInterval not provided
+            if (!gotSpawnInterval && beamJson.TryGetValue("interval", out var biv))
             {
                 if (biv is float fiv)
                     spawnInterval = Mathf.Max(0.01f, fiv);
@@ -1327,6 +1135,13 @@ namespace Game.Procederal
                     spawnInterval = Mathf.Max(0.01f, iiv);
                 else if (biv is string siv && float.TryParse(siv, out var pf))
                     spawnInterval = Mathf.Max(0.01f, pf);
+            }
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[ProcederalItemGenerator] Beam spawnInterval resolved to {spawnInterval} (providedKey={(gotSpawnInterval ? "spawnInterval" : "interval/fallback")})",
+                    this
+                );
             }
             // Spawn placement resolver selection
             string spawnBehavior = null;
@@ -1352,7 +1167,7 @@ namespace Game.Procederal
                 var spawner = root.AddComponent<BeamIntervalSpawner>();
                 spawner.generator = this;
                 spawner.owner = owner != null ? owner : transform;
-                spawner.interval = spawnInterval;
+                spawner.interval = spawnInterval; // now distinct from Beam.damageInterval
                 spawner.countPerInterval = Mathf.Max(1, numberToSpawn);
                 spawner.debugLogs = p.debugLogs || debugLogs;
 
@@ -1379,29 +1194,8 @@ namespace Game.Procederal
                 spawner.SetBeamSettings(beamSettings.ToArray());
                 // Apply spawn radius on the spawner (resolver will receive it via TryGetSpawn)
                 spawner.spawnRadius = spawnRadius;
-                // Propagate DoT modifier to spawned beams if selected
-                if (instruction.HasSecondary(MechanicKind.DamageOverTime))
-                {
-                    spawner.AddModifierSpec(
-                        "DamageOverTime",
-                        ("debugLogs", p.debugLogs || debugLogs)
-                    );
-                }
-                // Propagate Bounce modifier to spawned beams if selected
-                if (instruction.HasSecondary(MechanicKind.Bounce))
-                {
-                    spawner.AddModifierSpec("Bounce", ("debugLogs", p.debugLogs || debugLogs));
-                }
-                // Propagate Explosion modifier to spawned beams if selected
-                if (instruction.HasSecondary(MechanicKind.Explosion))
-                {
-                    spawner.AddModifierSpec("Explosion", ("debugLogs", p.debugLogs || debugLogs));
-                }
-                // Propagate RippleOnHit to spawned beams if selected
-                if (instruction.HasSecondary(MechanicKind.RippleOnHit))
-                {
-                    spawner.AddModifierSpec("RippleOnHit", ("debugLogs", p.debugLogs || debugLogs));
-                }
+                if (autoApplyCompatibleModifiers)
+                    ForwardModifiersToSpawner(spawner, instruction, p);
                 // Do not create a one-off beam now; spawner will handle periodic creation
                 return;
             }
@@ -1582,7 +1376,7 @@ namespace Game.Procederal
             }
         }
 
-        private void BuildStrike(
+        internal void BuildStrike(
             GameObject root,
             ItemInstruction instruction,
             ItemParams p,
@@ -1598,7 +1392,7 @@ namespace Game.Procederal
             if (strikeJson.TryGetValue("spriteColor", out var sc))
             {
                 Color c;
-                if (TryParseColor(sc, out c))
+                if (Config.TryParseColor(sc, out c))
                     vizColor = c;
             }
 
@@ -1629,21 +1423,10 @@ namespace Game.Procederal
             // Load catalog from the same JSONs you already maintain in your project via Resources
             // or expose them in the inspector for this generator. To keep it decoupled here,
             // we try Resources first.
-            var primaryJson =
-                primaryMechanicListJson != null
-                    ? primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var modifierJson =
-                modifierMechanicListJson != null
-                    ? modifierMechanicListJson
-                    : Resources.Load<TextAsset>("Modifier Mechanic List");
-            var catalog = MechanicCatalog.Load(primaryJson, modifierJson);
-            if (catalog == null)
-            {
-                Log($"MechanicCatalog not available when adding '{mechanicName}'.");
-                return null;
-            }
-            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
+            if (
+                !MechanicsRegistry.Instance.TryGetPath(mechanicName, out var path)
+                || string.IsNullOrWhiteSpace(path)
+            )
             {
                 Log($"Mechanic path not found for '{mechanicName}'.");
                 return null;
@@ -1655,7 +1438,7 @@ namespace Game.Procederal
                 return null;
             }
             // Merge defaults from JSON Properties with optional Overrides, then apply provided settings last
-            var merged = LoadAndMergeJsonSettings(mechanicName);
+            var merged = MechanicsRegistry.Instance.GetMergedSettings(mechanicName);
             if (settings != null)
             {
                 foreach (var (key, val) in settings)
@@ -1680,18 +1463,10 @@ namespace Game.Procederal
         {
             if (go == null)
                 return false;
-            var primaryJson =
-                primaryMechanicListJson != null
-                    ? primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var modifierJson =
-                modifierMechanicListJson != null
-                    ? modifierMechanicListJson
-                    : Resources.Load<TextAsset>("Modifier Mechanic List");
-            var catalog = MechanicCatalog.Load(primaryJson, modifierJson);
-            if (catalog == null)
-                return false;
-            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
+            if (
+                !MechanicsRegistry.Instance.TryGetPath(mechanicName, out var path)
+                || string.IsNullOrWhiteSpace(path)
+            )
                 return false;
             var type = MechanicReflection.ResolveTypeFromMechanicPath(path);
             if (type == null)
@@ -1736,6 +1511,141 @@ namespace Game.Procederal
         {
             if (debugLogs)
                 Debug.Log($"[ProcederalItemGenerator] {msg}", this);
+        }
+
+        // Generic: forward all compatible modifiers to a spawner object that exposes AddModifierSpec(string, params (string,object)[])
+        // Also handles small special-cases: Orbit (skip: handled via routing), Drain (ensure owner has Drain), Track (optionally set aim flag if present)
+        internal void ForwardModifiersToSpawner(
+            object spawner,
+            ItemInstruction instruction,
+            ItemParams p
+        )
+        {
+            if (spawner == null || instruction == null)
+                return;
+            var mods = GetModifiersToApply(instruction);
+            if (mods == null || mods.Count == 0)
+                return;
+
+            // Reflection helpers
+            bool TryAddSpec(string mechName, params (string key, object val)[] settings)
+            {
+                var type = spawner.GetType();
+                var mi = type.GetMethod("AddModifierSpec");
+                if (mi == null)
+                {
+                    // Some spawners may have params signature resolution; try any AddModifierSpec
+                    foreach (var m in type.GetMethods())
+                    {
+                        if (m.Name == "AddModifierSpec" && m.GetParameters().Length >= 1)
+                        {
+                            mi = m;
+                            break;
+                        }
+                    }
+                }
+                if (mi == null)
+                    return false;
+                // Build ValueTuple<string, object>[] via reflection to match params signature
+                var tupleType = typeof(System.ValueTuple<string, object>);
+                System.Array tupleArray;
+                if (settings != null && settings.Length > 0)
+                {
+                    tupleArray = System.Array.CreateInstance(tupleType, settings.Length);
+                    for (int i = 0; i < settings.Length; i++)
+                    {
+                        var vt = System.Activator.CreateInstance(
+                            tupleType,
+                            settings[i].key,
+                            settings[i].val
+                        );
+                        tupleArray.SetValue(vt, i);
+                    }
+                }
+                else
+                {
+                    tupleArray = System.Array.CreateInstance(tupleType, 0);
+                }
+                mi.Invoke(spawner, new object[] { mechName, tupleArray });
+                return true;
+            }
+
+            // Try to get owner transform off spawner for Drain owner ensure
+            Transform SpawnerOwner()
+            {
+                var t = spawner.GetType();
+                try
+                {
+                    var fi = t.GetField("owner");
+                    if (fi != null)
+                    {
+                        var val = fi.GetValue(spawner) as Transform;
+                        if (val != null)
+                            return val;
+                    }
+                    var pi = t.GetProperty("owner");
+                    if (pi != null && pi.CanRead)
+                    {
+                        var val = pi.GetValue(spawner) as Transform;
+                        if (val != null)
+                            return val;
+                    }
+                }
+                catch { }
+                return owner != null ? owner : transform;
+            }
+
+            foreach (var kind in mods)
+            {
+                switch (kind)
+                {
+                    case MechanicKind.Orbit:
+                        // handled by builder routing; do not attach as a modifier to spawner children
+                        continue;
+                    case MechanicKind.Drain:
+                        EnsureOwnerDrain(SpawnerOwner(), p);
+                        TryAddSpec("Drain", ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)));
+                        break;
+                    case MechanicKind.Track:
+                        // Attach Track and, if the spawner supports, enable aim at nearest enemy
+                        TryAddSpec("Track");
+                        var aimField = spawner.GetType().GetField("aimAtNearestEnemy");
+                        if (aimField != null && aimField.FieldType == typeof(bool))
+                        {
+                            aimField.SetValue(spawner, true);
+                        }
+                        else
+                        {
+                            var aimProp = spawner.GetType().GetProperty("aimAtNearestEnemy");
+                            if (
+                                aimProp != null
+                                && aimProp.CanWrite
+                                && aimProp.PropertyType == typeof(bool)
+                            )
+                                aimProp.SetValue(spawner, true);
+                        }
+                        break;
+                    case MechanicKind.DamageOverTime:
+                        TryAddSpec("DamageOverTime");
+                        break;
+                    case MechanicKind.Bounce:
+                        TryAddSpec("Bounce");
+                        break;
+                    case MechanicKind.Explosion:
+                        TryAddSpec("Explosion");
+                        break;
+                    case MechanicKind.RippleOnHit:
+                        TryAddSpec("RippleOnHit");
+                        break;
+                    case MechanicKind.Lock:
+                        TryAddSpec("Lock");
+                        break;
+                    default:
+                        // For future modifiers, default to name matching enum
+                        TryAddSpec(kind.ToString());
+                        break;
+                }
+            }
         }
 
         // Small JSON helpers
@@ -1797,7 +1707,7 @@ namespace Game.Procederal
             return false;
         }
 
-        private HashSet<MechanicKind> GetModifiersToApply(ItemInstruction instruction)
+        internal HashSet<MechanicKind> GetModifiersToApply(ItemInstruction instruction)
         {
             var set = new HashSet<MechanicKind>();
             if (
@@ -1837,80 +1747,10 @@ namespace Game.Procederal
 
         private List<string> LoadStringArrayForMechanic(string mechanicName, string arrayName)
         {
-            var primaryJson =
-                primaryMechanicListJson != null
-                    ? primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var list = new List<string>();
-            string json = primaryJson != null ? primaryJson.text : null;
-            if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(mechanicName))
-                return list;
-            int searchPos = 0;
-            var comp = StringComparison.OrdinalIgnoreCase;
-            while (true)
-            {
-                int nameKey = json.IndexOf("\"MechanicName\"", searchPos, comp);
-                if (nameKey < 0)
-                    return list;
-                int colon = json.IndexOf(':', nameKey);
-                if (colon < 0)
-                    return list;
-                int q1 = json.IndexOf('"', colon + 1);
-                if (q1 < 0)
-                    return list;
-                int q2 = json.IndexOf('"', q1 + 1);
-                if (q2 < 0)
-                    return list;
-                string found = json.Substring(q1 + 1, q2 - q1 - 1);
-                searchPos = q2 + 1;
-                if (!string.Equals(found, mechanicName, comp))
-                    continue;
-                int arrKey = json.IndexOf("\"" + arrayName + "\"", searchPos, comp);
-                if (arrKey < 0)
-                    return list;
-                int arrColon = json.IndexOf(':', arrKey);
-                if (arrColon < 0)
-                    return list;
-                int open = json.IndexOf('[', arrColon);
-                if (open < 0)
-                    return list;
-                int depth = 0;
-                int i = open;
-                for (; i < json.Length; i++)
-                {
-                    char c = json[i];
-                    if (c == '[')
-                        depth++;
-                    else if (c == ']')
-                    {
-                        depth--;
-                        if (depth == 0)
-                            break;
-                    }
-                }
-                if (i >= json.Length)
-                    return list;
-                string inner = json.Substring(open + 1, i - open - 1);
-                // Extract quoted strings
-                int p = 0;
-                while (true)
-                {
-                    int s1 = inner.IndexOf('"', p);
-                    if (s1 < 0)
-                        break;
-                    int s2 = inner.IndexOf('"', s1 + 1);
-                    if (s2 < 0)
-                        break;
-                    string val = inner.Substring(s1 + 1, s2 - s1 - 1);
-                    if (!string.IsNullOrWhiteSpace(val))
-                        list.Add(val);
-                    p = s2 + 1;
-                }
-                return list;
-            }
+            return MechanicsRegistry.Instance.GetIncompatibleWith(mechanicName);
         }
 
-        private void EnsureOwnerDrain(Transform drainOwner, ItemParams p)
+        internal void EnsureOwnerDrain(Transform drainOwner, ItemParams p)
         {
             if (drainOwner == null)
                 return;
@@ -1945,17 +1785,9 @@ namespace Game.Procederal
         }
 
         // --- JSON settings helpers ---
-        private Dictionary<string, object> LoadAndMergeJsonSettings(string mechanicName)
+        internal Dictionary<string, object> LoadAndMergeJsonSettings(string mechanicName)
         {
-            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            // Properties
-            foreach (var kv in LoadKvpArrayForMechanic(mechanicName, "Properties"))
-                dict[kv.Key] = kv.Value;
-            // Overrides (primary) and MechanicOverrides (modifier) win over Properties
-            foreach (var kv in LoadKvpArrayForMechanic(mechanicName, "Overrides"))
-                dict[kv.Key] = kv.Value;
-            foreach (var kv in LoadKvpArrayForMechanic(mechanicName, "MechanicOverrides"))
-                dict[kv.Key] = kv.Value;
+            var dict = MechanicsRegistry.Instance.GetMergedSettings(mechanicName);
             NormalizeSettings(mechanicName, dict);
             return dict;
         }
@@ -1977,144 +1809,12 @@ namespace Game.Procederal
             }
         }
 
-        private Dictionary<string, object> LoadKvpArrayForMechanic(
+        internal Dictionary<string, object> LoadKvpArrayForMechanic(
             string mechanicName,
             string arrayName
         )
         {
-            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            // Check primary then modifier JSONs
-            var primaryJson =
-                primaryMechanicListJson != null
-                    ? primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var modifierJson =
-                modifierMechanicListJson != null
-                    ? modifierMechanicListJson
-                    : Resources.Load<TextAsset>("Modifier Mechanic List");
-
-            bool filled = TryExtractKvpArray(primaryJson?.text, mechanicName, arrayName, result);
-            if (!filled)
-                TryExtractKvpArray(modifierJson?.text, mechanicName, arrayName, result);
-            return result;
-        }
-
-        private static bool TryExtractKvpArray(
-            string json,
-            string mechanicName,
-            string arrayName,
-            Dictionary<string, object> output
-        )
-        {
-            if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(mechanicName))
-                return false;
-            int searchPos = 0;
-            var comp = StringComparison.OrdinalIgnoreCase;
-            while (true)
-            {
-                int nameKey = json.IndexOf("\"MechanicName\"", searchPos, comp);
-                if (nameKey < 0)
-                    return false;
-                int colon = json.IndexOf(':', nameKey);
-                if (colon < 0)
-                    return false;
-                int q1 = json.IndexOf('"', colon + 1);
-                if (q1 < 0)
-                    return false;
-                int q2 = json.IndexOf('"', q1 + 1);
-                if (q2 < 0)
-                    return false;
-                string found = json.Substring(q1 + 1, q2 - q1 - 1);
-                searchPos = q2 + 1;
-                if (!string.Equals(found, mechanicName, comp))
-                    continue;
-
-                // Found matching entry; find requested array
-                int arrKey = json.IndexOf("\"" + arrayName + "\"", searchPos, comp);
-                if (arrKey < 0)
-                    return false;
-                int arrColon = json.IndexOf(':', arrKey);
-                if (arrColon < 0)
-                    return false;
-                int open = json.IndexOf('[', arrColon);
-                if (open < 0)
-                    return false;
-                int depth = 0;
-                int i = open;
-                for (; i < json.Length; i++)
-                {
-                    char c = json[i];
-                    if (c == '[')
-                        depth++;
-                    else if (c == ']')
-                    {
-                        depth--;
-                        if (depth == 0)
-                            break;
-                    }
-                }
-                if (i >= json.Length)
-                    return false;
-                string inner = json.Substring(open + 1, i - open - 1);
-
-                // Parse items: { "key": value }
-                int p = 0;
-                while (true)
-                {
-                    int ob = inner.IndexOf('{', p);
-                    if (ob < 0)
-                        break;
-                    int cb = inner.IndexOf('}', ob + 1);
-                    if (cb < 0)
-                        break;
-                    string obj = inner.Substring(ob + 1, cb - ob - 1);
-                    int kq1 = obj.IndexOf('"');
-                    if (kq1 >= 0)
-                    {
-                        int kq2 = obj.IndexOf('"', kq1 + 1);
-                        if (kq2 > kq1)
-                        {
-                            string key = obj.Substring(kq1 + 1, kq2 - kq1 - 1);
-                            int vcolon = obj.IndexOf(':', kq2 + 1);
-                            if (vcolon > 0)
-                            {
-                                string raw = obj.Substring(vcolon + 1).Trim();
-                                object val = ParsePrimitive(raw);
-                                if (!string.IsNullOrWhiteSpace(key))
-                                    output[key] = val;
-                            }
-                        }
-                    }
-                    p = cb + 1;
-                }
-                return output.Count > 0;
-            }
-        }
-
-        private static object ParsePrimitive(string raw)
-        {
-            if (string.IsNullOrEmpty(raw))
-                return null;
-            // Strip quotes if string
-            if (raw.Length >= 2 && raw[0] == '"' && raw[^1] == '"')
-            {
-                return raw.Substring(1, raw.Length - 2);
-            }
-            if (string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (string.Equals(raw, "false", StringComparison.OrdinalIgnoreCase))
-                return false;
-            if (raw.Contains("."))
-            {
-                if (float.TryParse(raw, out var f))
-                    return f;
-            }
-            else
-            {
-                if (int.TryParse(raw, out var i))
-                    return i;
-            }
-            return raw; // fallback as string
+            return MechanicsRegistry.Instance.GetKvpArray(mechanicName, arrayName);
         }
 
         private void NormalizeSettings(string mechanicName, Dictionary<string, object> dict)

@@ -13,7 +13,11 @@
       { "maxChains": 3 },
       { "excludeOwner": true },
       { "requireMobTag": true },
-      { "debugLogs": false }
+      { "debugLogs": true },
+      { "parentToTarget": true },
+      { "centerOnTarget": true },
+      { "followTargetWhileGrowing": true }
+    , { "includePlayer": false }
     ],
     "MechanicOverrides": []
   },
@@ -25,15 +29,15 @@
       { "radius": 2 },
       { "angularSpeedDeg": 20 },
       { "startAngleDeg": 0 },
-      { "NumberOfItemsToSpawn": 1 }
+      { "childrenToSpawn": 1 }
     ],
     "MechanicOverrides": [
       { "DestroyOnHit": false },
       { "disableSelfSpeed": true },
       { "direction": "clockwise" },
-      { "spawnOnInterval": false },
       { "radius": 1 },
-      { "spawnBehavior": "orbit" }
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 }
     ]
   },
   {
@@ -59,7 +63,11 @@
     "MechanicName": "Lock",
     "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Order/LockMechanic.cs",
     "MechanicAttribute": "Order",
-    "Properties": [{ "Stun Time": 1.5 }],
+    "Properties": [
+      { "stunTime": 0.5 },
+      { "stunChance": 0.35 },
+      { "debugLogs": false }
+    ],
     "MechanicOverrides": []
   },
   {

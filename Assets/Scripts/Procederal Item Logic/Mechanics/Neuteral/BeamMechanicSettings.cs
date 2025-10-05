@@ -9,8 +9,7 @@ namespace Mechanics.Neuteral
         {
             if (comp == null || s == null)
                 return;
-            if (TryGet<float>(s, "maxDistance", out var md))
-                comp.maxDistance = Mathf.Max(0f, md);
+            // maxDistance deprecated – ignored if present
             if (TryGet<float>(s, "speed", out var sp))
                 comp.extendSpeed = Mathf.Max(0f, sp); // alias from projectile
             if (TryGet<float>(s, "extendSpeed", out var es))
@@ -49,6 +48,22 @@ namespace Mechanics.Neuteral
                 comp.vizSortingOrder = vso;
             if (TryGet<bool>(s, "debugLogs", out var dl))
                 comp.debugLogs = dl;
+
+            // Lifetime & redirect behavior
+            if (TryGet<float>(s, "lifetime", out var lt))
+                comp.lifetime = Mathf.Max(0f, lt);
+            if (TryGet<bool>(s, "preserveHeadOnRedirect", out var phr))
+                comp.preserveHeadOnRedirect = phr;
+            else if (TryGet<bool>(s, "preserveTipOnRedirect", out var ptr))
+                comp.preserveHeadOnRedirect = ptr; // backward compatibility layer 1
+            else if (TryGet<bool>(s, "preserveTipOnBounce", out var ptb))
+                comp.preserveHeadOnRedirect = ptb; // legacy legacy
+            if (TryGet<bool>(s, "anchorTailToPlayer", out var atp))
+                comp.anchorTailToPlayer = atp;
+            if (TryGet<bool>(s, "segmentOnRedirect", out var sor))
+                comp.segmentOnRedirect = sor;
+            else if (TryGet<bool>(s, "segmentOnBounce", out var sob))
+                comp.segmentOnRedirect = sob; // backward compatibility
         }
 
         private static bool TryGet<T>(IDictionary<string, object> s, string key, out T value)

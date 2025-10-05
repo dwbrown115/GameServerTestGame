@@ -24,11 +24,22 @@ namespace Mechanics.Neuteral
         [Tooltip("If true, destroys the payload on hit")]
         public bool destroyOnHit = true;
 
+        [Header("Visual (optional)")]
+        [Tooltip("circle | square | custom (loads Resources path in customSpritePath)")]
+        public string spriteType = null;
+        public string customSpritePath = null;
+        public Color spriteColor = Color.white;
+        public bool autoAddPhysicsBody = true;
+
         [Header("Debug")]
         public bool debugLogs = false;
 
+        [Tooltip("Extra verbose ripple path logs")]
+        public bool debugRipple = false;
+
         private MechanicContext _ctx;
         private bool _stopped;
+        private bool _rippleTriggered;
 
         public void Initialize(MechanicContext ctx)
         {
@@ -36,7 +47,51 @@ namespace Mechanics.Neuteral
             if (direction.sqrMagnitude < 0.0001f)
                 direction = Vector2.right;
             direction.Normalize();
+            EnsureVisualAndPhysics();
             GameOverController.OnCountdownFinished += StopMovement;
+        }
+
+        private void EnsureVisualAndPhysics()
+        {
+            // Add sprite renderer only if none exists and a spriteType is provided
+            if (!string.IsNullOrWhiteSpace(spriteType) && GetComponent<SpriteRenderer>() == null)
+            {
+                var sr = gameObject.AddComponent<SpriteRenderer>();
+                Sprite chosen = null;
+                switch ((spriteType ?? "circle").ToLowerInvariant())
+                {
+                    case "custom":
+                        if (!string.IsNullOrEmpty(customSpritePath))
+                            chosen = Resources.Load<Sprite>(customSpritePath);
+                        if (chosen == null)
+                            chosen = Game.Procederal.ProcederalItemGenerator.GetUnitCircleSprite();
+                        break;
+                    case "square":
+                        chosen = Game.Procederal.ProcederalItemGenerator.GetUnitSquareSprite();
+                        break;
+                    case "circle":
+                    default:
+                        chosen = Game.Procederal.ProcederalItemGenerator.GetUnitCircleSprite();
+                        break;
+                }
+                sr.sprite = chosen;
+                sr.color = spriteColor;
+            }
+
+            // Collider + RB (if missing) so projectile can interact; keep minimal if orbit disables motion
+            if (GetComponent<Collider2D>() == null)
+            {
+                var cc = gameObject.AddComponent<CircleCollider2D>();
+                cc.isTrigger = true;
+                cc.radius = 0.5f;
+            }
+            if (autoAddPhysicsBody && GetComponent<Rigidbody2D>() == null)
+            {
+                var rbChild = gameObject.AddComponent<Rigidbody2D>();
+                rbChild.bodyType = RigidbodyType2D.Kinematic;
+                rbChild.interpolation = RigidbodyInterpolation2D.Interpolate;
+                rbChild.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            }
         }
 
         public void Tick(float dt)
@@ -61,6 +116,7 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= StopMovement;
+            _rippleTriggered = false;
         }
 
         private void StopMovement()
@@ -121,13 +177,47 @@ namespace Mechanics.Neuteral
             {
                 if (!HasMobTagInParents(other.transform))
                 {
-                    if (debugLogs)
+                    if (debugLogs || debugRipple)
                         Debug.Log(
-                            $"[ProjectileMechanic] Non-mob hit: {other.name} tag={other.tag}",
+                            $"[ProjectileMechanic] Non-mob hit (mobTag required) collider={other.name} tag={other.tag}",
                             this
                         );
                     return;
                 }
+            }
+
+            // Attempt to apply stun early (independent of damageability)
+            var earlyLocker = GetComponent<Mechanics.Order.LockMechanic>();
+            if (earlyLocker != null)
+            {
+                if (earlyLocker.debugLogs && other != null)
+                    Debug.Log($"[ProjectileMechanic] Early Lock attempt on {other.name}", this);
+                earlyLocker.TryApplyTo(other.transform);
+            }
+
+            // Early ripple trigger (independent of damageability) so ripple works on objects without IDamageable
+            var earlyRipple = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
+            if (debugRipple)
+            {
+                Debug.Log(
+                    $"[ProjectileMechanic] Ripple check early: comp={(earlyRipple != null)} triggered={_rippleTriggered}",
+                    this
+                );
+            }
+            if (earlyRipple != null && !_rippleTriggered)
+            {
+                Vector2 origin =
+                    _ctx.Payload != null
+                        ? (Vector2)_ctx.Payload.position
+                        : (Vector2)transform.position;
+                Vector2 rp = other.ClosestPoint(origin);
+                earlyRipple.TriggerFrom(other.transform, rp);
+                _rippleTriggered = true;
+                if (debugLogs || debugRipple)
+                    Debug.Log(
+                        $"[ProjectileMechanic] Early ripple trigger at {rp} via {other.name}",
+                        this
+                    );
             }
 
             IDamageable damageable = other.GetComponent<IDamageable>();
@@ -166,11 +256,24 @@ namespace Mechanics.Neuteral
                     explode.TriggerExplosion(hitPoint);
                 }
 
-                // Ripple-on-hit modifier: start a ripple chain at the hit point
+                // Ripple already triggered early; leave legacy path for safety if not yet triggered
                 var rippleOnHit = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
-                if (rippleOnHit != null)
+                if (debugRipple)
+                {
+                    Debug.Log(
+                        $"[ProjectileMechanic] Ripple check late: comp={(rippleOnHit != null)} triggered={_rippleTriggered}",
+                        this
+                    );
+                }
+                if (rippleOnHit != null && !_rippleTriggered)
                 {
                     rippleOnHit.TriggerFrom(other.transform, hitPoint);
+                    _rippleTriggered = true;
+                    if (debugLogs || debugRipple)
+                        Debug.Log(
+                            $"[ProjectileMechanic] Late ripple trigger at {hitPoint} via {other.name}",
+                            this
+                        );
                 }
 
                 // Apply Lock modifier if present on this payload

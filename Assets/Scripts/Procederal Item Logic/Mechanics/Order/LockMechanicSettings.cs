@@ -15,6 +15,12 @@ namespace Mechanics.Order
                 comp.stunTime = Mathf.Max(0f, t2);
             if (TryGet<float>(s, "Stun Time", out var t3))
                 comp.stunTime = Mathf.Max(0f, t3);
+            if (TryGet<float>(s, "stunChance", out var sc))
+                comp.stunChance = Mathf.Clamp01(sc);
+            if (TryGet<float>(s, "StunChance", out var sc2))
+                comp.stunChance = Mathf.Clamp01(sc2);
+            if (TryGet<float>(s, "Stun Chance", out var sc3))
+                comp.stunChance = Mathf.Clamp01(sc3);
             if (TryGet<bool>(s, "debugLogs", out var dl))
                 comp.debugLogs = dl;
         }
