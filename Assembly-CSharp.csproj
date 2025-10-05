@@ -146,6 +146,7 @@
     <Compile Include="Assets/Scripts/Navigation/UserScreenNavigation.cs" />
     <Compile Include="Assets/Scripts/Pickups/Collectible.cs" />
     <Compile Include="Assets/Scripts/Managers/PersistentPlayerData.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/IBeamSegmentModifier.cs" />
     <Compile Include="Assets/Scripts/Managers/GameSceneManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Spawn Resolvers/NeutralSpawnPositon.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IntervalProjectileSpawner.cs" />

@@ -16,6 +16,15 @@ namespace Mechanics.Neuteral
         [Min(0f)]
         public float speed = 20f;
 
+        [Tooltip(
+            "Optional max speed clamp to prevent accidental surges after redirect. 0 = no clamp."
+        )]
+        [Min(0f)]
+        public float maxSpeed = 0f;
+
+        [Tooltip("If true, log per-frame length delta and speed calculations (diagnostic).")]
+        public bool debugSpeed = false;
+
         // Backward compatibility: old JSON might still supply extendSpeed. If >0 and speed left default, adopt it.
         [HideInInspector]
         public float extendSpeed = 0f; // deprecated alias
@@ -56,7 +65,7 @@ namespace Mechanics.Neuteral
         [Tooltip(
             "If true, when Redirect(...) is called, the current head position is preserved (tail/base shifts). If false, beam collapses & regrows from base when not anchoring."
         )]
-        public bool preserveHeadOnRedirect = true; // formerly preserveTipOnRedirect / preserveTipOnBounce
+        public bool preserveHeadOnRedirect = true; // legacy name mapping preserved
 
         [Header("Anchored Tail (Experimental)")]
         [Tooltip(
@@ -67,7 +76,7 @@ namespace Mechanics.Neuteral
         [Tooltip(
             "When anchoring is enabled, each redirect adds a corner node forming a zig-zag path."
         )]
-        public bool segmentOnRedirect = true; // formerly segmentOnBounce
+        public bool segmentOnRedirect = true;
 
         [Header("Segmentation (Reusable)")]
         [Tooltip(
@@ -78,10 +87,7 @@ namespace Mechanics.Neuteral
         [Tooltip("Ordered list of segment identifiers. Convention: 'head','tail'.")]
         public List<string> segments = new List<string> { "head", "tail" };
 
-        [Tooltip(
-            "Which segment name should bounce use as trigger (e.g., 'head','tail','any'). Empty = legacy."
-        )]
-        public string bounceSegment = "head";
+        // Redirect trigger selection has been externalized (e.g. BounceMechanic). This legacy field removed.
 
         [Tooltip(
             "Space/comma separated segment names whose damage should be individually reported to Drain. Empty = total only."
@@ -90,6 +96,11 @@ namespace Mechanics.Neuteral
         private int _headDamageThisTick;
         private int _tailDamageThisTick;
         private List<string> _cachedDrainSegments;
+
+        // Cached segment-aware modifiers (components implementing IBeamSegmentModifier)
+        private Mechanics.IBeamSegmentModifier[] _segmentModifiers;
+        private float _segmentModifierScanTimer; // periodic rescan support in case components added at runtime
+        private const float SegmentModifierRescanInterval = 1.0f;
 
         [Header("Lifetime")]
         [Tooltip(
@@ -156,7 +167,7 @@ namespace Mechanics.Neuteral
         private float _globalTime; // monotonic time since Initialize for snapshot timestamps
         private Vector3 _spawnedRootWorld; // world position of beam root at spawn (Beam_Spawned / this transform initial)
         private Quaternion _spawnedRootRotation; // initial rotation (may not be needed but stored for completeness)
-        private bool _headHitThisTick; // whether head collider produced at least one unique hit this damage tick (anchored mode bounce gating)
+        private bool _headHitThisTick; // whether head collider produced at least one unique hit this damage tick (used for redirect gating when segmented)
 
         public struct SegmentSnapshot
         {
@@ -253,7 +264,7 @@ namespace Mechanics.Neuteral
 
             if (UsingAnchoredTail)
             {
-                // Anchored mode: active tail segment does primary sweeping damage; head circle collider (added in visualization) is used to gate bounce logic.
+                // Anchored mode: active tail segment does primary sweeping damage; head circle collider participates in redirect gating.
                 InitializeAnchoredTail(); // set up tail segments
             }
 
@@ -321,7 +332,21 @@ namespace Mechanics.Neuteral
             // Extend head forward using unified speed (legacy extendSpeed migrates if set)
             if (speed <= 0f && extendSpeed > 0f)
                 speed = extendSpeed; // one-time migration (extendSpeed persists only for initial assignment)
-            _length = Mathf.Max(0f, _length + speed * dt);
+            float appliedSpeed = speed;
+            if (speed <= 0f && extendSpeed > 0f)
+                appliedSpeed = extendSpeed; // already handled below, but keep variable coherence
+            if (maxSpeed > 0f && appliedSpeed > maxSpeed)
+                appliedSpeed = maxSpeed;
+            float beforeLen = _length;
+            _length = Mathf.Max(0f, _length + appliedSpeed * dt);
+            if (debugSpeed)
+            {
+                float delta = _length - beforeLen;
+                Debug.Log(
+                    $"[BeamMechanic] grow dt={dt:F3} appliedSpeed={appliedSpeed:F2} deltaLen={delta:F3} totalLen={_length:F3}",
+                    this
+                );
+            }
             UpdateGeometry();
 
             // Damage tick (moved before lifetime destruction to guarantee at least one tick occurs if lifetime ~= interval)
@@ -390,11 +415,47 @@ namespace Mechanics.Neuteral
                         }
                     }
                 }
-                // Bounce integration via segmentation rule
-                if (ShouldBounce(totalDamage))
+                // Notify segment-specific modifiers (future: bounce-on-head, drain-on-tail, etc.)
+                if (isSegmented)
                 {
-                    if (HandleBounceOnHit())
-                        return; // beam destroyed by bounce
+                    NotifySegmentDamage(_headDamageThisTick, _tailDamageThisTick);
+                }
+                // External redirect integration (Bounce/other mechanics make the decision now)
+                var bounce = GetComponent<Mechanics.Chaos.BounceMechanic>();
+                if (bounce != null)
+                {
+                    Mechanics.Chaos.BounceMechanic.BeamHitSummary hitSummary =
+                        new Mechanics.Chaos.BounceMechanic.BeamHitSummary
+                        {
+                            totalDamage = totalDamage,
+                            headDamage = _headDamageThisTick,
+                            tailDamage = _tailDamageThisTick,
+                            headHit = _headHitThisTick,
+                            usingAnchoredTail = UsingAnchoredTail,
+                        };
+                    Mechanics.Chaos.BounceMechanic.RedirectDecision decision;
+                    if (
+                        bounce.TryHandleBeamHit(in hitSummary, out decision) && decision.hasDecision
+                    )
+                    {
+                        if (decision.destroy)
+                        {
+                            if (debugLogs)
+                                Debug.Log(
+                                    "[BeamMechanic] External redirect decision -> destroy",
+                                    this
+                                );
+                            Destroy(gameObject);
+                            return;
+                        }
+                        // Apply new direction; optionally spawn a new segment if requested.
+                        bool originalSegOnRedirect = segmentOnRedirect;
+                        if (UsingAnchoredTail)
+                            segmentOnRedirect = decision.spawnNewSegment;
+                        Redirect(decision.newDirection);
+                        if (UsingAnchoredTail)
+                            segmentOnRedirect = originalSegOnRedirect; // restore config
+                    }
                 }
             }
 
@@ -503,26 +564,80 @@ namespace Mechanics.Neuteral
             return total;
         }
 
-        private bool ShouldBounce(int totalDamage)
+        // Legacy ShouldRedirect removed; redirection decisions are delegated to external mechanics.
+
+        private void EnsureSegmentModifiers(bool force = false)
         {
-            if (!isSegmented)
+            if (!force && _segmentModifiers != null)
+                return;
+            _segmentModifiers = GetComponents<Mechanics.IBeamSegmentModifier>();
+            if (debugLogs)
+                Debug.Log(
+                    "[BeamMechanic] Segment modifiers cached count=" + _segmentModifiers.Length,
+                    this
+                );
+        }
+
+        private void MaybeRescanSegmentModifiers(float dt)
+        {
+            _segmentModifierScanTimer += dt;
+            if (_segmentModifierScanTimer >= SegmentModifierRescanInterval)
             {
-                return (UsingAnchoredTail && _headHitThisTick)
-                    || (!UsingAnchoredTail && totalDamage > 0);
+                _segmentModifierScanTimer = 0f;
+                EnsureSegmentModifiers(force: true);
             }
-            if (string.IsNullOrWhiteSpace(bounceSegment))
-                return (UsingAnchoredTail && _headHitThisTick)
-                    || (!UsingAnchoredTail && totalDamage > 0);
-            switch (bounceSegment)
+        }
+
+        private void NotifySegmentDamage(int headDamage, int tailDamage)
+        {
+            if (_segmentModifiers == null)
+                EnsureSegmentModifiers();
+            if (_segmentModifiers == null || _segmentModifiers.Length == 0)
+                return;
+            // Only invoke for segments that actually did damage this tick.
+            if (headDamage > 0)
             {
-                case "head":
-                    return _headDamageThisTick > 0;
-                case "tail":
-                    return _tailDamageThisTick > 0;
-                case "any":
-                    return totalDamage > 0;
-                default:
-                    return totalDamage > 0;
+                foreach (var m in _segmentModifiers)
+                {
+                    if (m != null && m.AppliesToSegment("head"))
+                    {
+                        try
+                        {
+                            m.OnBeamSegmentDamage("head", headDamage, this);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            if (debugLogs)
+                                Debug.LogWarning(
+                                    "[BeamMechanic] Segment modifier exception (head): "
+                                        + ex.Message,
+                                    this
+                                );
+                        }
+                    }
+                }
+            }
+            if (tailDamage > 0)
+            {
+                foreach (var m in _segmentModifiers)
+                {
+                    if (m != null && m.AppliesToSegment("tail"))
+                    {
+                        try
+                        {
+                            m.OnBeamSegmentDamage("tail", tailDamage, this);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            if (debugLogs)
+                                Debug.LogWarning(
+                                    "[BeamMechanic] Segment modifier exception (tail): "
+                                        + ex.Message,
+                                    this
+                                );
+                        }
+                    }
+                }
             }
         }
 
@@ -760,7 +875,7 @@ namespace Mechanics.Neuteral
                 _rectSr.sprite = _squareSprite;
             if (_headSr != null)
                 _headSr.sprite = _circleSprite;
-            // Anchored tail: ensure a head collider exists (used for bounce gating + optional damage overlap)
+            // Anchored tail: ensure a head collider exists (used for redirect gating + optional damage overlap)
             if (UsingAnchoredTail && _headSr != null)
             {
                 var hc = _headSr.GetComponent<CircleCollider2D>();
@@ -943,7 +1058,7 @@ namespace Mechanics.Neuteral
         }
 
         /// <summary>
-        /// Redirects the beam in a new direction. Call this from external mechanics (e.g. a bounce or steering system).
+        /// Redirects the beam in a new direction. Call this from external redirect-capable mechanics (e.g. bounce, steering, deflect).
         /// Respects preserveHeadOnRedirect and segmentOnRedirect (when anchored tail is enabled).
         /// </summary>
         public void Redirect(Vector2 newDirection)
@@ -1250,31 +1365,6 @@ namespace Mechanics.Neuteral
             }
         }
 
-        /// <summary>
-        /// Invokes BounceMechanic (if present) after a successful damage tick. If bounce chooses destruction
-        /// we destroy the beam and return true. Otherwise we redirect in the chosen direction (creating a new
-        /// tail segment when anchored) and return false. Only evaluated once per damage tick.
-        /// </summary>
-        private bool HandleBounceOnHit()
-        {
-            var bounce = GetComponent<Mechanics.Chaos.BounceMechanic>();
-            if (bounce == null)
-                return false;
-            bool shouldDestroy;
-            Vector2 newDir;
-            if (!bounce.TryHandleHit(out shouldDestroy, out newDir))
-                return false; // no decision (shouldn't happen with current implementation)
-            if (shouldDestroy)
-            {
-                if (debugLogs)
-                    Debug.Log("[BeamMechanic] Bounce -> destroy", this);
-                Destroy(gameObject);
-                return true;
-            }
-            if (debugLogs)
-                Debug.Log("[BeamMechanic] Bounce -> redirect newDir=" + newDir, this);
-            Redirect(newDir);
-            return false;
-        }
+        // Legacy HandleRedirectOnHit removed in favor of inline external decision handling.
     }
 }

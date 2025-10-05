@@ -75,5 +75,71 @@ namespace Mechanics.Chaos
             shouldDestroy = false;
             return true;
         }
+
+        // --- Beam integration (decoupled) ---------------------------------------------------------
+        public struct BeamHitSummary
+        {
+            public int totalDamage;
+            public int headDamage;
+            public int tailDamage;
+            public bool headHit;
+            public bool usingAnchoredTail;
+        }
+
+        public struct RedirectDecision
+        {
+            public bool hasDecision; // true if redirect or destroy chosen
+            public bool destroy; // destroy payload
+            public bool spawnNewSegment; // beam should create a new segment (anchored segmented tail)
+            public Vector2 newDirection; // valid if !destroy
+        }
+
+        /// Beam-specific hook: decide destruction or redirection based on a beam hit summary.
+        /// Returns true if a decision was produced.
+        public bool TryHandleBeamHit(in BeamHitSummary hit, out RedirectDecision decision)
+        {
+            decision = default;
+            if (hit.totalDamage <= 0)
+                return false; // nothing to react to
+
+            // Reuse existing probability model; treat any damage tick as a single interaction.
+            _idleTimer = 0f;
+            float chance = Mathf.Clamp01(
+                baseDestroyChance + destroyChanceIncreasePerBounce * _bounces
+            );
+            float roll = Random.value;
+            bool destroy = roll < chance;
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[Bounce] beamHit total={hit.totalDamage} head={hit.headDamage} tail={hit.tailDamage} chance={chance:F2} roll={roll:F2} destroy={destroy}",
+                    this
+                );
+            }
+            if (destroy)
+            {
+                decision = new RedirectDecision
+                {
+                    hasDecision = true,
+                    destroy = true,
+                    spawnNewSegment = false,
+                    newDirection = Vector2.zero,
+                };
+                return true;
+            }
+            // Choose new direction; random for now (same logic as TryHandleHit). Could bias off head direction later.
+            Vector2 dir = Random.insideUnitCircle;
+            if (dir.sqrMagnitude < 1e-4f)
+                dir = Vector2.right;
+            _bounces++;
+            decision = new RedirectDecision
+            {
+                hasDecision = true,
+                destroy = false,
+                spawnNewSegment = hit.usingAnchoredTail, // anchored tail beams expect segmentation
+                newDirection = dir.normalized,
+            };
+            return true;
+        }
     }
 }
