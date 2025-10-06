@@ -39,7 +39,7 @@
   },
   {
     "MechanicName": "Beam",
-    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/BeamMechanic.cs",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam Scripts/BeamMechanic.cs",
     "Properties": [
       { "AllowMultiple": false },
       { "DestroyOnHit": false },
@@ -60,8 +60,8 @@
       { "debugLogs": true },
       { "isSegmented": true },
       { "segments": ["head", "tail"] },
-      { "bounceSegment": "head" },
-      { "drainSegments": "head tail" }
+      { "maxSpeed": 0 },
+      { "debugSpeed": false }
     ],
     "IncompatibleWith": ["Orbit", "DamageOverTime"]
   },

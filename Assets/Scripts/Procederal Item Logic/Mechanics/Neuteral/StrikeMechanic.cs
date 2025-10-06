@@ -71,33 +71,8 @@ namespace Mechanics.Neuteral
             if (debugLogs)
                 Debug.Log($"[StrikeMechanic] Damaged {target.name} for {damagePerInterval}", this);
 
-            // Ripple-on-hit modifier: start chain at this strike point
-            var rippleOnHit = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
-            if (rippleOnHit != null)
-            {
-                rippleOnHit.TriggerFrom(target, hitPoint);
-            }
-            // Report to Drain if present on owner
-            if (_ctx != null && _ctx.Owner != null)
-            {
-                var drain = _ctx.Owner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
-                if (drain != null)
-                    drain.ReportDamage(damagePerInterval);
-            }
-
-            // Apply DoT if present on this payload
-            var dot = GetComponent<Mechanics.Corruption.DamageOverTimeMechanic>();
-            if (dot != null)
-            {
-                dot.TryApplyTo(target);
-            }
-
-            // Explosion modifier: trigger radial damage at the struck enemy position
-            var explode = GetComponent<Mechanics.Chaos.ExplosionMechanic>();
-            if (explode != null)
-            {
-                explode.TriggerExplosion(hitPoint);
-            }
+            // Generic modifier dispatch: notify any IPrimaryHitModifier components (no strike-specific coupling)
+            DispatchHit(target, hitPoint, hitNormal, damagePerInterval);
 
             // Visualization: spawn a brief sprite on the enemy to show the strike
             if (showVisualization && _strikeSprite != null)
@@ -167,6 +142,35 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= Stop;
+        }
+
+        // --- Generic primary hit dispatch (uses IPrimaryHitModifier) -----------------------
+        private static System.Collections.Generic.List<Mechanics.IPrimaryHitModifier> _reusableList =
+            new System.Collections.Generic.List<Mechanics.IPrimaryHitModifier>(8);
+
+        private void DispatchHit(Transform target, Vector2 hitPoint, Vector2 hitNormal, int dmg)
+        {
+            _reusableList.Clear();
+            GetComponents(_reusableList);
+            var info = new Mechanics.PrimaryHitInfo(target, hitPoint, hitNormal, dmg, this);
+            for (int i = 0; i < _reusableList.Count; i++)
+            {
+                var mod = _reusableList[i];
+                if (mod == null)
+                    continue;
+                try
+                {
+                    mod.OnPrimaryHit(in info);
+                }
+                catch (System.Exception ex)
+                {
+                    if (debugLogs)
+                        Debug.LogWarning(
+                            $"[StrikeMechanic] Modifier exception: {ex.Message}",
+                            this
+                        );
+                }
+            }
         }
 
         private class _AutoDestroy : MonoBehaviour

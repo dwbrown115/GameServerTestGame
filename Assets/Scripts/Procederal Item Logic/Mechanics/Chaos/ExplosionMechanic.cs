@@ -5,7 +5,7 @@ namespace Mechanics.Chaos
 {
     /// Radial damage on demand with distance falloff. Affects both players and mobs.
     /// Attach to a payload (projectile/beam/etc), then call TriggerExplosion(epicenter).
-    public class ExplosionMechanic : MonoBehaviour, IMechanic
+    public class ExplosionMechanic : MonoBehaviour, IMechanic, Mechanics.IPrimaryHitModifier
     {
         [Header("Explosion Settings")]
         [Tooltip("Explosion radius in world units.")]
@@ -127,6 +127,12 @@ namespace Mechanics.Chaos
             if (debugLogs)
                 Debug.Log($"[ExplosionMechanic] Total damage={totalDamage}", this);
             return totalDamage;
+        }
+
+        // IPrimaryHitModifier: trigger explosion at hit point
+        public void OnPrimaryHit(in Mechanics.PrimaryHitInfo info)
+        {
+            TriggerExplosion(info.hitPoint);
         }
 
         private bool IsOwnerRelated(Collider2D c)

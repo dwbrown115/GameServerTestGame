@@ -5,7 +5,7 @@ namespace Mechanics.Corruption
     /// Applies a stacking damage-over-time debuff to targets on hit.
     /// Attach to payloads (Projectile/Aura/Beam/Strike root) and call TryApplyTo(target).
     [DisallowMultipleComponent]
-    public class DamageOverTimeMechanic : MonoBehaviour, IMechanic
+    public class DamageOverTimeMechanic : MonoBehaviour, IMechanic, Mechanics.IPrimaryHitModifier
     {
         [Header("DoT Settings")]
         [Min(0)]
@@ -97,6 +97,12 @@ namespace Mechanics.Corruption
                 );
             }
             return applied;
+        }
+
+        // IPrimaryHitModifier: apply DoT to struck target
+        public void OnPrimaryHit(in Mechanics.PrimaryHitInfo info)
+        {
+            TryApplyTo(info.target);
         }
     }
 }

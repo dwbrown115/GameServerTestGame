@@ -39,7 +39,13 @@ namespace Mechanics.Neuteral
 
         private MechanicContext _ctx;
         private bool _stopped;
-        private bool _rippleTriggered;
+
+        // Internal state
+        private bool _rippleTriggered; // legacy flag (no longer used by direct ripple calls; retained in case scenes rely on it)
+
+        // Reusable list for generic modifier dispatch (no concrete modifier references)
+        private static System.Collections.Generic.List<Mechanics.IPrimaryHitModifier> _hitMods =
+            new System.Collections.Generic.List<Mechanics.IPrimaryHitModifier>(8);
 
         public void Initialize(MechanicContext ctx)
         {
@@ -186,39 +192,7 @@ namespace Mechanics.Neuteral
                 }
             }
 
-            // Attempt to apply stun early (independent of damageability)
-            var earlyLocker = GetComponent<Mechanics.Order.LockMechanic>();
-            if (earlyLocker != null)
-            {
-                if (earlyLocker.debugLogs && other != null)
-                    Debug.Log($"[ProjectileMechanic] Early Lock attempt on {other.name}", this);
-                earlyLocker.TryApplyTo(other.transform);
-            }
-
-            // Early ripple trigger (independent of damageability) so ripple works on objects without IDamageable
-            var earlyRipple = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
-            if (debugRipple)
-            {
-                Debug.Log(
-                    $"[ProjectileMechanic] Ripple check early: comp={(earlyRipple != null)} triggered={_rippleTriggered}",
-                    this
-                );
-            }
-            if (earlyRipple != null && !_rippleTriggered)
-            {
-                Vector2 origin =
-                    _ctx.Payload != null
-                        ? (Vector2)_ctx.Payload.position
-                        : (Vector2)transform.position;
-                Vector2 rp = other.ClosestPoint(origin);
-                earlyRipple.TriggerFrom(other.transform, rp);
-                _rippleTriggered = true;
-                if (debugLogs || debugRipple)
-                    Debug.Log(
-                        $"[ProjectileMechanic] Early ripple trigger at {rp} via {other.name}",
-                        this
-                    );
-            }
+            // Removed direct early modifier invocations (Lock/Ripple). Generic hit dispatch occurs only after confirmed damage.
 
             IDamageable damageable = other.GetComponent<IDamageable>();
             if (damageable == null)
@@ -238,57 +212,12 @@ namespace Mechanics.Neuteral
                 Vector2 hitPoint = other.ClosestPoint(attackerPos);
                 Vector2 hitNormal = ((Vector2)other.transform.position - attackerPos).normalized;
                 damageable.TakeDamage(damage, hitPoint, hitNormal);
-                // Route damage to Drain if present on the same root
-                if (_ctx.Owner != null)
-                {
-                    var drain =
-                        _ctx.Owner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
-                    if (drain != null)
-                        drain.ReportDamage(damage);
-                }
                 if (debugLogs)
                     Debug.Log($"[ProjectileMechanic] Damaged {other.name} for {damage}", this);
+                // Generic primary-hit dispatch (replaces explicit modifier calls)
+                DispatchPrimaryHit(other.transform, hitPoint, hitNormal, damage);
 
-                // Explosion modifier: trigger radial damage from the hit point (affects players and mobs)
-                var explode = GetComponent<Mechanics.Chaos.ExplosionMechanic>();
-                if (explode != null)
-                {
-                    explode.TriggerExplosion(hitPoint);
-                }
-
-                // Ripple already triggered early; leave legacy path for safety if not yet triggered
-                var rippleOnHit = GetComponent<Mechanics.Chaos.RippleOnHitMechanic>();
-                if (debugRipple)
-                {
-                    Debug.Log(
-                        $"[ProjectileMechanic] Ripple check late: comp={(rippleOnHit != null)} triggered={_rippleTriggered}",
-                        this
-                    );
-                }
-                if (rippleOnHit != null && !_rippleTriggered)
-                {
-                    rippleOnHit.TriggerFrom(other.transform, hitPoint);
-                    _rippleTriggered = true;
-                    if (debugLogs || debugRipple)
-                        Debug.Log(
-                            $"[ProjectileMechanic] Late ripple trigger at {hitPoint} via {other.name}",
-                            this
-                        );
-                }
-
-                // Apply Lock modifier if present on this payload
-                var locker = GetComponent<Mechanics.Order.LockMechanic>();
-                if (locker != null)
-                {
-                    locker.TryApplyTo(other.transform);
-                }
-
-                // Apply DamageOverTime modifier if present on this payload
-                var dot = GetComponent<Mechanics.Corruption.DamageOverTimeMechanic>();
-                if (dot != null)
-                    dot.TryApplyTo(other.transform);
-
-                // Bounce modifier handling takes precedence over simple destroyOnHit
+                // Bounce redirect decision (special-case: directional change / destruction control)
                 var bounce = GetComponent<Mechanics.Chaos.BounceMechanic>();
                 if (bounce != null)
                 {
@@ -366,6 +295,36 @@ namespace Mechanics.Neuteral
                     return true;
             }
             return c.transform.root == o.root;
+        }
+
+        private void DispatchPrimaryHit(
+            Transform target,
+            Vector2 hitPoint,
+            Vector2 hitNormal,
+            int dmg
+        )
+        {
+            _hitMods.Clear();
+            GetComponents(_hitMods);
+            var info = new Mechanics.PrimaryHitInfo(target, hitPoint, hitNormal, dmg, this);
+            for (int i = 0; i < _hitMods.Count; i++)
+            {
+                var mod = _hitMods[i];
+                if (mod == null)
+                    continue;
+                try
+                {
+                    mod.OnPrimaryHit(in info);
+                }
+                catch (System.Exception ex)
+                {
+                    if (debugLogs)
+                        Debug.LogWarning(
+                            $"[ProjectileMechanic] Modifier exception: {ex.Message}",
+                            this
+                        );
+                }
+            }
         }
     }
 }

@@ -16,8 +16,8 @@
       { "debugLogs": true },
       { "parentToTarget": true },
       { "centerOnTarget": true },
-      { "followTargetWhileGrowing": true }
-    , { "includePlayer": false }
+      { "followTargetWhileGrowing": true },
+      { "includePlayer": false }
     ],
     "MechanicOverrides": []
   },
@@ -48,7 +48,8 @@
       { "baseDestroyChance": 0.2 },
       { "destroyChanceIncreasePerBounce": 0.1 },
       { "idleLifetime": 2.0 },
-      { "debugLogs": false }
+      { "debugLogs": false },
+      { "segmentTargets": [] }
     ],
     "MechanicOverrides": []
   },
@@ -56,7 +57,11 @@
     "MechanicName": "Drain",
     "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DrainMechanic.cs",
     "MechanicAttribute": "Corruption",
-    "Properties": [{ "LifeStealPercent": 0.2 }, { "lifeStealChance": 0.1 }],
+    "Properties": [
+      { "LifeStealPercent": 0.2 },
+      { "lifeStealChance": 0.1 },
+      { "segmentTargets": [] }
+    ],
     "MechanicOverrides": []
   },
   {
@@ -65,7 +70,7 @@
     "MechanicAttribute": "Order",
     "Properties": [
       { "stunTime": 0.5 },
-      { "stunChance": 0.35 },
+      { "stunChance": 1.0 },
       { "debugLogs": false }
     ],
     "MechanicOverrides": []

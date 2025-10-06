@@ -8,7 +8,7 @@ namespace Mechanics.Chaos
     /// If that ripple touches a different enemy, deals damage and rolls a chance to spawn
     /// another ripple at the new enemy, chaining up to maxChains.
     [DisallowMultipleComponent]
-    public class RippleOnHitMechanic : MonoBehaviour, IMechanic
+    public class RippleOnHitMechanic : MonoBehaviour, IMechanic, Mechanics.IPrimaryHitModifier
     {
         [Header("Ripple Settings")]
         [Tooltip("Starting radius of the ring (world units)")]
@@ -96,6 +96,12 @@ namespace Mechanics.Chaos
                     this
                 );
             SpawnRippleChain(hitPoint, initialTarget, maxChains);
+        }
+
+        // IPrimaryHitModifier: trigger ripple chain from any primary hit
+        public void OnPrimaryHit(in Mechanics.PrimaryHitInfo info)
+        {
+            TriggerFrom(info.target, info.hitPoint);
         }
 
         private void SpawnRippleChain(Vector2 center, Transform excludeTransform, int remaining)

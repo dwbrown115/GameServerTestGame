@@ -4,7 +4,7 @@ namespace Mechanics.Corruption
 {
     /// Event-based drain: listens for reported damage and heals the owner by lifeStealRatio.
     /// No colliders or periodic ticks; other mechanics must call ReportDamage.
-    public class DrainMechanic : MonoBehaviour, IMechanic
+    public class DrainMechanic : MonoBehaviour, IMechanic, Mechanics.IPrimaryHitModifier
     {
         [Header("Drain Settings")]
         [Range(0f, 1f)]
@@ -59,6 +59,12 @@ namespace Mechanics.Corruption
                         this
                     );
             }
+        }
+
+        // IPrimaryHitModifier: treat primary hit damage as reportable damage for life steal
+        public void OnPrimaryHit(in Mechanics.PrimaryHitInfo info)
+        {
+            ReportDamage(info.damage);
         }
     }
 }

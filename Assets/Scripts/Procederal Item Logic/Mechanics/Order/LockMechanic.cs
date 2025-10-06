@@ -6,7 +6,7 @@ namespace Mechanics.Order
     /// Attach this as a modifier to payload mechanics (e.g., Projectiles, Aura, Beam)
     /// so they can apply stun to targets they affect.
     [DisallowMultipleComponent]
-    public class LockMechanic : MonoBehaviour, IMechanic
+    public class LockMechanic : MonoBehaviour, IMechanic, Mechanics.IPrimaryHitModifier
     {
         [Tooltip("Seconds to stun the target on hit")]
         [Min(0f)]
@@ -112,6 +112,12 @@ namespace Mechanics.Order
             if (debugLogs)
                 Debug.Log($"[LockMechanic] Applied stun for {dur:0.###}s to {hit.name}", this);
             return true;
+        }
+
+        // IPrimaryHitModifier implementation
+        public void OnPrimaryHit(in Mechanics.PrimaryHitInfo info)
+        {
+            TryApplyTo(info.target);
         }
     }
 }

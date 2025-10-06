@@ -15,9 +15,9 @@ The beam now extends indefinitely; destruction is governed ONLY by `lifetime` (i
 | JSON Key | BeamMechanic Field | Notes |
 |----------|--------------------|-------|
 | `maxDistance` (deprecated) | — | Ignored (kept only for backward JSON compatibility) |
-| `speed` or `extendSpeed` | `extendSpeed` | Units/second length growth |
+| `speed` or `extendSpeed` | `speed` (migrates from `extendSpeed`) | Units/second head travel (legacy `extendSpeed` migrates if present) |
 | `beamWidth` or `radius` | `beamWidth` | If `radius` provided, width = radius * 2 |
-| `interval` | `interval` | Seconds between damage ticks (clamped ≥ 0.01) |
+| `damageInterval` or `interval` | `damageInterval` | Seconds between damage ticks (legacy `interval` auto-mapped) |
 | `damagePerInterval` or `damage` | `damagePerInterval` | Unified damage field |
 | `direction` | `direction` | "right,left,up,down" or numeric degrees |
 | `spriteColor` | `vizColor` | Parsed via `ColorUtils` (e.g. `#FFFFFFFF`) |
@@ -70,17 +70,26 @@ Destruction triggers when:
 
 If `lifetime == 0`, the beam persists indefinitely (unless externally destroyed) and keeps extending.
 
-## Damage Pass Details
-- Uses two trigger colliders each tick: rectangle then head. Potential double hits are tolerated (current code doesn’t dedupe same collider within one tick; change if needed later).
-- Filters:
-  - `excludeOwner`: skips owner hierarchy & rigidbody root.
-  - `requireMobTag`: ensures target (or ancestor) has tag "Mob".
-- Applies optional modifiers (if present on same payload GameObject):
-  - `LockMechanic` (stun/lock)
-  - `DamageOverTimeMechanic`
-  - `ExplosionMechanic` (triggered once per tick if any damage dealt; epicenter at beam head)
-  - `RippleOnHitMechanic` (trigger chain from head position)
-  - Owner’s `DrainMechanic` gets aggregated damage report.
+## Damage & Modifier Dispatch
+Each damage tick:
+- Collect colliders: active tail segment + head (anchored) OR body + head (legacy box+head mode).
+- Filter by `excludeOwner` and optional `requireMobTag`.
+- Deduplicate per tick in anchored mode (shared set) to avoid double damage across segment + head.
+- Apply damage via `IDamageable.TakeDamage`.
+
+### Generic Primary Hit Event
+For every successful individual hit Beam emits a primary-agnostic event to all `IPrimaryHitModifier` components on the same GameObject:
+```csharp
+var info = new PrimaryHitInfo(target, hitPoint, hitNormal, damagePerInterval, this);
+mod.OnPrimaryHit(info);
+```
+Beam itself has no knowledge of concrete modifiers (stun, DoT, ripple, explosion, drain, etc.).
+
+### Segment Modifiers
+If `isSegmented` is true, per-segment totals ("head", "tail") are aggregated and dispatched to any `IBeamSegmentModifier` via `OnBeamSegmentDamage` (target set from `GetTargetSegments()`).
+
+### Drain
+Life steal now typically flows through a `DrainMechanic` implementing `IPrimaryHitModifier`. Legacy `drainSegments` still supported for segment-specific reporting; prefer the generic path for new content.
 
 ## Integration Tips
 - For former bounce logic: replace old maxDistance-based reflection behavior with physics check + call to `Redirect(reflectedDir)`.
@@ -135,4 +144,4 @@ Potential future enhancements (not yet implemented):
 - Want lifetime-limited behavior? Ensure `lifetime` > 0.
 
 ---
-Last updated: (auto) – Sync this doc if fields in `BeamMechanic` or `BeamMechanicSettings` change.
+Last updated: generic primary-hit dispatch adoption & segment modifier clarification.

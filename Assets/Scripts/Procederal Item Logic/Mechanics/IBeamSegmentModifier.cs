@@ -11,16 +11,17 @@ namespace Mechanics
     public interface IBeamSegmentModifier
     {
         /// <summary>
-        /// Return true if this modifier should respond to damage reported for the given segment name.
-        /// Example future usage: a Bounce-only-head modifier returns true for segment=="head".
+        /// Return list (array) of segment identifiers this modifier wants to receive.
+        /// Return null or empty to indicate ALL segments. Typical names: "head", "tail".
+        /// Called once during caching/rescan (not per tick) so can allocate safely.
         /// </summary>
-        bool AppliesToSegment(string segmentName);
+        string[] GetTargetSegments();
 
         /// <summary>
-        /// Invoked after a damage tick when a segment registered >0 damage.
+        /// Invoked after a damage tick for each targeted segment that dealt >0 damage.
         /// segmentName: canonical identifier (e.g. "head", "tail").
-        /// damage: amount of damage that segment inflicted this tick.
-        /// beam: reference to the BeamMechanic issuing the callback (may be null in edge cases if destroyed mid-loop).
+        /// damage: damage amount that segment contributed this tick.
+        /// beam: originating beam reference.
         /// </summary>
         void OnBeamSegmentDamage(string segmentName, int damage, Neuteral.BeamMechanic beam);
     }
