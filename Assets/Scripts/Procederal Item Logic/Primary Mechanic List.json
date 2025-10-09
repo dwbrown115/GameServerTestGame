@@ -39,7 +39,7 @@
   },
   {
     "MechanicName": "Beam",
-    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam Scripts/BeamMechanic.cs",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanic.cs",
     "Properties": [
       { "AllowMultiple": false },
       { "DestroyOnHit": false },
