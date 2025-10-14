@@ -585,7 +585,7 @@ namespace Game.Procederal
                 // Orient the crescent so its forward (local +X) matches the travel direction
                 go.transform.right = dir;
 
-                // Motion and damage
+                // Damage (Projectile); movement is driven by ChildMovementMechanic
                 AddMechanicByName(
                     go,
                     "Projectile",
@@ -597,6 +597,19 @@ namespace Game.Procederal
                         ("requireMobTag", true),
                         ("excludeOwner", true),
                         ("destroyOnHit", true),
+                        ("disableSelfSpeed", true), // let ChildMovementMechanic drive velocity
+                    }
+                );
+
+                // Unified child movement controller (ensures immediate velocity on spawn)
+                AddMechanicByName(
+                    go,
+                    "ChildMovementMechanic",
+                    new (string key, object val)[]
+                    {
+                        ("direction", dir),
+                        ("speed", speed),
+                        ("disableSelfSpeed", false),
                     }
                 );
 
@@ -609,6 +622,8 @@ namespace Game.Procederal
                 rb.freezeRotation = true;
                 rb.interpolation = RigidbodyInterpolation2D.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                // Kick off movement immediately to avoid any initial idle frame before Tick
+                rb.linearVelocity = dir * speed;
 
                 InitializeMechanics(go, owner, target);
 
@@ -1359,8 +1374,6 @@ namespace Game.Procederal
                             Log($"Skipping incompatible modifier 'DamageOverTime' on Whip.");
                             break;
                         }
-                        // Ensure projectile (if present) does not self-drive when DamageOverTime is added later
-                        SetExistingMechanicSetting(go, "Projectile", "disableSelfSpeed", true);
                         AddMechanicByName(
                             go,
                             "DamageOverTime",

@@ -132,8 +132,10 @@
       { "AllowMultiple": true },
       { "seriesCount": 3 },
       { "intervalBetween": 0.08 },
-      { "spawnOnInterval": true },
-      { "interval": 0.8 },
+      { "spawnOnInterval": false },
+      { "interval": 2.0 },
+      { "batchesAtOnce": 2 },
+      { "maxBatchesAtOnce": 4 },
       { "outerRadius": 1.6 },
       { "width": 0.6 },
       { "arcLengthDeg": 120 },
@@ -146,5 +148,17 @@
       { "childrenToSpawn": 3 }
     ],
     "IncompatibleWith": ["Orbit"]
+  },
+  {
+    "MechanicName": "ChildMovementMechanic",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "direction": "right" },
+      { "speed": 10 },
+      { "disableSelfSpeed": false },
+      { "autoAddPhysicsBody": true }
+    ],
+    "IncompatibleWith": []
   }
 ]

@@ -51,6 +51,16 @@ namespace Game.Procederal.Api
         private float _timer;
         private bool _active;
         private Vector2 _baseDir = Vector2.right;
+        private BatchContainer _currentBatch;
+        private int _batchSerial;
+
+        public bool IsActive => _active;
+
+        [Header("Spawn Origin")]
+        [Tooltip(
+            "If true, use owner position as the spawn center. If false, use this object's transform position."
+        )]
+        public bool useOwnerPositionForSpawn = true;
 
         private void OnEnable()
         {
@@ -81,6 +91,17 @@ namespace Game.Procederal.Api
                     Debug.LogWarning("[SequenceSpawnBehavior] Cannot start sequence.", this);
                 return;
             }
+            // Create a parent container for this batch that will self-destroy when all its children are gone
+            var own = owner != null ? owner : transform;
+            var batchGo = new GameObject($"{payloadMechanicName}_Batch_{++_batchSerial}");
+            batchGo.transform.SetParent(transform, worldPositionStays: true);
+            var spawnPos =
+                (useOwnerPositionForSpawn && own != null) ? own.position : transform.position;
+            batchGo.transform.position = spawnPos;
+            batchGo.layer = gameObject.layer;
+            _currentBatch = batchGo.AddComponent<BatchContainer>();
+            _currentBatch.debugLogs = debugLogs;
+
             _spawned = 0;
             _timer = 0f;
             _active = true;
@@ -108,10 +129,10 @@ namespace Game.Procederal.Api
             }
         }
 
-        private void ResolveBaseDirection()
+        private Vector2 ResolveForwardVector()
         {
             var own = owner != null ? owner : transform;
-            _baseDir =
+            Vector2 resolved =
                 explicitDirection.sqrMagnitude > 0.001f
                     ? explicitDirection.normalized
                     : Vector2.right;
@@ -119,7 +140,7 @@ namespace Game.Procederal.Api
             {
                 var rb = own.GetComponent<Rigidbody2D>();
                 if (rb != null && rb.linearVelocity.sqrMagnitude > 0.01f)
-                    _baseDir = rb.linearVelocity.normalized;
+                    resolved = rb.linearVelocity.normalized;
             }
             if (aimAtNearestEnemy && own != null)
             {
@@ -128,9 +149,20 @@ namespace Game.Procederal.Api
                 {
                     Vector2 to = (Vector2)(target.position - own.position);
                     if (to.sqrMagnitude > 1e-6f)
-                        _baseDir = to.normalized;
+                        resolved = to.normalized;
                 }
             }
+            return resolved;
+        }
+
+        private void ResolveBaseDirection()
+        {
+            _baseDir = ResolveForwardVector();
+        }
+
+        public Vector2 PeekForwardDirection()
+        {
+            return ResolveForwardVector();
         }
 
         private Transform FindNearestMob(Transform origin)
@@ -159,12 +191,27 @@ namespace Game.Procederal.Api
         {
             var own = owner != null ? owner : transform;
             var go = new GameObject($"{payloadMechanicName}_Seq_{index}");
-            go.transform.SetParent(transform, worldPositionStays: true);
-            go.transform.position = own != null ? own.position : transform.position;
+            // Parent under the current batch container (falls back to this if missing)
+            var parentT = (_currentBatch != null ? _currentBatch.transform : transform);
+            go.transform.SetParent(parentT, worldPositionStays: true);
+            var spawnPos =
+                (useOwnerPositionForSpawn && own != null) ? own.position : transform.position;
+            go.transform.position = spawnPos;
             go.layer = (own != null ? own.gameObject.layer : go.layer);
 
-            // Optional visuals
-            if (!string.IsNullOrEmpty(spriteType))
+            // Register with batch so the container destroys itself once all children are gone
+            if (_currentBatch != null)
+                _currentBatch.RegisterChild(go);
+
+            // Optional visuals (skip for SwordSlash; it has its own visualization via SwordSlashPayload)
+            if (
+                !string.IsNullOrEmpty(spriteType)
+                && !string.Equals(
+                    payloadMechanicName,
+                    "SwordSlash",
+                    System.StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 var sr = go.AddComponent<SpriteRenderer>();
                 Sprite chosen = null;
@@ -209,16 +256,69 @@ namespace Game.Procederal.Api
             if (damage > 0)
                 settings.Add(("damage", damage));
 
-            generator.AddMechanicByName(go, payloadMechanicName, settings.ToArray());
+            // If this sequence is driving a SwordSlash, compose the payload + movement + damage here
+            // so children always have the correct mechanics applied.
+            if (
+                string.Equals(
+                    payloadMechanicName,
+                    "SwordSlash",
+                    System.StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                // Base crescent payload
+                generator.AddMechanicByName(
+                    go,
+                    "SwordSlash",
+                    System.Array.Empty<(string key, object val)>()
+                );
+                // Orientation
+                go.transform.right = _baseDir;
+                // Projectile (damage + on-hit), with movement disabled
+                var proj = new List<(string key, object val)>(6)
+                {
+                    ("direction", _baseDir),
+                    ("damage", damage > 0 ? damage : 8),
+                    ("requireMobTag", requireMobTag),
+                    ("excludeOwner", excludeOwner),
+                };
+                proj.Add(("disableSelfSpeed", true));
+                // Prevent Projectile from adding its own circle sprite; SwordSlash handles visuals
+                proj.Add(("spriteType", null));
+                if (travelSpeed > 0f)
+                    proj.Add(("speed", travelSpeed));
+                generator.AddMechanicByName(go, "Projectile", proj.ToArray());
+                // Movement
+                var move = new List<(string key, object val)>(3)
+                {
+                    ("direction", _baseDir),
+                    ("speed", travelSpeed > 0f ? travelSpeed : 10f),
+                    ("disableSelfSpeed", false),
+                };
+                generator.AddMechanicByName(go, "ChildMovementMechanic", move.ToArray());
+            }
+            else
+            {
+                generator.AddMechanicByName(go, payloadMechanicName, settings.ToArray());
+            }
 
             // Apply modifier specs (sequence-level)
             if (_modifierSpecs.Count > 0)
             {
                 foreach (var spec in _modifierSpecs)
+                {
+                    // For SwordSlash movement we already set direction/speed; pass-through other modifiers.
                     generator.AddMechanicByName(go, spec.mechanicName, spec.settings);
+                }
             }
 
             generator.InitializeMechanics(go, owner, generator.target);
+
+            // Ensure child mechanics tick even if spawned after root registration
+            var runner = GetComponent<MechanicRunner>();
+            if (runner == null)
+                runner = gameObject.AddComponent<MechanicRunner>();
+            runner.RegisterTree(go.transform);
 
             // Lifetime
             if (lifetime > 0f)
@@ -247,6 +347,44 @@ namespace Game.Procederal.Api
                 _t += Time.deltaTime;
                 if (_t >= seconds)
                     Destroy(gameObject);
+            }
+        }
+
+        // Container that tracks children for a single batch and self-destroys when the last child is destroyed
+        private class BatchContainer : MonoBehaviour
+        {
+            public int remaining;
+            public bool debugLogs;
+
+            public void RegisterChild(GameObject child)
+            {
+                remaining = Mathf.Max(0, remaining) + 1;
+                var tracker = child.AddComponent<_BatchChildTracker>();
+                tracker.container = this;
+            }
+
+            public void OnChildDestroyed()
+            {
+                remaining = Mathf.Max(0, remaining - 1);
+                if (debugLogs)
+                    Debug.Log(
+                        $"[SequenceSpawnBehavior] Batch child destroyed. Remaining: {remaining}",
+                        this
+                    );
+                if (remaining <= 0)
+                    Destroy(gameObject);
+            }
+        }
+
+        private class _BatchChildTracker : MonoBehaviour
+        {
+            public BatchContainer container;
+
+            private void OnDestroy()
+            {
+                // If parent container still exists, notify it
+                if (container != null)
+                    container.OnChildDestroyed();
             }
         }
     }

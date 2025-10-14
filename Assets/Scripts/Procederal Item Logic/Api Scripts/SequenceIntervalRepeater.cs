@@ -19,10 +19,12 @@ namespace Game.Procederal.Api
         {
             _timer = 0f;
             _didFirst = false;
+            // Defer immediate-first handling to Update as well so runtime property assignment also works.
             if (immediateFirstBurst && active)
             {
                 Fire();
                 _didFirst = true;
+                _timer = 0f;
             }
         }
 
@@ -32,16 +34,23 @@ namespace Game.Procederal.Api
                 return;
             _timer += Time.deltaTime;
             float minI = Mathf.Max(0.01f, interval);
-            if (!_didFirst && !immediateFirstBurst)
+            if (!_didFirst)
             {
-                if (_timer >= minI)
+                if (immediateFirstBurst)
+                {
+                    // Support immediate-first even when property was set after OnEnable
+                    Fire();
+                    _didFirst = true;
+                    _timer = 0f;
+                }
+                else if (_timer >= minI)
                 {
                     _timer = 0f;
                     Fire();
                     _didFirst = true;
                 }
             }
-            else if (_didFirst)
+            else
             {
                 if (_timer >= minI)
                 {

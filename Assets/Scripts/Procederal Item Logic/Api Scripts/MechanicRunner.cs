@@ -13,10 +13,12 @@ namespace Game.Procederal.Api
 
         private readonly List<IMechanic> _mechanics = new();
 
+        // Track registered components to avoid duplicates across incremental registrations
+        private readonly HashSet<UnityEngine.Object> _registered = new();
+
         /// Register all IMechanic implementations under the given root (inclusive) for ticking.
         public void RegisterTree(Transform root)
         {
-            _mechanics.Clear();
             if (root == null)
                 root = transform;
 
@@ -25,12 +27,17 @@ namespace Game.Procederal.Api
             {
                 if (b is IMechanic mech)
                 {
-                    _mechanics.Add(mech);
-                    if (debugLogs)
-                        Debug.Log(
-                            $"[MechanicRunner] Registered {b.GetType().Name} on {b.gameObject.name}",
-                            this
-                        );
+                    var uo = b as UnityEngine.Object;
+                    if (uo != null && !_registered.Contains(uo))
+                    {
+                        _mechanics.Add(mech);
+                        _registered.Add(uo);
+                        if (debugLogs)
+                            Debug.Log(
+                                $"[MechanicRunner] Registered {b.GetType().Name} on {b.gameObject.name}",
+                                this
+                            );
+                    }
                 }
             }
         }
@@ -45,7 +52,15 @@ namespace Game.Procederal.Api
                 if (unityObj == null)
                 {
                     // Component has been destroyed; remove from list
+                    var removed = _mechanics[i];
                     _mechanics.RemoveAt(i);
+                    // Best-effort remove from registry as well
+                    if (removed is MonoBehaviour mb)
+                    {
+                        var uo = mb as UnityEngine.Object;
+                        if (uo != null)
+                            _registered.Remove(uo);
+                    }
                     continue;
                 }
                 _mechanics[i].Tick(dt);

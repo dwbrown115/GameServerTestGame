@@ -157,8 +157,14 @@ namespace Game.Procederal.Api
             rb.freezeRotation = true;
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            // Kick off movement immediately to avoid any initial idle frame before Tick runs
+            rb.linearVelocity = dir * Mathf.Max(0.01f, speed);
+            // Kick off movement immediately (before first Tick) to avoid a stationary frame
+            rb.linearVelocity = dir * speed;
+            // Kick off movement immediately to avoid an initial idle frame before tick/physics
+            rb.linearVelocity = dir * speed;
 
-            // Primary projectile mechanic for motion and on-hit
+            // Primary projectile mechanic (for on-hit + damage). Movement is driven by ChildMovementMechanic.
             var primarySettings = new List<(string key, object val)>
             {
                 ("direction", (Vector2)dir),
@@ -167,9 +173,23 @@ namespace Game.Procederal.Api
                 ("requireMobTag", requireMobTag),
                 ("excludeOwner", excludeOwner),
                 ("destroyOnHit", true),
+                ("disableSelfSpeed", true), // let ChildMovementMechanic control velocity
                 ("debugLogs", debugLogs),
             };
             generator.AddMechanicByName(go, "Projectile", primarySettings.ToArray());
+
+            // Unified child movement controller (ensures immediate velocity on spawn)
+            generator.AddMechanicByName(
+                go,
+                "ChildMovementMechanic",
+                new (string key, object val)[]
+                {
+                    ("direction", (Vector2)dir),
+                    ("speed", speed),
+                    ("disableSelfSpeed", false),
+                    ("debugLogs", debugLogs),
+                }
+            );
 
             // Apply configured modifier specs (e.g., RippleOnHit) to each child
             if (_modifierSpecs.Count > 0)

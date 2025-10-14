@@ -77,6 +77,7 @@ namespace Mechanics.Neuteral
                         break;
                     case "circle":
                     default:
+                        // Only add the default circle if this payload explicitly requested it.
                         chosen = Game.Procederal.ProcederalItemGenerator.GetUnitCircleSprite();
                         break;
                 }
@@ -107,7 +108,11 @@ namespace Mechanics.Neuteral
             if (_stopped)
                 return;
             // If another mechanic (e.g., Orbit) controls movement, do not modify velocity/position here.
-            if (disableSelfSpeed)
+            // Defer to an external movement controller (e.g., ChildMovementMechanic) or explicit disable flag
+            if (
+                disableSelfSpeed
+                || GetComponent<Mechanics.Neuteral.ChildMovementMechanic>() != null
+            )
                 return;
             if (_ctx.PayloadRb2D != null)
             {

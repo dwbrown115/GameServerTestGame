@@ -71,6 +71,7 @@
     <Compile Include="Assets/Scripts/Net/HttpRequest.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/OfflineItemGeneratorApi.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/MechanicCatalog.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceBatchAnchor.cs" />
     <Compile Include="Assets/Scripts/Utilities/CustomCertificateHandler.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark02.cs" />
     <Compile Include="Assets/Scripts/Combat/PlayerProjectileShooter.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Purity/Regeneration/RegenerationMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/BeamIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Utilities/DeviceUtil.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Mob/DamageOverTimeController.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Projectile/ProjectileMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/GenericIntervalSpawner.cs" />
@@ -93,6 +95,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Lock/LockMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceIndexTag.cs" />
     <Compile Include="Assets/Scripts/UI/SkinsGridView.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceAnchorFollower.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SampleRandomItemSpawner.cs" />
     <Compile Include="Assets/Scripts/UI/MobHealthBar.cs" />
     <Compile Include="Assets/Scripts/Auth/RegisterScript.cs" />
