@@ -175,47 +175,25 @@ namespace Game.Procederal.Api
                     pos = center.position + (Vector3)(dir * Mathf.Max(0f, spawnRadius));
                 }
 
-                var go = new GameObject($"{payloadMechanicName}_Spawned");
-                go.transform.SetParent(transform, worldPositionStays: true);
-                go.transform.position = pos;
-                go.transform.localScale = Vector3.one;
-                go.layer = (owner != null ? owner.gameObject.layer : go.layer);
-
-                // Optional visuals
-                if (!string.IsNullOrEmpty(spriteType))
+                var shell = new SpawnHelpers.PayloadShellOptions
                 {
-                    var sr = go.AddComponent<SpriteRenderer>();
-                    Sprite chosen = null;
-                    switch (spriteType.ToLowerInvariant())
-                    {
-                        case "custom":
-                            if (!string.IsNullOrEmpty(customSpritePath))
-                                chosen = Resources.Load<Sprite>(customSpritePath);
-                            if (chosen == null)
-                                chosen = ProcederalItemGenerator.GetUnitCircleSprite();
-                            break;
-                        case "square":
-                            chosen = ProcederalItemGenerator.GetUnitSquareSprite();
-                            break;
-                        case "circle":
-                        default:
-                            chosen = ProcederalItemGenerator.GetUnitCircleSprite();
-                            break;
-                    }
-                    sr.sprite = chosen;
-                    sr.color = spriteColor;
-                }
-
-                // Minimal physics setup to support trigger-based mechanics by default
-                var cc = go.AddComponent<CircleCollider2D>();
-                cc.isTrigger = true;
-                cc.radius = 0.5f;
-                var rb = go.AddComponent<Rigidbody2D>();
-                rb.bodyType = RigidbodyType2D.Dynamic;
-                rb.gravityScale = 0f;
-                rb.freezeRotation = true;
-                rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                    parent = transform,
+                    position = pos,
+                    layer = owner != null ? owner.gameObject.layer : gameObject.layer,
+                    spriteType = string.IsNullOrEmpty(spriteType) ? null : spriteType,
+                    customSpritePath = customSpritePath,
+                    spriteColor = spriteColor,
+                    createCollider = true,
+                    colliderRadius = 0.5f,
+                    createRigidBody = true,
+                    bodyType = RigidbodyType2D.Dynamic,
+                    freezeRotation = true,
+                    addAutoDestroy = lifetime > 0f,
+                    lifetimeSeconds = lifetime > 0f ? lifetime : 0f,
+                };
+                var go = SpawnHelpers.CreatePayloadShell($"{payloadMechanicName}_Spawned", shell);
+                if (go.transform.parent != transform)
+                    go.transform.SetParent(transform, worldPositionStays: true);
 
                 // Build payload settings for this instance (allow direction injection if requested via key)
                 var settings = new List<(string key, object val)>(_payloadSettings);
@@ -259,12 +237,6 @@ namespace Game.Procederal.Api
 
                 generator.InitializeMechanics(go, owner, generator.target);
 
-                if (lifetime > 0f)
-                {
-                    var auto = go.AddComponent<_AutoDestroyAfterSeconds>();
-                    auto.seconds = lifetime;
-                }
-
                 var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
                     runner.RegisterTree(transform);
@@ -290,19 +262,6 @@ namespace Game.Procederal.Api
             {
                 _resolver = gameObject.AddComponent<NeutralSpawnPositon>();
                 spawnResolverBehaviour = (MonoBehaviour)_resolver;
-            }
-        }
-
-        private class _AutoDestroyAfterSeconds : MonoBehaviour
-        {
-            public float seconds = 5f;
-            private float _t;
-
-            private void Update()
-            {
-                _t += Time.deltaTime;
-                if (_t >= seconds)
-                    Destroy(gameObject);
             }
         }
     }

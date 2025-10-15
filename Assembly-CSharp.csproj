@@ -86,6 +86,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/GenericIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Apis/PlayerApiClient.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/ProjectileBuilder.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/ProcederalItemGenerator.Builders.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/RippleBuilder.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlash/SwordSlashPayload.cs" />

@@ -190,59 +190,41 @@ namespace Game.Procederal.Api
         private void SpawnOne(int index)
         {
             var own = owner != null ? owner : transform;
-            var go = new GameObject($"{payloadMechanicName}_Seq_{index}");
-            // Parent under the current batch container (falls back to this if missing)
             var parentT = (_currentBatch != null ? _currentBatch.transform : transform);
-            go.transform.SetParent(parentT, worldPositionStays: true);
             var spawnPos =
                 (useOwnerPositionForSpawn && own != null) ? own.position : transform.position;
-            go.transform.position = spawnPos;
-            go.layer = (own != null ? own.gameObject.layer : go.layer);
+            bool isSwordSlash = string.Equals(
+                payloadMechanicName,
+                "SwordSlash",
+                System.StringComparison.OrdinalIgnoreCase
+            );
+
+            var shell = new SpawnHelpers.PayloadShellOptions
+            {
+                parent = parentT,
+                position = spawnPos,
+                layer = own != null ? own.gameObject.layer : gameObject.layer,
+                spriteType =
+                    (!string.IsNullOrEmpty(spriteType) && !isSwordSlash) ? spriteType : null,
+                customSpritePath = customSpritePath,
+                spriteColor = spriteColor,
+                createCollider = true,
+                colliderRadius = 0.5f,
+                createRigidBody = true,
+                bodyType = RigidbodyType2D.Kinematic,
+                freezeRotation = false,
+                addAutoDestroy = lifetime > 0f,
+                lifetimeSeconds = lifetime > 0f ? lifetime : 0f,
+            };
+            var go = SpawnHelpers.CreatePayloadShell($"{payloadMechanicName}_Seq_{index}", shell);
+
+            // Ensure parent relationship remains intact if payload helper reparented differently
+            if (go.transform.parent != parentT)
+                go.transform.SetParent(parentT, worldPositionStays: true);
 
             // Register with batch so the container destroys itself once all children are gone
             if (_currentBatch != null)
                 _currentBatch.RegisterChild(go);
-
-            // Optional visuals (skip for SwordSlash; it has its own visualization via SwordSlashPayload)
-            if (
-                !string.IsNullOrEmpty(spriteType)
-                && !string.Equals(
-                    payloadMechanicName,
-                    "SwordSlash",
-                    System.StringComparison.OrdinalIgnoreCase
-                )
-            )
-            {
-                var sr = go.AddComponent<SpriteRenderer>();
-                Sprite chosen = null;
-                switch ((spriteType ?? "circle").ToLowerInvariant())
-                {
-                    case "custom":
-                        if (!string.IsNullOrEmpty(customSpritePath))
-                            chosen = Resources.Load<Sprite>(customSpritePath);
-                        if (chosen == null)
-                            chosen = ProcederalItemGenerator.GetUnitCircleSprite();
-                        break;
-                    case "square":
-                        chosen = ProcederalItemGenerator.GetUnitSquareSprite();
-                        break;
-                    case "circle":
-                    default:
-                        chosen = ProcederalItemGenerator.GetUnitCircleSprite();
-                        break;
-                }
-                sr.sprite = chosen;
-                sr.color = spriteColor;
-            }
-
-            // Basic collider & RB (so projectile / slash mechanics can interact)
-            var cc = go.AddComponent<CircleCollider2D>();
-            cc.isTrigger = true;
-            cc.radius = 0.5f;
-            var rbChild = go.AddComponent<Rigidbody2D>();
-            rbChild.bodyType = RigidbodyType2D.Kinematic;
-            rbChild.interpolation = RigidbodyInterpolation2D.Interpolate;
-            rbChild.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             // Assemble payload settings
             var settings = new List<(string key, object val)>(_extraSettings);
@@ -320,13 +302,6 @@ namespace Game.Procederal.Api
                 runner = gameObject.AddComponent<MechanicRunner>();
             runner.RegisterTree(go.transform);
 
-            // Lifetime
-            if (lifetime > 0f)
-            {
-                var auto = go.AddComponent<_AutoDestroyAfterSeconds>();
-                auto.seconds = lifetime;
-            }
-
             // Tag with sequence index
             var tag = go.AddComponent<SequenceIndexTag>();
             tag.index = index;
@@ -335,19 +310,6 @@ namespace Game.Procederal.Api
             _spawned++;
             if (debugLogs)
                 Debug.Log($"[SequenceSpawnBehavior] Spawned {index + 1}/{sequenceCount}", this);
-        }
-
-        private class _AutoDestroyAfterSeconds : MonoBehaviour
-        {
-            public float seconds = 5f;
-            private float _t;
-
-            private void Update()
-            {
-                _t += Time.deltaTime;
-                if (_t >= seconds)
-                    Destroy(gameObject);
-            }
         }
 
         // Container that tracks children for a single batch and self-destroys when the last child is destroyed

@@ -134,7 +134,7 @@
       { "intervalBetween": 0.08 },
       { "spawnOnInterval": false },
       { "interval": 2.0 },
-      { "batchesAtOnce": 2 },
+      { "batchesAtOnce": 1 },
       { "maxBatchesAtOnce": 4 },
       { "outerRadius": 1.6 },
       { "width": 0.6 },
