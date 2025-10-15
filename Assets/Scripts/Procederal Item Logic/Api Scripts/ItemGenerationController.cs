@@ -112,15 +112,9 @@ public class ItemGenerationController : MonoBehaviour
             }
             else
             {
-                // Resolve JSONs from generator; fallback to Resources by name
-                var primary =
-                    generator.primaryMechanicListJson != null
-                        ? generator.primaryMechanicListJson
-                        : Resources.Load<TextAsset>("Primary Mechanic List");
-                var modifier =
-                    generator.modifierMechanicListJson != null
-                        ? generator.modifierMechanicListJson
-                        : Resources.Load<TextAsset>("Modifier Mechanic List");
+                // Resolve JSON overrides from generator; Offline API will load Resources catalogs if null
+                var primary = generator.primaryMechanicListJson;
+                var modifier = generator.modifierMechanicListJson;
 
                 System.Random rng = (rngSeed != 0) ? new System.Random(rngSeed) : null;
                 var combo = OfflineItemGeneratorApi.MakeRandom(primary, modifier, rng);

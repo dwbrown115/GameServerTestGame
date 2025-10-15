@@ -137,7 +137,7 @@ Related helpers invoked by hosts/payloads:
 
 Usage (Runtime):
 - Put `ProcederalItemGenerator` on a spawner/owner object. Assign `owner`/`target` if needed.
-- Provide `primaryMechanicListJson` and `modifierMechanicListJson` via inspector, or place the JSON assets in `Resources/` named `Primary Mechanic List` and `Modifier Mechanic List`.
+- Optionally assign `primaryMechanicListJson` / `modifierMechanicListJson` overrides in the inspector. When left null, the generator now aggregates every per-mechanic JSON under `Resources/ProcederalMechanics/Primary` and `Resources/ProcederalMechanics/Modifier`.
 - Call `Create(ItemInstruction, ItemParams, parent)` to build an item hierarchy.
  - Visuals: Projectiles get a default `SpriteRenderer` using a simple white circle sprite generated at runtime; size is driven by `projectileSize` scale. You can later override sprite/color via JSON or code.
 
@@ -147,7 +147,7 @@ Unity Editor setup (ProcederalItemGenerator):
   - `defaultParent` (optional): where generated items will be parented.
   - `owner`: center for orbits and some AoE mechanics (often the same object).
   - `target` (optional): if mechanics should center on a particular target.
-  - `primaryMechanicListJson` and `modifierMechanicListJson`: drag in TextAssets or rely on `Resources` lookup.
+  - `primaryMechanicListJson` and `modifierMechanicListJson`: drag in override TextAssets if you need a custom catalog; otherwise leave them blank to consume the per-mechanic files under `Resources/ProcederalMechanics`.
 - Ticking: The generator now adds a `MechanicRunner` to the created root and registers all `IMechanic` instances under it so they automatically tick each frame.
 
 Clarification: Should `Target` be set to the player?
@@ -192,11 +192,11 @@ Unity Editor setup (MechanicRunner):
 Usage (Runtime):
 - Add `ItemGenerationController` to the Player (or a spawner).
 - Assign the `generator` reference (on the same object or drag it in).
-- For offline testing, assign primary/modifier JSON TextAssets or rely on `Resources` naming.
+- For offline testing, you can assign override TextAssets, but leaving them null will automatically use the per-mechanic files in `Resources/ProcederalMechanics`.
 - For online mode, set `offlineMode = false` and plug a component implementing `IItemSelectionProvider` into `selectionProviderBehaviour`.
 
 Editor wiring details:
-- Generator: In the controller’s `generator` field, select the GameObject where you placed `ProcederalItemGenerator` (often the same Player object). The controller will use the generator’s JSON fields (or `Resources`) to resolve catalogs.
+- Generator: In the controller’s `generator` field, select the GameObject where you placed `ProcederalItemGenerator` (often the same Player object). The controller will reuse any JSON overrides set on the generator; when none are assigned it automatically reads the per-mechanic catalogs from `Resources/ProcederalMechanics`.
 - Selection Provider Behavior: Leave this EMPTY when `offlineMode = true`. When `offlineMode = false`, drag a component here that implements `IItemSelectionProvider` (e.g., a network-backed provider). For a simple example, you can use `Examples/FixedSelectionProvider` which always returns a fixed combination such as Projectile + Orbit.
 - Output Parent: Optional Transform used as the parent for the generated item root. Good choices:
   - A child under the player like `Player/GeneratedItems` to keep hierarchy tidy.
@@ -235,33 +235,21 @@ Note:
 - Prefer `ItemGenerationController` for gameplay; `OfflineItemGeneratorApi` can be called directly in tooling or tests.
  - Visuals defaults: Projectiles are rendered as white circles by default. Future customization can expose `spriteType` and `spriteColor` (hex) in JSON to override.
 
-##### JSON data (mechanic lists)
+##### JSON data (mechanic catalogs)
 
-- `Primary Mechanic List.json`:
-  - Array of objects with fields:
-    - `MechanicName`: Display/selection name (e.g., "Projectile", "Aura").
-    - `MechanicPath`: Unity asset path to the script or C# type name.
-    - `Properties`: Array of `{ Key: Value }` items. These are default settings for the mechanic.
-    - `IncompatibleWith`: Array of mechanic names not allowed together.
-    - Optional: `Overrides`: When present, takes precedence over `Properties` at runtime.
+- Primary mechanics now live as individual JSON files in `Assets/Resources/ProcederalMechanics/Primary`.
+- Modifier mechanics follow the same pattern in `Assets/Resources/ProcederalMechanics/Modifier`.
 
-- `Modifier Mechanic List.json`:
-  - Array of objects with fields:
-    - `MechanicName`, `MechanicPath`
-    - `Properties`: Default values for the modifier mechanic itself.
-    - `MechanicOverrides`: Values that should override the primary mechanic’s properties (e.g., set projectile `DestroyOnHit: false`, `disableSelfSpeed: true`, or `Orbit.direction: "clockwise"`). These are applied after `Properties`.
+Each file includes:
 
-Notes on parsing:
-- Unity’s `JsonUtility` doesn’t parse top-level arrays, so utility code wraps arrays (`{"Items": [...]}`) when needed.
-- `ProcederalItemGenerator` includes a lightweight scanner that extracts key/value arrays from your current JSON schema without requiring full models.
+- `MechanicName` and `MechanicPath` (required)
+- `Generator`: array of single-entry objects (e.g., `{ "AllowMultiple": true }`). These represent generator-level settings (spawn behaviour, interval, counts, etc.).
+- `Properties`: array of single-entry objects for mechanic defaults passed into the component.
+- `MechanicOverrides`: array applied after properties to override primary settings (used heavily by modifiers like Orbit and Drain). Leave empty if unused.
+- `IncompatibleWith`: optional string array for pairwise exclusions.
+- `MechanicAttribute`: optional string tag for modifiers (Chaos/Order/Corruption/etc.).
 
-Unity Editor setup (JSON TextAssets):
-- Create TextAssets for your mechanic lists:
-  1. In the Project window, Right-click → Create → Text, name it `Primary Mechanic List.txt` (you can remove `.txt` later) and paste your JSON array.
-  2. Repeat for `Modifier Mechanic List`.
-  3. Optionally, move them to `Assets/Resources/` and rename assets (not filenames) to exactly `Primary Mechanic List` and `Modifier Mechanic List` for automatic runtime loading.
-- Ensure each entry contains a valid `MechanicName` and `MechanicPath` (path to the .cs file or the full C# type name).
-- Use `Properties` for defaults and `Overrides`/`MechanicOverrides` for values that should win at runtime (e.g., `disableSelfSpeed`, `DestroyOnHit`, `direction`).
+At runtime the loader aggregates every file in those folders (sorted by asset name), merges `Generator → Properties → Overrides`, and exposes the combined dictionary through `MechanicsRegistry`. Assigning `primaryMechanicListJson` / `modifierMechanicListJson` in the inspector still works as an override if you want a custom bundle for testing, but the per-file resources are now the default source of truth.
 
 Editor tags, layers, and physics notes:
 - Tags:

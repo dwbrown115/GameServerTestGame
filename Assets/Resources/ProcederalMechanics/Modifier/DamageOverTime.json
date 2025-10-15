@@ -1,0 +1,14 @@
+{
+  "MechanicName": "DamageOverTime",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DamageOverTimeMechanic.cs",
+  "MechanicAttribute": "Corruption",
+  "Generator": [],
+  "Properties": [
+    { "damagePerTick": 2 },
+    { "interval": 0.5 },
+    { "duration": 3 },
+    { "allowStacking": true },
+    { "effectId": "generic" }
+  ],
+  "MechanicOverrides": []
+}

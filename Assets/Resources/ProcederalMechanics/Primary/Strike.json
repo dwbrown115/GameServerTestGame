@@ -1,0 +1,19 @@
+{
+  "MechanicName": "Strike",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/StrikeMechanic.cs",
+  "Generator": [
+    { "AllowMultiple": false },
+    { "spawnBehavior": "static" },
+    { "childrenToSpawn": 1 },
+    { "interval": 0.5 },
+    { "immediateFirstBurst": false }
+  ],
+  "Properties": [
+    { "DestroyOnHit": false },
+    { "damagePerInterval": 10 },
+    { "spriteColor": "#000000FF" },
+    { "showVisualization": true }
+  ],
+  "IncompatibleWith": ["Orbit", "Track", "Bounce"],
+  "MechanicOverrides": []
+}

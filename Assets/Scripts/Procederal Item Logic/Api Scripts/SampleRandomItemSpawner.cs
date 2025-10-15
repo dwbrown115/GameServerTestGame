@@ -13,12 +13,12 @@ public class SampleRandomItemSpawner : MonoBehaviour
     public ProcederalItemGenerator generator;
 
     [Tooltip(
-        "Primary Mechanic List JSON (optional). If empty, we will use the generator's field or Resources."
+        "Optional primary catalog override. Leave null to rely on per-file JSON in Resources/ProcederalMechanics/Primary."
     )]
     public TextAsset primaryMechanicListJson;
 
     [Tooltip(
-        "Modifier Mechanic List JSON (optional). If empty, we will use the generator's field or Resources."
+        "Optional modifier catalog override. Leave null to rely on per-file JSON in Resources/ProcederalMechanics/Modifier."
     )]
     public TextAsset modifierMechanicListJson;
 
@@ -58,23 +58,15 @@ public class SampleRandomItemSpawner : MonoBehaviour
             return;
         }
 
-        // Resolve JSON assets: prefer local, then generator, then Resources
+        // Resolve JSON assets: prefer local override, then generator override, else let API load Resources catalogs
         var primary =
             primaryMechanicListJson != null
                 ? primaryMechanicListJson
-                : (
-                    generator.primaryMechanicListJson != null
-                        ? generator.primaryMechanicListJson
-                        : Resources.Load<TextAsset>("Primary Mechanic List")
-                );
+                : generator.primaryMechanicListJson;
         var modifier =
             modifierMechanicListJson != null
                 ? modifierMechanicListJson
-                : (
-                    generator.modifierMechanicListJson != null
-                        ? generator.modifierMechanicListJson
-                        : Resources.Load<TextAsset>("Modifier Mechanic List")
-                );
+                : generator.modifierMechanicListJson;
 
         System.Random rng = (rngSeed != 0) ? new System.Random(rngSeed) : null;
         var combo = OfflineItemGeneratorApi.MakeRandom(primary, modifier, rng);

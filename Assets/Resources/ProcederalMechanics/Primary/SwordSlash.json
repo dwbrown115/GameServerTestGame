@@ -1,0 +1,27 @@
+{
+  "MechanicName": "SwordSlash",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlashPayload.cs",
+  "Generator": [
+    { "AllowMultiple": true },
+    { "spawnBehavior": "sequence" },
+    { "childrenToSpawn": 3 },
+    { "spawnOnInterval": false },
+    { "interval": 2.0 },
+    { "batchesAtOnce": 1 },
+    { "maxBatchesAtOnce": 4 }
+  ],
+  "Properties": [
+    { "seriesCount": 3 },
+    { "intervalBetween": 0.08 },
+    { "outerRadius": 1.6 },
+    { "width": 0.6 },
+    { "arcLengthDeg": 120 },
+    { "edgeOnly": true },
+    { "edgeThickness": 0.1 },
+    { "speed": 12 },
+    { "damage": 8 },
+    { "spriteColor": "#FFFFFFFF" }
+  ],
+  "IncompatibleWith": ["Orbit"],
+  "MechanicOverrides": []
+}

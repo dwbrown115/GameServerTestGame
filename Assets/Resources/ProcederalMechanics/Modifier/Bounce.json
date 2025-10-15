@@ -1,0 +1,14 @@
+{
+  "MechanicName": "Bounce",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/BounceMechanic.cs",
+  "MechanicAttribute": "Chaos",
+  "Generator": [],
+  "Properties": [
+    { "baseDestroyChance": 0.2 },
+    { "destroyChanceIncreasePerBounce": 0.1 },
+    { "idleLifetime": 2.0 },
+    { "debugLogs": false },
+    { "segmentTargets": [] }
+  ],
+  "MechanicOverrides": []
+}

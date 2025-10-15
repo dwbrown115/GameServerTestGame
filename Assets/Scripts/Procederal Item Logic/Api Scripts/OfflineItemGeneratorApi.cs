@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Game.Procederal;
 using UnityEngine;
 
@@ -11,6 +12,9 @@ namespace Game.Procederal.Api
     /// Does NOT mutate JSON files.
     public static class OfflineItemGeneratorApi
     {
+        private const string PrimaryResourceFolder = "ProcederalMechanics/Primary";
+        private const string ModifierResourceFolder = "ProcederalMechanics/Modifier";
+
         [Serializable]
         private class PrimaryEntry
         {
@@ -90,15 +94,18 @@ namespace Game.Procederal.Api
             System.Random rng = null
         )
         {
-            if (primaryJson == null || string.IsNullOrWhiteSpace(primaryJson.text))
+            string primaryText = LoadCatalog(primaryJson, PrimaryResourceFolder);
+            string modifierText = LoadCatalog(modifierJson, ModifierResourceFolder);
+
+            if (string.IsNullOrWhiteSpace(primaryText) || primaryText.Trim() == "[]")
                 throw new ArgumentException("Primary JSON is null/empty");
-            if (modifierJson == null || string.IsNullOrWhiteSpace(modifierJson.text))
+            if (string.IsNullOrWhiteSpace(modifierText) || modifierText.Trim() == "[]")
                 throw new ArgumentException("Modifier JSON is null/empty");
 
             rng ??= new System.Random();
 
-            var primaries = FromJsonArray<PrimaryEntry>(primaryJson.text);
-            var modifiers = FromJsonArray<ModifierEntry>(modifierJson.text);
+            var primaries = FromJsonArray<PrimaryEntry>(primaryText);
+            var modifiers = FromJsonArray<ModifierEntry>(modifierText);
             if (primaries.Count == 0)
                 throw new InvalidOperationException("No primary mechanics defined");
 
@@ -309,6 +316,39 @@ namespace Game.Procederal.Api
             if (float.TryParse(s, out var v))
                 return v;
             return fallback;
+        }
+
+        private static string LoadCatalog(TextAsset overrideAsset, string resourceFolder)
+        {
+            if (overrideAsset != null && !string.IsNullOrWhiteSpace(overrideAsset.text))
+                return overrideAsset.text;
+
+            var assets = Resources.LoadAll<TextAsset>(resourceFolder);
+            if (assets == null || assets.Length == 0)
+                return "[]";
+
+            Array.Sort(
+                assets,
+                (a, b) => StringComparer.OrdinalIgnoreCase.Compare(a?.name, b?.name)
+            );
+
+            var sb = new StringBuilder();
+            sb.Append('[');
+            bool wrote = false;
+            foreach (var asset in assets)
+            {
+                if (asset == null)
+                    continue;
+                string text = asset.text;
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+                if (wrote)
+                    sb.Append(',');
+                sb.Append(text.Trim());
+                wrote = true;
+            }
+            sb.Append(']');
+            return wrote ? sb.ToString() : "[]";
         }
     }
 }

@@ -1,0 +1,24 @@
+{
+  "MechanicName": "Projectile",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/ProjectileMechanic.cs",
+  "Generator": [
+    { "AllowMultiple": true },
+    { "spawnBehavior": "interval" },
+    { "childrenToSpawn": 1 },
+    { "interval": 0.5 },
+    { "immediateFirstBurst": false }
+  ],
+  "Properties": [
+    { "DestroyOnHit": true },
+    { "damage": 10 },
+    { "speed": 10 },
+    { "disableSelfSpeed": false },
+    { "direction": "right" },
+    { "spriteType": "circle" },
+    { "spriteColor": "#FFFFFF" },
+    { "lifetime": 5 },
+    { "radius": 0.5 }
+  ],
+  "IncompatibleWith": [],
+  "MechanicOverrides": []
+}

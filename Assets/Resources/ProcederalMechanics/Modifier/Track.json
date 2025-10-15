@@ -1,0 +1,8 @@
+{
+  "MechanicName": "Track",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Order/TrackMechanic.cs",
+  "MechanicAttribute": "Order",
+  "Generator": [],
+  "Properties": [],
+  "MechanicOverrides": []
+}

@@ -241,12 +241,12 @@ namespace Game.Procederal
 
         [Header("Mechanic Lists (JSON)")]
         [Tooltip(
-            "Primary Mechanic List JSON (TextAsset). If null, will try Resources.Load('Primary Mechanic List')"
+            "Optional override catalog for primary mechanics. Leave null to load all JSON files under Resources/ProcederalMechanics/Primary."
         )]
         public TextAsset primaryMechanicListJson;
 
         [Tooltip(
-            "Modifier Mechanic List JSON (TextAsset). If null, will try Resources.Load('Modifier Mechanic List')"
+            "Optional override catalog for modifiers. Leave null to load all JSON files under Resources/ProcederalMechanics/Modifier."
         )]
         public TextAsset modifierMechanicListJson;
 
@@ -272,15 +272,10 @@ namespace Game.Procederal
             p ??= new ItemParams();
 
             // Ensure central registry is initialized (enables future OTA swaps)
-            var primaryJsonAsset =
-                primaryMechanicListJson != null
-                    ? primaryMechanicListJson
-                    : Resources.Load<TextAsset>("Primary Mechanic List");
-            var modifierJsonAsset =
-                modifierMechanicListJson != null
-                    ? modifierMechanicListJson
-                    : Resources.Load<TextAsset>("Modifier Mechanic List");
-            MechanicsRegistry.Instance.EnsureInitialized(primaryJsonAsset, modifierJsonAsset);
+            MechanicsRegistry.Instance.EnsureInitialized(
+                primaryMechanicListJson,
+                modifierMechanicListJson
+            );
 
             string secondaryLabel =
                 (instruction.secondary != null && instruction.secondary.Count > 0)

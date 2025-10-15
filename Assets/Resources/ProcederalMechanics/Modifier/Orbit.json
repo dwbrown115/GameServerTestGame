@@ -1,0 +1,20 @@
+{
+  "MechanicName": "Orbit",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/OrbitMechanic.cs",
+  "MechanicAttribute": "Neuteral",
+  "Generator": [],
+  "Properties": [
+    { "radius": 2 },
+    { "angularSpeedDeg": 20 },
+    { "startAngleDeg": 0 },
+    { "childrenToSpawn": 1 }
+  ],
+  "MechanicOverrides": [
+    { "DestroyOnHit": false },
+    { "disableSelfSpeed": true },
+    { "direction": "clockwise" },
+    { "radius": 1 },
+    { "spawnBehavior": "static" },
+    { "childrenToSpawn": 1 }
+  ]
+}

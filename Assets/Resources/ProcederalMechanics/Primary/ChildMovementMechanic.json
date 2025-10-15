@@ -1,0 +1,13 @@
+{
+  "MechanicName": "ChildMovementMechanic",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs",
+  "Generator": [{ "AllowMultiple": true }],
+  "Properties": [
+    { "direction": "right" },
+    { "speed": 10 },
+    { "disableSelfSpeed": false },
+    { "autoAddPhysicsBody": true }
+  ],
+  "IncompatibleWith": [],
+  "MechanicOverrides": []
+}

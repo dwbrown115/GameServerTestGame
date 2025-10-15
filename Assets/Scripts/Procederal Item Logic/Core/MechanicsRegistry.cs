@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace Game.Procederal.Core
@@ -8,6 +9,9 @@ namespace Game.Procederal.Core
     /// Provides merged settings, incompatibilities, and path/type resolution.
     public class MechanicsRegistry
     {
+        private const string PrimaryResourceFolder = "ProcederalMechanics/Primary";
+        private const string ModifierResourceFolder = "ProcederalMechanics/Modifier";
+
         private static MechanicsRegistry _instance;
         public static MechanicsRegistry Instance => _instance ??= new MechanicsRegistry();
 
@@ -28,8 +32,14 @@ namespace Game.Procederal.Core
 
         public void EnsureInitialized(TextAsset primaryJson, TextAsset modifierJson)
         {
-            string p = primaryJson != null ? primaryJson.text : (_primaryJson ?? string.Empty);
-            string m = modifierJson != null ? modifierJson.text : (_modifierJson ?? string.Empty);
+            string p =
+                primaryJson != null
+                    ? primaryJson.text
+                    : BuildAggregateFromResources(PrimaryResourceFolder);
+            string m =
+                modifierJson != null
+                    ? modifierJson.text
+                    : BuildAggregateFromResources(ModifierResourceFolder);
             if (_initialized && p == _primaryJson && m == _modifierJson)
                 return;
             _primaryJson = p;
@@ -77,6 +87,8 @@ namespace Game.Procederal.Core
                 return new Dictionary<string, object>(cached, StringComparer.OrdinalIgnoreCase);
 
             var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in GetKvpArray(mechanicName, "Generator"))
+                dict[kv.Key] = kv.Value;
             foreach (var kv in GetKvpArray(mechanicName, "Properties"))
                 dict[kv.Key] = kv.Value;
             foreach (var kv in GetKvpArray(mechanicName, "Overrides"))
@@ -88,6 +100,36 @@ namespace Game.Procederal.Core
                 StringComparer.OrdinalIgnoreCase
             );
             return dict;
+        }
+
+        private static string BuildAggregateFromResources(string resourceFolder)
+        {
+            var assets = Resources.LoadAll<TextAsset>(resourceFolder);
+            if (assets == null || assets.Length == 0)
+                return "[]";
+
+            Array.Sort(
+                assets,
+                (a, b) => StringComparer.OrdinalIgnoreCase.Compare(a?.name, b?.name)
+            );
+
+            var sb = new StringBuilder();
+            sb.Append('[');
+            bool wrote = false;
+            foreach (var asset in assets)
+            {
+                if (asset == null)
+                    continue;
+                string text = asset.text;
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+                if (wrote)
+                    sb.Append(',');
+                sb.Append(text.Trim());
+                wrote = true;
+            }
+            sb.Append(']');
+            return wrote ? sb.ToString() : "[]";
         }
 
         public Dictionary<string, object> GetKvpArray(string mechanicName, string arrayName)

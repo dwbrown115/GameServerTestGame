@@ -1,0 +1,12 @@
+{
+  "MechanicName": "Drain",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DrainMechanic.cs",
+  "MechanicAttribute": "Corruption",
+  "Generator": [],
+  "Properties": [
+    { "LifeStealPercent": 0.2 },
+    { "lifeStealChance": 0.1 },
+    { "segmentTargets": [] }
+  ],
+  "MechanicOverrides": []
+}

@@ -1,0 +1,14 @@
+{
+  "MechanicName": "Explosion",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/ExplosionMechanic.cs",
+  "MechanicAttribute": "Chaos",
+  "Generator": [],
+  "Properties": [
+    { "radius": 3.0 },
+    { "baseDamage": 20 },
+    { "minDamageFraction": 0.1 },
+    { "excludeOwner": false },
+    { "debugLogs": false }
+  ],
+  "MechanicOverrides": []
+}

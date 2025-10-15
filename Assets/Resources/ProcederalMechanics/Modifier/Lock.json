@@ -1,0 +1,12 @@
+{
+  "MechanicName": "Lock",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Order/LockMechanic.cs",
+  "MechanicAttribute": "Order",
+  "Generator": [],
+  "Properties": [
+    { "stunTime": 0.5 },
+    { "stunChance": 1.0 },
+    { "debugLogs": false }
+  ],
+  "MechanicOverrides": []
+}
