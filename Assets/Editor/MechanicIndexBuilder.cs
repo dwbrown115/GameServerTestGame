@@ -106,7 +106,9 @@ namespace Game.Procederal.Tools
             if (!Directory.Exists(directory))
                 return;
 
-            foreach (var file in Directory.GetFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
+            foreach (
+                var file in Directory.GetFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
+            )
             {
                 File.Delete(file);
                 string meta = file + ".meta";
