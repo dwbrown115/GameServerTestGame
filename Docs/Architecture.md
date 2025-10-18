@@ -237,19 +237,14 @@ Note:
 
 ##### JSON data (mechanic catalogs)
 
-- Primary mechanics now live as individual JSON files in `Assets/Resources/ProcederalMechanics/Primary`.
-- Modifier mechanics follow the same pattern in `Assets/Resources/ProcederalMechanics/Modifier`.
 
 Each file includes:
 
-- `MechanicName` and `MechanicPath` (required)
-- `Generator`: array of single-entry objects (e.g., `{ "AllowMultiple": true }`). These represent generator-level settings (spawn behaviour, interval, counts, etc.).
-- `Properties`: array of single-entry objects for mechanic defaults passed into the component.
-- `MechanicOverrides`: array applied after properties to override primary settings (used heavily by modifiers like Orbit and Drain). Leave empty if unused.
-- `IncompatibleWith`: optional string array for pairwise exclusions.
-- `MechanicAttribute`: optional string tag for modifiers (Chaos/Order/Corruption/etc.).
 
 At runtime the loader aggregates every file in those folders (sorted by asset name), merges `Generator → Properties → Overrides`, and exposes the combined dictionary through `MechanicsRegistry`. Assigning `primaryMechanicListJson` / `modifierMechanicListJson` in the inspector still works as an override if you want a custom bundle for testing, but the per-file resources are now the default source of truth.
+
+- `Game.Procederal.Ota.MechanicOtaManifest` reads `Resources/ProcederalMechanics/index.json` (and any overlays) so the registry can merge OTA-delivered manifests with built-in mechanics before the generator resolves settings.
+- During development (`UNITY_EDITOR` / debug builds) the registry pulls JSON straight from `Assets/Scripts/Procederal Item Logic/Mechanics/*/*.json` so edits beside scripts are always reflected without rebuilding resources.
 
 Editor tags, layers, and physics notes:
 - Tags:

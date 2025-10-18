@@ -18,41 +18,41 @@ namespace Game.Procederal.Api
         [Serializable]
         private class PrimaryEntry
         {
-            public string MechanicName;
-            public string MechanicPath;
+            public string MechanicName = string.Empty;
+            public string MechanicPath = string.Empty;
             public List<SerializableKvp> Properties = new List<SerializableKvp>();
             public List<string> IncompatibleWith = new List<string>();
 
             // Unity-friendly explicit fields (optional)
-            public int DefaultDamage;
-            public float DefaultRadius;
-            public float DefaultInterval;
-            public bool DestroyOnHitDefault;
+            public int DefaultDamage = 0;
+            public float DefaultRadius = 0f;
+            public float DefaultInterval = 0f;
+            public bool DestroyOnHitDefault = false;
         }
 
         [Serializable]
         private class ModifierEntry
         {
-            public string MechanicName;
-            public string MechanicPath;
+            public string MechanicName = string.Empty;
+            public string MechanicPath = string.Empty;
             public List<SerializableKvp> MechanicOverrides = new List<SerializableKvp>();
             public List<string> IncompatibleWith = new List<string>();
 
             // Unity-friendly explicit fields (optional)
-            public bool DestroyOnHitOverride;
-            public float OrbitRadius;
-            public float OrbitSpeedDeg;
-            public float DrainRadius;
-            public float DrainInterval;
-            public int DrainDamage;
-            public float LifeStealRatio;
+            public bool DestroyOnHitOverride = false;
+            public float OrbitRadius = 0f;
+            public float OrbitSpeedDeg = 0f;
+            public float DrainRadius = 0f;
+            public float DrainInterval = 0f;
+            public int DrainDamage = 0;
+            public float LifeStealRatio = 0f;
         }
 
         [Serializable]
         private class SerializableKvp
         {
-            public string Key;
-            public string Value;
+            public string Key = string.Empty;
+            public string Value = string.Empty;
         }
 
         [Serializable]

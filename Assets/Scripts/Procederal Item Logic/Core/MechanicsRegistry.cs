@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using Game.Procederal.Ota;
 using UnityEngine;
 
 namespace Game.Procederal.Core
@@ -9,15 +11,16 @@ namespace Game.Procederal.Core
     /// Provides merged settings, incompatibilities, and path/type resolution.
     public class MechanicsRegistry
     {
-        private const string PrimaryResourceFolder = "ProcederalMechanics/Primary";
-        private const string ModifierResourceFolder = "ProcederalMechanics/Modifier";
-
         private static MechanicsRegistry _instance;
         public static MechanicsRegistry Instance => _instance ??= new MechanicsRegistry();
 
         private string _primaryJson;
         private string _modifierJson;
         private bool _initialized;
+        private bool _manifestInitialized;
+        private MechanicOtaManifest _builtinManifest = MechanicOtaManifest.Empty;
+        private MechanicOtaManifest _overlayManifest = MechanicOtaManifest.Empty;
+        private MechanicOtaManifest _effectiveManifest = MechanicOtaManifest.Empty;
 
         // Cache by mechanic name (case-insensitive) for merged settings and path
         private readonly Dictionary<string, Dictionary<string, object>> _mergedCache = new(
@@ -32,14 +35,22 @@ namespace Game.Procederal.Core
 
         public void EnsureInitialized(TextAsset primaryJson, TextAsset modifierJson)
         {
-            string p =
-                primaryJson != null
-                    ? primaryJson.text
-                    : BuildAggregateFromResources(PrimaryResourceFolder);
-            string m =
-                modifierJson != null
-                    ? modifierJson.text
-                    : BuildAggregateFromResources(ModifierResourceFolder);
+            string p = primaryJson != null ? primaryJson.text : null;
+            string m = modifierJson != null ? modifierJson.text : null;
+
+            if (!_manifestInitialized)
+            {
+                _builtinManifest = MechanicOtaManifest.LoadFromResources();
+                _manifestInitialized = true;
+            }
+
+            RefreshEffectiveManifest();
+
+            if (p == null)
+                p = BuildAggregateFromManifest(_effectiveManifest, "Primary");
+            if (m == null)
+                m = BuildAggregateFromManifest(_effectiveManifest, "Modifier");
+
             if (_initialized && p == _primaryJson && m == _modifierJson)
                 return;
             _primaryJson = p;
@@ -52,6 +63,28 @@ namespace Game.Procederal.Core
             // Pre-scan for paths for quick lookups
             FillPaths(_primaryJson);
             FillPaths(_modifierJson);
+        }
+
+        public void ApplyOverlayManifest(MechanicOtaManifest manifest)
+        {
+            _overlayManifest = manifest ?? MechanicOtaManifest.Empty;
+            _initialized = false;
+            EnsureInitialized(null, null);
+        }
+
+        public bool TryGetManifestEntry(string mechanicName, out MechanicOtaManifestEntry entry)
+        {
+            if (_effectiveManifest == null)
+            {
+                entry = null;
+                return false;
+            }
+            return _effectiveManifest.TryGetEntry(mechanicName, out entry);
+        }
+
+        public IReadOnlyList<MechanicOtaManifestEntry> GetManifestEntries()
+        {
+            return _effectiveManifest?.Entries ?? Array.Empty<MechanicOtaManifestEntry>();
         }
 
         public bool TryGetPath(string mechanicName, out string path)
@@ -102,34 +135,170 @@ namespace Game.Procederal.Core
             return dict;
         }
 
-        private static string BuildAggregateFromResources(string resourceFolder)
+        private void RefreshEffectiveManifest()
         {
-            var assets = Resources.LoadAll<TextAsset>(resourceFolder);
-            if (assets == null || assets.Length == 0)
-                return "[]";
+            if (ReferenceEquals(_overlayManifest, MechanicOtaManifest.Empty))
+            {
+                _effectiveManifest = _builtinManifest;
+            }
+            else if (ReferenceEquals(_builtinManifest, MechanicOtaManifest.Empty))
+            {
+                _effectiveManifest = _overlayManifest;
+            }
+            else
+            {
+                _effectiveManifest = _builtinManifest.Merge(_overlayManifest);
+            }
+        }
 
-            Array.Sort(
-                assets,
-                (a, b) => StringComparer.OrdinalIgnoreCase.Compare(a?.name, b?.name)
-            );
+        private string BuildAggregateFromManifest(MechanicOtaManifest manifest, string category)
+        {
+            if (manifest == null)
+                return "[]";
 
             var sb = new StringBuilder();
             sb.Append('[');
             bool wrote = false;
-            foreach (var asset in assets)
+
+            foreach (var entry in manifest.Entries)
             {
-                if (asset == null)
+                if (entry == null)
                     continue;
-                string text = asset.text;
+                if (!string.Equals(entry.category, category, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string text = LoadJsonFromEntry(entry);
                 if (string.IsNullOrWhiteSpace(text))
                     continue;
+
                 if (wrote)
                     sb.Append(',');
                 sb.Append(text.Trim());
                 wrote = true;
             }
+
             sb.Append(']');
             return wrote ? sb.ToString() : "[]";
+        }
+
+        private static string LoadJsonFromEntry(MechanicOtaManifestEntry entry)
+        {
+            if (entry == null)
+                return null;
+
+            if (IsDevEnvironment())
+            {
+                var devJson = TryLoadFromDevSources(entry);
+                if (!string.IsNullOrWhiteSpace(devJson))
+                    return devJson;
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.resourcePath))
+            {
+                var resPath = $"ProcederalMechanics/{entry.resourcePath}";
+                var asset = Resources.Load<TextAsset>(resPath);
+                if (asset != null && !string.IsNullOrWhiteSpace(asset.text))
+                    return asset.text;
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.file))
+            {
+                string candidate = entry.file;
+                if (Path.IsPathRooted(candidate))
+                {
+                    if (File.Exists(candidate))
+                        return File.ReadAllText(candidate);
+                }
+                else
+                {
+                    string normalized = candidate.Replace('/', Path.DirectorySeparatorChar);
+                    foreach (var root in GetRuntimeSearchRoots())
+                    {
+                        if (string.IsNullOrWhiteSpace(root))
+                            continue;
+
+                        var direct = Path.Combine(root, normalized);
+                        if (File.Exists(direct))
+                            return File.ReadAllText(direct);
+
+                        var mechanics = Path.Combine(root, "Mechanics", normalized);
+                        if (File.Exists(mechanics))
+                            return File.ReadAllText(mechanics);
+
+                        var procederal = Path.Combine(root, "ProcederalMechanics", normalized);
+                        if (File.Exists(procederal))
+                            return File.ReadAllText(procederal);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsDevEnvironment()
+        {
+#if UNITY_EDITOR
+            return true;
+#else
+            return Debug.isDebugBuild;
+#endif
+        }
+
+        private static string TryLoadFromDevSources(MechanicOtaManifestEntry entry)
+        {
+            if (entry == null || string.IsNullOrWhiteSpace(entry.sourcePath))
+                return null;
+
+            try
+            {
+                string dataPath = Application.dataPath;
+                if (string.IsNullOrWhiteSpace(dataPath))
+                    return null;
+
+                var mechanicsRoot = Path.Combine(
+                    dataPath,
+                    "Scripts",
+                    "Procederal Item Logic",
+                    "Mechanics"
+                );
+
+                var relative = entry.sourcePath.Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(mechanicsRoot, relative);
+
+                if (!File.Exists(fullPath))
+                    return null;
+
+                return File.ReadAllText(fullPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(
+                    $"[MechanicsRegistry] Failed to load dev mechanic '{entry.sourcePath}': {ex.Message}"
+                );
+                return null;
+            }
+        }
+
+        private static IEnumerable<string> GetRuntimeSearchRoots()
+        {
+            if (!string.IsNullOrWhiteSpace(Application.persistentDataPath))
+                yield return Application.persistentDataPath;
+
+            var streaming = Application.streamingAssetsPath;
+            if (
+                !string.IsNullOrWhiteSpace(streaming)
+                && !streaming.StartsWith("jar", StringComparison.OrdinalIgnoreCase)
+                && Directory.Exists(streaming)
+            )
+                yield return streaming;
+
+            var dataPath = Application.dataPath;
+            if (!string.IsNullOrWhiteSpace(dataPath))
+            {
+                var parent = Path.GetDirectoryName(dataPath);
+                if (!string.IsNullOrWhiteSpace(parent))
+                    yield return parent;
+            }
         }
 
         public Dictionary<string, object> GetKvpArray(string mechanicName, string arrayName)

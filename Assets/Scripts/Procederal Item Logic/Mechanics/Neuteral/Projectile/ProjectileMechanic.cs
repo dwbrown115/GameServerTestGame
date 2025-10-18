@@ -40,9 +40,6 @@ namespace Mechanics.Neuteral
         private MechanicContext _ctx;
         private bool _stopped;
 
-        // Internal state
-        private bool _rippleTriggered; // legacy flag (no longer used by direct ripple calls; retained in case scenes rely on it)
-
         // Reusable list for generic modifier dispatch (no concrete modifier references)
         private static System.Collections.Generic.List<Mechanics.IPrimaryHitModifier> _hitMods =
             new System.Collections.Generic.List<Mechanics.IPrimaryHitModifier>(8);
@@ -127,7 +124,6 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= StopMovement;
-            _rippleTriggered = false;
         }
 
         private void StopMovement()

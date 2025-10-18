@@ -11,15 +11,15 @@ namespace Game.Procederal.Api
         [Serializable]
         private class PrimaryEntry
         {
-            public string MechanicName;
-            public string MechanicPath;
+            public string MechanicName = string.Empty;
+            public string MechanicPath = string.Empty;
         }
 
         [Serializable]
         private class ModifierEntry
         {
-            public string MechanicName;
-            public string MechanicPath;
+            public string MechanicName = string.Empty;
+            public string MechanicPath = string.Empty;
         }
 
         [Serializable]
