@@ -1,0 +1,164 @@
+[
+  {
+    "MechanicName": "Projectile",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/ProjectileMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "DestroyOnHit": true },
+      { "damage": 10 },
+      { "speed": 10 },
+      { "disableSelfSpeed": false },
+      { "direction": "right" },
+      { "spriteType": "circle" },
+      { "spriteColor": "#FFFFFF" },
+      { "lifetime": 5 },
+      { "spawnBehavior": "interval" },
+      { "childrenToSpawn": 1 },
+      { "interval": 0.5 },
+      { "radius": 0.5 },
+      { "immediateFirstBurst": false }
+    ],
+    "IncompatibleWith": []
+  },
+  {
+    "MechanicName": "Aura",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/AuraMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 5 },
+      { "radius": 2 },
+      { "interval": 0.1 },
+      { "spriteType": "circle" },
+      { "spriteColor": "#00000080" },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
+    ],
+    "IncompatibleWith": ["Orbit", "Track"]
+  },
+  {
+    "MechanicName": "Beam",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 3 },
+      { "damageInterval": 0.25 },
+      { "spawnInterval": 1.0 },
+      { "radius": 0.5 },
+      { "speed": 10 },
+      { "lifetime": 5.0 },
+      { "direction": "right" },
+      { "spriteColor": "#FFFFFFFF" },
+      { "spawnBehavior": "interval" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false },
+      { "preserveHeadOnRedirect": true },
+      { "anchorTailToPlayer": true },
+      { "segmentOnRedirect": true },
+      { "debugLogs": true },
+      { "isSegmented": true },
+      { "segments": ["head", "tail"] },
+      { "maxSpeed": 0 },
+      { "debugSpeed": false }
+    ],
+    "IncompatibleWith": ["Orbit", "DamageOverTime"]
+  },
+  {
+    "MechanicName": "Strike",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/StrikeMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 10 },
+      { "interval": 0.5 },
+      { "spriteColor": "#000000FF" },
+      { "showVisualization": true },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
+    ],
+    "IncompatibleWith": ["Orbit", "Track", "Bounce"]
+  },
+  {
+    "MechanicName": "Ripple",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/RippleMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": false },
+      { "DestroyOnHit": false },
+      { "startRadius": 1.0 },
+      { "endDiameter": 8.0 },
+      { "growDuration": 1.5 },
+      { "edgeThickness": 0.1 },
+      { "damage": 2 },
+      { "includePlayer": false },
+      { "showVisualization": true },
+      { "spriteColor": "#4CB2FF99" },
+      { "spawnBehavior": "interval" },
+      { "interval": 0.6 },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
+    ],
+    "IncompatibleWith": ["Orbit", "Track", "Bounce"]
+  },
+  {
+    "MechanicName": "Whip",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/WhipMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "DestroyOnHit": false },
+      { "damagePerInterval": 5 },
+      { "interval": 0.1 },
+      { "outerRadius": 2.0 },
+      { "width": 3.0 },
+      { "arcLengthDeg": 160 },
+      { "drawDuration": 0.5 },
+      { "edgeOnly": true },
+      { "edgeThickness": 0.1 },
+      { "direction": "right" },
+      { "showVisualization": true },
+      { "spriteColor": "#FF990060" },
+      { "spawnBehavior": "static" },
+      { "childrenToSpawn": 1 },
+      { "immediateFirstBurst": false }
+    ],
+    "IncompatibleWith": ["Orbit", "Bounce", "DamageOverTime", "Track"]
+  },
+  {
+    "MechanicName": "SwordSlash",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlashPayload.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "seriesCount": 3 },
+      { "intervalBetween": 0.08 },
+      { "spawnOnInterval": false },
+      { "interval": 2.0 },
+      { "batchesAtOnce": 1 },
+      { "maxBatchesAtOnce": 4 },
+      { "outerRadius": 1.6 },
+      { "width": 0.6 },
+      { "arcLengthDeg": 120 },
+      { "edgeOnly": true },
+      { "edgeThickness": 0.1 },
+      { "speed": 12 },
+      { "damage": 8 },
+      { "spriteColor": "#FFFFFFFF" },
+      { "spawnBehavior": "sequence" },
+      { "childrenToSpawn": 3 }
+    ],
+    "IncompatibleWith": ["Orbit"]
+  },
+  {
+    "MechanicName": "ChildMovementMechanic",
+    "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs",
+    "Properties": [
+      { "AllowMultiple": true },
+      { "direction": "right" },
+      { "speed": 10 },
+      { "disableSelfSpeed": false },
+      { "autoAddPhysicsBody": true }
+    ],
+    "IncompatibleWith": []
+  }
+]

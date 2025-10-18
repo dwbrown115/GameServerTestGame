@@ -1,0 +1,138 @@
+[
+  {
+    "mechanicName": "Aura",
+    "category": "Primary",
+    "resourcePath": "Primary/Aura",
+    "file": "Primary/Aura.json",
+    "sourcePath": "Neuteral/Aura/Aura.json",
+    "hash": "b99917830af0f2449cadbedd154cc045c72d45886fa57c6b0d3447dc3b6fcf0d"
+  },
+  {
+    "mechanicName": "Beam",
+    "category": "Primary",
+    "resourcePath": "Primary/Beam",
+    "file": "Primary/Beam.json",
+    "sourcePath": "Neuteral/Beam/Beam.json",
+    "hash": "161cfb6a24519dbb697a79dc2ed768547ee514c2e9b0df0192f0253221fb8355"
+  },
+  {
+    "mechanicName": "Bounce",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Bounce",
+    "file": "Modifier/Bounce.json",
+    "sourcePath": "Chaos/Bounce/Bounce.json",
+    "hash": "7e877e38e4ef29248f503d28914802c783e6954d16df3d2a4be9e436c03200c5",
+    "attribute": "Chaos"
+  },
+  {
+    "mechanicName": "ChildMovementMechanic",
+    "category": "Primary",
+    "resourcePath": "Primary/ChildMovementMechanic",
+    "file": "Primary/ChildMovementMechanic.json",
+    "sourcePath": "Neuteral/Movement/ChildMovementMechanic.json",
+    "hash": "716dac8d240348e14574cabc84e2928cdd7328e7e79a8874373472dd576299ed"
+  },
+  {
+    "mechanicName": "DamageOverTime",
+    "category": "Modifier",
+    "resourcePath": "Modifier/DamageOverTime",
+    "file": "Modifier/DamageOverTime.json",
+    "sourcePath": "Corruption/DamageOverTime/DamageOverTime.json",
+    "hash": "d9809652c37c31d036d5beb48406cb34c3654a79fb67da343d6e9020d55e1a1c",
+    "attribute": "Corruption"
+  },
+  {
+    "mechanicName": "Drain",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Drain",
+    "file": "Modifier/Drain.json",
+    "sourcePath": "Corruption/Drain/Drain.json",
+    "hash": "68837dd496f947ba2a4caad7f3ef921b7eb6c0860b8d9c2438e98863bb2ef70a",
+    "attribute": "Corruption"
+  },
+  {
+    "mechanicName": "Explosion",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Explosion",
+    "file": "Modifier/Explosion.json",
+    "sourcePath": "Chaos/Explosion/Explosion.json",
+    "hash": "6b63595f11cb3d1bf01e8eac8edf122038c0d353e899439fd7c94482ac675135",
+    "attribute": "Chaos"
+  },
+  {
+    "mechanicName": "Lock",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Lock",
+    "file": "Modifier/Lock.json",
+    "sourcePath": "Order/Lock/Lock.json",
+    "hash": "1499c42b02729dbcda3767f810ef3e55c761d45333e9fbef85554d83a8d829ca",
+    "attribute": "Order"
+  },
+  {
+    "mechanicName": "Orbit",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Orbit",
+    "file": "Modifier/Orbit.json",
+    "sourcePath": "Neuteral/Orbit/Orbit.json",
+    "hash": "27e02b7ad4d6da394a83581901943669deb576cf797f6af6380b50bcf0351461",
+    "attribute": "Neuteral"
+  },
+  {
+    "mechanicName": "Projectile",
+    "category": "Primary",
+    "resourcePath": "Primary/Projectile",
+    "file": "Primary/Projectile.json",
+    "sourcePath": "Neuteral/Projectile/Projectile.json",
+    "hash": "dc833bd4cd20fd02bf25d6513e354f363e891bc297c198cb298ecc7c83576005"
+  },
+  {
+    "mechanicName": "Ripple",
+    "category": "Primary",
+    "resourcePath": "Primary/Ripple",
+    "file": "Primary/Ripple.json",
+    "sourcePath": "Neuteral/Ripple/Ripple.json",
+    "hash": "f536ade96b90cb7cffa5eb57d0e7c68a42cfb006eecbccf2c676de19ba0ecdde"
+  },
+  {
+    "mechanicName": "RippleOnHit",
+    "category": "Modifier",
+    "resourcePath": "Modifier/RippleOnHit",
+    "file": "Modifier/RippleOnHit.json",
+    "sourcePath": "Chaos/RippleOnHit/RippleOnHit.json",
+    "hash": "c35165e3ed3dd2d36922407b19cc49803e5bcbb9de6046bac42a255865f16ca9",
+    "attribute": "Chaos"
+  },
+  {
+    "mechanicName": "Strike",
+    "category": "Primary",
+    "resourcePath": "Primary/Strike",
+    "file": "Primary/Strike.json",
+    "sourcePath": "Neuteral/Strike/Strike.json",
+    "hash": "f8845b861047e6d56a4536c1edcbc3edef7bef44fb971e96a62634c57657036e"
+  },
+  {
+    "mechanicName": "SwordSlash",
+    "category": "Primary",
+    "resourcePath": "Primary/SwordSlash",
+    "file": "Primary/SwordSlash.json",
+    "sourcePath": "Neuteral/SwordSlash/SwordSlash.json",
+    "hash": "3ca42904232eb07c648bfe3e3dfaef7861cf992d5a8f7a2ea29433e878e964a6"
+  },
+  {
+    "mechanicName": "Track",
+    "category": "Modifier",
+    "resourcePath": "Modifier/Track",
+    "file": "Modifier/Track.json",
+    "sourcePath": "Order/Track/Track.json",
+    "hash": "19922e6523ce4ed3a4cbda68c926d1f341dbf20dad5363351260bf81fafff4e7",
+    "attribute": "Order"
+  },
+  {
+    "mechanicName": "Whip",
+    "category": "Primary",
+    "resourcePath": "Primary/Whip",
+    "file": "Primary/Whip.json",
+    "sourcePath": "Neuteral/Whip/Whip.json",
+    "hash": "b876aa3171546f33d07995632fd61426db7ae90297e39ee0fad20ce47aaaeafa"
+  }
+]
