@@ -250,6 +250,63 @@ namespace Game.Procederal
         )]
         public TextAsset modifierMechanicListJson;
 
+        [Header("Catalog (optional)")]
+        [Tooltip(
+            "Provide an object implementing IMechanicCatalog or IMechanicCatalogProvider to control catalog bootstrap."
+        )]
+        [SerializeField]
+        private UnityEngine.Object mechanicCatalogSource;
+
+        private IMechanicCatalog _catalog;
+        private bool _catalogFallbackWarned;
+
+        public void SetMechanicCatalog(IMechanicCatalog catalog)
+        {
+            _catalog = catalog;
+        }
+
+        private IMechanicCatalog GetCatalog()
+        {
+            if (_catalog != null)
+                return _catalog;
+
+            if (mechanicCatalogSource is IMechanicCatalogInitializer initializer)
+            {
+                initializer.EnsureReady();
+            }
+
+            if (mechanicCatalogSource is IMechanicCatalog directCatalog)
+            {
+                _catalog = directCatalog;
+            }
+            else if (mechanicCatalogSource is IMechanicCatalogProvider provider)
+            {
+                _catalog = provider.Catalog;
+            }
+
+            if (_catalog == null)
+            {
+                if (!_catalogFallbackWarned)
+                {
+                    Debug.LogWarning(
+                        "[ProcederalItemGenerator] No mechanic catalog provided; falling back to MechanicsRegistry.Instance. Ensure an external bootstrapper initializes the registry before use.",
+                        this
+                    );
+                    _catalogFallbackWarned = true;
+                }
+                if (primaryMechanicListJson != null || modifierMechanicListJson != null)
+                {
+                    MechanicsRegistry.Instance.EnsureInitialized(
+                        primaryMechanicListJson,
+                        modifierMechanicListJson
+                    );
+                }
+                _catalog = MechanicsRegistry.Instance;
+            }
+
+            return _catalog;
+        }
+
         // Entry point: JSON -> build
         public GameObject CreateFromJson(string json, ItemParams p = null, Transform parent = null)
         {
@@ -270,12 +327,6 @@ namespace Game.Procederal
                 return null;
             }
             p ??= new ItemParams();
-
-            // Ensure central registry is initialized (enables future OTA swaps)
-            MechanicsRegistry.Instance.EnsureInitialized(
-                primaryMechanicListJson,
-                modifierMechanicListJson
-            );
 
             string secondaryLabel =
                 (instruction.secondary != null && instruction.secondary.Count > 0)
@@ -322,13 +373,11 @@ namespace Game.Procederal
             (string key, object val)[] settings
         )
         {
+            var catalog = GetCatalog();
             // Load catalog from the same JSONs you already maintain in your project via Resources
             // or expose them in the inspector for this generator. To keep it decoupled here,
             // we try Resources first.
-            if (
-                !MechanicsRegistry.Instance.TryGetPath(mechanicName, out var path)
-                || string.IsNullOrWhiteSpace(path)
-            )
+            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
             {
                 Log($"Mechanic path not found for '{mechanicName}'.");
                 return null;
@@ -340,7 +389,7 @@ namespace Game.Procederal
                 return null;
             }
             // Merge defaults from JSON Properties with optional Overrides, then apply provided settings last
-            var merged = MechanicsRegistry.Instance.GetMergedSettings(mechanicName);
+            var merged = catalog.GetMergedSettings(mechanicName);
             if (settings != null)
             {
                 foreach (var (key, val) in settings)
@@ -365,10 +414,8 @@ namespace Game.Procederal
         {
             if (go == null)
                 return false;
-            if (
-                !MechanicsRegistry.Instance.TryGetPath(mechanicName, out var path)
-                || string.IsNullOrWhiteSpace(path)
-            )
+            var catalog = GetCatalog();
+            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
                 return false;
             var type = MechanicReflection.ResolveTypeFromMechanicPath(path);
             if (type == null)
@@ -386,7 +433,7 @@ namespace Game.Procederal
 
             // Prefer registry lookup when using mechanic name tokens
             if (
-                MechanicsRegistry.Instance.TryGetPath(mechanicNameOrPath, out var path)
+                GetCatalog().TryGetPath(mechanicNameOrPath, out var path)
                 && !string.IsNullOrWhiteSpace(path)
             )
             {
@@ -673,7 +720,7 @@ namespace Game.Procederal
 
         private List<string> LoadStringArrayForMechanic(string mechanicName, string arrayName)
         {
-            return MechanicsRegistry.Instance.GetIncompatibleWith(mechanicName);
+            return GetCatalog().GetIncompatibleWith(mechanicName);
         }
 
         internal void EnsureOwnerDrain(Transform drainOwner, ItemParams p)
@@ -700,7 +747,7 @@ namespace Game.Procederal
         // --- JSON settings helpers ---
         internal Dictionary<string, object> LoadAndMergeJsonSettings(string mechanicName)
         {
-            var dict = MechanicsRegistry.Instance.GetMergedSettings(mechanicName);
+            var dict = GetCatalog().GetMergedSettings(mechanicName);
             NormalizeSettings(mechanicName, dict);
             return dict;
         }
@@ -712,6 +759,7 @@ namespace Game.Procederal
             var temp = new GameObject("_JsonHelper").AddComponent<ProcederalItemGenerator>();
             try
             {
+                temp.SetMechanicCatalog(MechanicsRegistry.Instance);
                 var src = temp.LoadAndMergeJsonSettings(mechanicName);
                 return new Dictionary<string, object>(src, StringComparer.OrdinalIgnoreCase);
             }
@@ -727,7 +775,7 @@ namespace Game.Procederal
             string arrayName
         )
         {
-            return MechanicsRegistry.Instance.GetKvpArray(mechanicName, arrayName);
+            return GetCatalog().GetKvpArray(mechanicName, arrayName);
         }
 
         private void NormalizeSettings(string mechanicName, Dictionary<string, object> dict)

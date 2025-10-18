@@ -54,6 +54,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/RippleOnHit/RippleOnHitMechanic.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerController2D.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalogInitializer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/PrimaryBuilders.cs" />
     <Compile Include="Assets/Scripts/Utilities/ColorUtils.cs" />
@@ -91,6 +92,7 @@
     <Compile Include="Assets/Scripts/Utilities/PlayerApiCertificateHandler.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Lock/LockMechanic.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalog.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceIndexTag.cs" />
     <Compile Include="Assets/Scripts/UI/SkinsGridView.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceAnchorFollower.cs" />
@@ -126,6 +128,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/ChaosSpawnPosition.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/Bounce/BounceMechanic.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextSelector_B.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicCatalogBehaviour.cs" />
     <Compile Include="Assets/Scripts/Apis/SpawnSchemas.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/SkewTextExample.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/WarpTextExample.cs" />
@@ -194,6 +197,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/IPrimaryBuilder.cs" />
     <Compile Include="Assets/Scripts/Managers/SkinsService.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/RestartGame.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalogProvider.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/MechanicContext.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/Strategies/PrimaryStrategies.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Strike/StrikeEffectAdapter.cs" />

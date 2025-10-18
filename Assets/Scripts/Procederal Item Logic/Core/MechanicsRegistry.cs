@@ -9,7 +9,7 @@ namespace Game.Procederal.Core
 {
     /// Central registry for mechanic descriptors loaded from Primary/Modifier JSON catalogs.
     /// Provides merged settings, incompatibilities, and path/type resolution.
-    public class MechanicsRegistry
+    public class MechanicsRegistry : IMechanicCatalog
     {
         private static MechanicsRegistry _instance;
         public static MechanicsRegistry Instance => _instance ??= new MechanicsRegistry();
