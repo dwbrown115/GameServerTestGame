@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -24,22 +25,12 @@ namespace Game.Procederal.Api
             position = center.position;
             direction = Vector2.right;
 
-            // Find all mobs in scene (tag-based); pick a random one
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-            {
-                // No mob found; cannot determine direction
-                return false;
-            }
-            Transform best = null;
             var cpos = center.position;
-            int idx = Random.Range(0, mobs.Length);
-            best = mobs[idx].transform;
-
-            if (best == null)
+            var target = TargetingServiceLocator.Service.PickRandomMob(center);
+            if (target == null)
                 return false;
 
-            Vector2 dir = (best.position - cpos);
+            Vector2 dir = (target.position - cpos);
             if (dir.sqrMagnitude < 0.0001f)
                 dir = Vector2.right;
             direction = dir.normalized;

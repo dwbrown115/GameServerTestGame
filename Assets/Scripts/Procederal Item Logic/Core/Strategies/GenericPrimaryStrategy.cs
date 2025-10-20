@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Game.Procederal.Api; // for MechanicReflection
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Core.Builders.Strategies
@@ -69,12 +72,33 @@ namespace Game.Procederal.Core.Builders.Strategies
                     if (modSettings.TryGetValue("childrenToSpawn", out var ctsRaw))
                     {
                         int parsed = 0;
-                        if (ctsRaw is int ci)
-                            parsed = ci;
-                        else if (ctsRaw is float cf)
-                            parsed = Mathf.RoundToInt(cf);
-                        else if (ctsRaw is string cs && int.TryParse(cs, out var pis))
-                            parsed = pis;
+                        switch (ctsRaw)
+                        {
+                            case int ci:
+                                parsed = ci;
+                                break;
+                            case long cl when cl <= int.MaxValue && cl >= int.MinValue:
+                                parsed = (int)cl;
+                                break;
+                            case float cf:
+                                parsed = Mathf.RoundToInt(cf);
+                                break;
+                            case double cd:
+                                parsed = (int)Math.Round(cd, MidpointRounding.AwayFromZero);
+                                break;
+                            case decimal cm:
+                                parsed = (int)Math.Round(cm, MidpointRounding.AwayFromZero);
+                                break;
+                            case string cs
+                                when int.TryParse(
+                                    cs,
+                                    NumberStyles.Integer,
+                                    CultureInfo.InvariantCulture,
+                                    out var pis
+                                ):
+                                parsed = pis;
+                                break;
+                        }
                         if (parsed > 0)
                             overrideChildrenToSpawn = parsed;
                     }
@@ -279,12 +303,14 @@ namespace Game.Procederal.Core.Builders.Strategies
                     continue;
                 // Resolve mechanic type
                 if (
-                    !MechanicsRegistry.Instance.TryGetPath(mod, out var path)
-                    || string.IsNullOrWhiteSpace(path)
+                    !MechanicApplier.TryResolveType(
+                        MechanicsRegistry.Instance,
+                        mod,
+                        out var type,
+                        out _,
+                        out _
+                    )
                 )
-                    continue;
-                var type = MechanicReflection.ResolveTypeFromMechanicPath(path);
-                if (type == null)
                     continue;
                 foreach (var child in children)
                 {

@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using Game.Procederal;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
 {
     /// Spawns Beam mechanics periodically using a resolver for spawn position and direction.
     [DisallowMultipleComponent]
-    public class BeamIntervalSpawner : MonoBehaviour
+    public class BeamIntervalSpawner : MonoBehaviour, IModifierReceiver, IModifierOwnerProvider
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -65,6 +66,8 @@ namespace Game.Procederal.Api
                 return;
             _modifierSpecs.Add((mechanicName, settings));
         }
+
+        public Transform ModifierOwner => owner != null ? owner : transform;
 
         private void Update()
         {

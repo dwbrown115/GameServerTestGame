@@ -4,12 +4,12 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace Game.Procederal.Core.Builders
+namespace Game.Procederal.Core.Builders.Modifiers
 {
-    public static class PrimaryBuilders
+    public static class ModifierStrategies
     {
         private static readonly object _initLock = new object();
-        private static Dictionary<Game.Procederal.MechanicKind, IPrimaryBuilder> _map;
+        private static Dictionary<Game.Procederal.MechanicKind, IModifierStrategy> _map;
         private static bool _initialized;
 
         private static void EnsureInitialized()
@@ -21,9 +21,9 @@ namespace Game.Procederal.Core.Builders
                 if (_initialized)
                     return;
 
-                _map ??= new Dictionary<Game.Procederal.MechanicKind, IPrimaryBuilder>();
+                _map ??= new Dictionary<Game.Procederal.MechanicKind, IModifierStrategy>();
 
-                var builderType = typeof(IPrimaryBuilder);
+                var strategyType = typeof(IModifierStrategy);
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var asm in assemblies)
                 {
@@ -39,14 +39,14 @@ namespace Game.Procederal.Core.Builders
 
                     foreach (var type in types)
                     {
-                        if (type == null || type.IsAbstract || type.IsInterface)
+                        if (type == null || type.IsInterface || type.IsAbstract)
                             continue;
-                        if (!builderType.IsAssignableFrom(type))
+                        if (!strategyType.IsAssignableFrom(type))
                             continue;
 
                         try
                         {
-                            var instance = Activator.CreateInstance(type) as IPrimaryBuilder;
+                            var instance = Activator.CreateInstance(type) as IModifierStrategy;
                             if (instance == null)
                                 continue;
 
@@ -57,7 +57,7 @@ namespace Game.Procederal.Core.Builders
                             )
                             {
                                 Debug.LogWarning(
-                                    $"[PrimaryBuilders] Replacing builder for {instance.Kind} from {existing.GetType().Name} to {type.Name}."
+                                    $"[ModifierStrategies] Replacing strategy for {instance.Kind} from {existing.GetType().Name} to {type.Name}."
                                 );
                             }
 
@@ -66,7 +66,7 @@ namespace Game.Procederal.Core.Builders
                         catch (Exception ex)
                         {
                             Debug.LogWarning(
-                                $"[PrimaryBuilders] Failed to instantiate builder {type.FullName}: {ex.Message}"
+                                $"[ModifierStrategies] Failed to instantiate strategy {type.FullName}: {ex.Message}"
                             );
                         }
                     }
@@ -76,22 +76,19 @@ namespace Game.Procederal.Core.Builders
             }
         }
 
-        public static IPrimaryBuilder Get(Game.Procederal.MechanicKind kind)
+        public static IModifierStrategy Get(Game.Procederal.MechanicKind kind)
         {
             EnsureInitialized();
-            if (_map.TryGetValue(kind, out var builder))
-                return builder;
-            if (_map.TryGetValue(Game.Procederal.MechanicKind.None, out var fallback))
-                return fallback;
-            return null;
+            _map.TryGetValue(kind, out var strategy);
+            return strategy;
         }
 
-        public static void Register(IPrimaryBuilder builder)
+        public static void Register(IModifierStrategy strategy)
         {
-            if (builder == null)
+            if (strategy == null)
                 return;
             EnsureInitialized();
-            _map[builder.Kind] = builder;
+            _map[strategy.Kind] = strategy;
         }
     }
 }

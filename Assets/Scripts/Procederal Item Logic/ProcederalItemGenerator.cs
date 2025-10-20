@@ -257,12 +257,52 @@ namespace Game.Procederal
         [SerializeField]
         private UnityEngine.Object mechanicCatalogSource;
 
+        [Header("Pooling (optional)")]
+        [Tooltip(
+            "Provide an object implementing IItemObjectFactory or IItemObjectFactoryProvider to control how payload GameObjects are created and recycled."
+        )]
+        [SerializeField]
+        private UnityEngine.Object objectFactorySource;
+
         private IMechanicCatalog _catalog;
+        private MechanicSettingsCache _settingsCache;
         private bool _catalogFallbackWarned;
+        private IItemObjectFactory _objectFactory;
+        private bool _objectFactoryFallbackWarned;
+
+        private readonly List<ModifierFitResult> _modifierFitResults =
+            new List<ModifierFitResult>();
+        private readonly HashSet<string> _softFitNotices = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         public void SetMechanicCatalog(IMechanicCatalog catalog)
         {
-            _catalog = catalog;
+            AssignCatalog(catalog);
+        }
+
+        public void SetObjectFactory(IItemObjectFactory factory)
+        {
+            AssignObjectFactory(factory);
+        }
+
+        public IReadOnlyList<ModifierFitResult> LastModifierFits => _modifierFitResults;
+
+        public enum ModifierFitSeverity
+        {
+            Normal = 0,
+            Caution = 1,
+            Blocked = 2,
+        }
+
+        public struct ModifierFitResult
+        {
+            public string primary;
+            public string modifier;
+            public MechanicKind kind;
+            public float score;
+            public ModifierFitSeverity severity;
+            public string reason;
         }
 
         private IMechanicCatalog GetCatalog()
@@ -275,36 +315,232 @@ namespace Game.Procederal
                 initializer.EnsureReady();
             }
 
+            IMechanicCatalog candidate = null;
             if (mechanicCatalogSource is IMechanicCatalog directCatalog)
             {
-                _catalog = directCatalog;
+                candidate = directCatalog;
             }
             else if (mechanicCatalogSource is IMechanicCatalogProvider provider)
             {
-                _catalog = provider.Catalog;
+                candidate = provider.Catalog;
             }
 
-            if (_catalog == null)
+            if (candidate != null)
             {
-                if (!_catalogFallbackWarned)
-                {
-                    Debug.LogWarning(
-                        "[ProcederalItemGenerator] No mechanic catalog provided; falling back to MechanicsRegistry.Instance. Ensure an external bootstrapper initializes the registry before use.",
-                        this
-                    );
-                    _catalogFallbackWarned = true;
-                }
-                if (primaryMechanicListJson != null || modifierMechanicListJson != null)
-                {
-                    MechanicsRegistry.Instance.EnsureInitialized(
-                        primaryMechanicListJson,
-                        modifierMechanicListJson
-                    );
-                }
-                _catalog = MechanicsRegistry.Instance;
+                AssignCatalog(candidate);
+                return _catalog;
             }
 
+            if (!_catalogFallbackWarned)
+            {
+                Debug.LogWarning(
+                    "[ProcederalItemGenerator] No mechanic catalog provided; falling back to MechanicsRegistry.Instance. Ensure an external bootstrapper initializes the registry before use.",
+                    this
+                );
+                _catalogFallbackWarned = true;
+            }
+            if (primaryMechanicListJson != null || modifierMechanicListJson != null)
+            {
+                MechanicsRegistry.Instance.EnsureInitialized(
+                    primaryMechanicListJson,
+                    modifierMechanicListJson
+                );
+            }
+
+            AssignCatalog(MechanicsRegistry.Instance);
             return _catalog;
+        }
+
+        private MechanicSettingsCache GetSettingsCache()
+        {
+            var catalog = GetCatalog();
+            if (_settingsCache == null || !ReferenceEquals(_settingsCache.Catalog, catalog))
+                _settingsCache = new MechanicSettingsCache(catalog);
+            return _settingsCache;
+        }
+
+        private IItemObjectFactory GetObjectFactory()
+        {
+            if (_objectFactory != null)
+                return _objectFactory;
+
+            if (objectFactorySource is IItemObjectFactoryInitializer initializer)
+            {
+                initializer.EnsureReady();
+            }
+
+            IItemObjectFactory candidate = null;
+            if (objectFactorySource is IItemObjectFactory directFactory)
+            {
+                candidate = directFactory;
+            }
+            else if (objectFactorySource is IItemObjectFactoryProvider provider)
+            {
+                candidate = provider.Factory;
+            }
+
+            if (candidate != null)
+            {
+                AssignObjectFactory(candidate);
+                return _objectFactory;
+            }
+
+            if (!_objectFactoryFallbackWarned)
+            {
+                Debug.Log(
+                    "[ProcederalItemGenerator] No object factory supplied; falling back to ItemObjectFactoryLocator. Register a custom pool via SetObjectFactory or objectFactorySource if reuse is desired.",
+                    this
+                );
+                _objectFactoryFallbackWarned = true;
+            }
+
+            AssignObjectFactory(ItemObjectFactoryLocator.Factory);
+            return _objectFactory;
+        }
+
+        public void InvalidateMechanicSettings(string mechanicName = null)
+        {
+            if (_settingsCache == null)
+                return;
+            if (string.IsNullOrWhiteSpace(mechanicName))
+                _settingsCache.Clear();
+            else
+                _settingsCache.Invalidate(mechanicName);
+        }
+
+        private void AssignCatalog(IMechanicCatalog catalog)
+        {
+            if (catalog == null)
+            {
+                _catalog = null;
+                _settingsCache = null;
+                _modifierFitResults.Clear();
+                _softFitNotices.Clear();
+                return;
+            }
+
+            if (!ReferenceEquals(_catalog, catalog))
+            {
+                _catalog = catalog;
+                _settingsCache = new MechanicSettingsCache(catalog);
+                _modifierFitResults.Clear();
+                _softFitNotices.Clear();
+            }
+            else if (_settingsCache == null)
+            {
+                _settingsCache = new MechanicSettingsCache(catalog);
+            }
+        }
+
+        private void AssignObjectFactory(IItemObjectFactory factory)
+        {
+            _objectFactory = factory ?? ItemObjectFactoryLocator.Factory;
+        }
+
+        private GameObject AcquireObject(
+            string key,
+            Transform parent,
+            bool worldPositionStays = false
+        )
+        {
+            var factory = GetObjectFactory();
+            var go = factory?.Acquire(key, parent, worldPositionStays);
+            if (go == null)
+            {
+                go = new GameObject(string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key);
+                if (parent != null)
+                    go.transform.SetParent(parent, worldPositionStays);
+            }
+            else if (parent != null && go.transform.parent != parent)
+            {
+                go.transform.SetParent(parent, worldPositionStays);
+            }
+            else if (parent == null)
+            {
+                go.transform.SetParent(null, false);
+            }
+
+            go.name = string.IsNullOrWhiteSpace(key) ? go.name : key;
+            ResetReusableObject(go);
+
+            var t = go.transform;
+            if (!worldPositionStays)
+                t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            t.localScale = Vector3.one;
+            go.SetActive(true);
+
+            return go;
+        }
+
+        private void ResetReusableObject(GameObject go)
+        {
+            if (go == null)
+                return;
+
+            var components = go.GetComponents<Component>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                var comp = components[i];
+                if (comp == null || comp is Transform)
+                    continue;
+                if (ReferenceEquals(comp, this))
+                    continue;
+                if (comp is IPooledPayloadResettable resettable)
+                {
+                    resettable.ResetForPool();
+                    continue;
+                }
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    DestroyImmediate(comp);
+                    continue;
+                }
+#endif
+                Destroy(comp);
+            }
+
+            for (int i = go.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = go.transform.GetChild(i);
+                if (child == null)
+                    continue;
+                var childGo = child.gameObject;
+                child.SetParent(null, false);
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    DestroyImmediate(childGo);
+                    continue;
+                }
+#endif
+                Destroy(childGo);
+            }
+        }
+
+        public void ReleaseObject(GameObject go)
+        {
+            if (go == null)
+                return;
+            go.transform.SetParent(null, false);
+            GetObjectFactory().Release(go);
+        }
+
+        public void ReleaseTree(GameObject root)
+        {
+            if (root == null)
+                return;
+
+            var transforms = root.GetComponentsInChildren<Transform>(includeInactive: true);
+            for (int i = transforms.Length - 1; i >= 0; --i)
+            {
+                var t = transforms[i];
+                if (t == null)
+                    continue;
+                ReleaseObject(t.gameObject);
+            }
         }
 
         // Entry point: JSON -> build
@@ -332,12 +568,15 @@ namespace Game.Procederal
                 (instruction.secondary != null && instruction.secondary.Count > 0)
                     ? "+" + string.Join("+", instruction.secondary)
                     : string.Empty;
-            var root = new GameObject($"Item_{instruction.primary}{secondaryLabel}");
-            root.transform.SetParent(
-                parent != null ? parent : (defaultParent != null ? defaultParent : transform),
-                false
-            );
-            root.transform.localPosition = Vector3.zero;
+            var parentTransform =
+                parent != null ? parent : (defaultParent != null ? defaultParent : transform);
+            var rootName = $"Item_{instruction.primary}{secondaryLabel}";
+            var root = AcquireObject(rootName, parentTransform);
+            if (root == null)
+            {
+                Log("Failed to acquire root GameObject for generated item.");
+                return null;
+            }
 
             var subItems = new List<GameObject>();
 
@@ -374,38 +613,28 @@ namespace Game.Procederal
         )
         {
             var catalog = GetCatalog();
-            // Load catalog from the same JSONs you already maintain in your project via Resources
-            // or expose them in the inspector for this generator. To keep it decoupled here,
-            // we try Resources first.
-            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
+            var cache = GetSettingsCache();
+            if (
+                !MechanicApplier.TryPrepare(
+                    catalog,
+                    cache,
+                    mechanicName,
+                    settings,
+                    out var type,
+                    out var finalSettings,
+                    out var failure
+                )
+            )
             {
-                Log($"Mechanic path not found for '{mechanicName}'.");
+                if (!string.IsNullOrEmpty(failure))
+                    Log(failure);
                 return null;
             }
-            var type = MechanicReflection.ResolveTypeFromMechanicPath(path);
-            if (type == null)
-            {
-                Log($"Failed to resolve mechanic type for '{mechanicName}' from '{path}'.");
-                return null;
-            }
-            // Merge defaults from JSON Properties with optional Overrides, then apply provided settings last
-            var merged = catalog.GetMergedSettings(mechanicName);
-            if (settings != null)
-            {
-                foreach (var (key, val) in settings)
-                {
-                    if (string.IsNullOrWhiteSpace(key))
-                        continue;
-                    merged[key] = val;
-                }
-            }
-            var finalList = new List<(string key, object val)>();
-            foreach (var kv in merged)
-                finalList.Add((kv.Key, kv.Value));
-            return MechanicReflection.AddMechanicWithSettings(go, type, finalList.ToArray());
+
+            return MechanicReflection.AddMechanicWithSettings(go, type, finalSettings);
         }
 
-        private bool SetExistingMechanicSetting(
+        public bool SetExistingMechanicSetting(
             GameObject go,
             string mechanicName,
             string key,
@@ -415,10 +644,7 @@ namespace Game.Procederal
             if (go == null)
                 return false;
             var catalog = GetCatalog();
-            if (!catalog.TryGetPath(mechanicName, out var path) || string.IsNullOrWhiteSpace(path))
-                return false;
-            var type = MechanicReflection.ResolveTypeFromMechanicPath(path);
-            if (type == null)
+            if (!MechanicApplier.TryResolveType(catalog, mechanicName, out var type, out _, out _))
                 return false;
             var comp = go.GetComponent(type) as Component;
             if (comp == null)
@@ -426,19 +652,23 @@ namespace Game.Procederal
             return MechanicReflection.ApplyMember(comp, key, val);
         }
 
-        private bool HasMechanic(GameObject go, string mechanicNameOrPath)
+        public bool HasMechanic(GameObject go, string mechanicNameOrPath)
         {
             if (go == null || string.IsNullOrWhiteSpace(mechanicNameOrPath))
                 return false;
 
             // Prefer registry lookup when using mechanic name tokens
             if (
-                GetCatalog().TryGetPath(mechanicNameOrPath, out var path)
-                && !string.IsNullOrWhiteSpace(path)
+                MechanicApplier.TryResolveType(
+                    GetCatalog(),
+                    mechanicNameOrPath,
+                    out var resolvedType,
+                    out _,
+                    out _
+                )
             )
             {
-                var resolved = MechanicReflection.ResolveTypeFromMechanicPath(path);
-                if (resolved != null && go.GetComponent(resolved) != null)
+                if (resolvedType != null && go.GetComponent(resolvedType) != null)
                     return true;
             }
 
@@ -480,7 +710,7 @@ namespace Game.Procederal
 
         // TrySet no longer needed here; reflection handled centrally via MechanicReflection
 
-        private void Log(string msg)
+        public void Log(string msg)
         {
             if (debugLogs)
                 Debug.Log($"[ProcederalItemGenerator] {msg}", this);
@@ -489,7 +719,7 @@ namespace Game.Procederal
         // Generic: forward all compatible modifiers to a spawner object that exposes AddModifierSpec(string, params (string,object)[])
         // Also handles small special-cases: Orbit (skip: handled via routing), Drain (ensure owner has Drain), Track (optionally set aim flag if present)
         internal void ForwardModifiersToSpawner(
-            object spawner,
+            IModifierReceiver spawner,
             ItemInstruction instruction,
             ItemParams p
         )
@@ -500,72 +730,15 @@ namespace Game.Procederal
             if (mods == null || mods.Count == 0)
                 return;
 
-            // Reflection helpers
-            bool TryAddSpec(string mechName, params (string key, object val)[] settings)
+            var ownerProvider = spawner as IModifierOwnerProvider;
+            var aimToggle = spawner as IAimAtNearestEnemyToggle;
+            Transform modifierOwner = ownerProvider?.ModifierOwner;
+            if (modifierOwner == null)
             {
-                var type = spawner.GetType();
-                var mi = type.GetMethod("AddModifierSpec");
-                if (mi == null)
-                {
-                    // Some spawners may have params signature resolution; try any AddModifierSpec
-                    foreach (var m in type.GetMethods())
-                    {
-                        if (m.Name == "AddModifierSpec" && m.GetParameters().Length >= 1)
-                        {
-                            mi = m;
-                            break;
-                        }
-                    }
-                }
-                if (mi == null)
-                    return false;
-                // Build ValueTuple<string, object>[] via reflection to match params signature
-                var tupleType = typeof(System.ValueTuple<string, object>);
-                System.Array tupleArray;
-                if (settings != null && settings.Length > 0)
-                {
-                    tupleArray = System.Array.CreateInstance(tupleType, settings.Length);
-                    for (int i = 0; i < settings.Length; i++)
-                    {
-                        var vt = System.Activator.CreateInstance(
-                            tupleType,
-                            settings[i].key,
-                            settings[i].val
-                        );
-                        tupleArray.SetValue(vt, i);
-                    }
-                }
+                if (spawner is Component component)
+                    modifierOwner = component.transform;
                 else
-                {
-                    tupleArray = System.Array.CreateInstance(tupleType, 0);
-                }
-                mi.Invoke(spawner, new object[] { mechName, tupleArray });
-                return true;
-            }
-
-            // Try to get owner transform off spawner for Drain owner ensure
-            Transform SpawnerOwner()
-            {
-                var t = spawner.GetType();
-                try
-                {
-                    var fi = t.GetField("owner");
-                    if (fi != null)
-                    {
-                        var val = fi.GetValue(spawner) as Transform;
-                        if (val != null)
-                            return val;
-                    }
-                    var pi = t.GetProperty("owner");
-                    if (pi != null && pi.CanRead)
-                    {
-                        var val = pi.GetValue(spawner) as Transform;
-                        if (val != null)
-                            return val;
-                    }
-                }
-                catch { }
-                return owner != null ? owner : transform;
+                    modifierOwner = owner != null ? owner : transform;
             }
 
             foreach (var kind in mods)
@@ -576,46 +749,36 @@ namespace Game.Procederal
                         // handled by builder routing; do not attach as a modifier to spawner children
                         continue;
                     case MechanicKind.Drain:
-                        EnsureOwnerDrain(SpawnerOwner(), p);
-                        TryAddSpec("Drain", ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)));
+                        EnsureOwnerDrain(modifierOwner, p);
+                        spawner.AddModifierSpec(
+                            "Drain",
+                            ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio))
+                        );
                         break;
                     case MechanicKind.Track:
                         // Attach Track and, if the spawner supports, enable aim at nearest enemy
-                        TryAddSpec("Track");
-                        var aimField = spawner.GetType().GetField("aimAtNearestEnemy");
-                        if (aimField != null && aimField.FieldType == typeof(bool))
-                        {
-                            aimField.SetValue(spawner, true);
-                        }
-                        else
-                        {
-                            var aimProp = spawner.GetType().GetProperty("aimAtNearestEnemy");
-                            if (
-                                aimProp != null
-                                && aimProp.CanWrite
-                                && aimProp.PropertyType == typeof(bool)
-                            )
-                                aimProp.SetValue(spawner, true);
-                        }
+                        spawner.AddModifierSpec("Track");
+                        if (aimToggle != null)
+                            aimToggle.AimAtNearestEnemy = true;
                         break;
                     case MechanicKind.DamageOverTime:
-                        TryAddSpec("DamageOverTime");
+                        spawner.AddModifierSpec("DamageOverTime");
                         break;
                     case MechanicKind.Bounce:
-                        TryAddSpec("Bounce");
+                        spawner.AddModifierSpec("Bounce");
                         break;
                     case MechanicKind.Explosion:
-                        TryAddSpec("Explosion");
+                        spawner.AddModifierSpec("Explosion");
                         break;
                     case MechanicKind.RippleOnHit:
-                        TryAddSpec("RippleOnHit");
+                        spawner.AddModifierSpec("RippleOnHit");
                         break;
                     case MechanicKind.Lock:
-                        TryAddSpec("Lock");
+                        spawner.AddModifierSpec("Lock");
                         break;
                     default:
                         // For future modifiers, default to name matching enum
-                        TryAddSpec(kind.ToString());
+                        spawner.AddModifierSpec(kind.ToString());
                         break;
                 }
             }
@@ -683,44 +846,129 @@ namespace Game.Procederal
         internal HashSet<MechanicKind> GetModifiersToApply(ItemInstruction instruction)
         {
             var set = new HashSet<MechanicKind>();
+            _modifierFitResults.Clear();
+
             if (
                 !autoApplyCompatibleModifiers
                 || instruction == null
                 || instruction.secondary == null
             )
                 return set;
+
+            var catalog = GetCatalog();
+            var primaryName = instruction.primary?.Trim();
+
             foreach (var s in instruction.secondary)
             {
                 var kind = ItemInstruction.ParseKind(s);
                 if (kind == MechanicKind.None)
                     continue;
+
                 string modName = s?.Trim();
                 if (string.IsNullOrWhiteSpace(modName) || IsDenied(modName))
                     continue;
-                if (!ShouldApplyModifierForPrimary(instruction.primary, modName))
+
+                var fit = EvaluateModifierFit(catalog, primaryName, modName, kind);
+                if (fit.severity == ModifierFitSeverity.Blocked)
+                {
+                    if (!string.IsNullOrEmpty(fit.reason))
+                    {
+                        Debug.LogWarning(
+                            $"[ProcederalItemGenerator] Blocked modifier '{modName}' for '{primaryName}' ({fit.reason}).",
+                            this
+                        );
+                    }
                     continue;
-                set.Add(kind);
+                }
+
+                if (!set.Add(kind))
+                    continue;
+
+                _modifierFitResults.Add(fit);
+
+                if (fit.severity == ModifierFitSeverity.Caution)
+                {
+                    var key = $"{fit.primary}|{fit.modifier}";
+                    if (_softFitNotices.Add(key))
+                    {
+                        var reasonSuffix = string.IsNullOrEmpty(fit.reason)
+                            ? string.Empty
+                            : $" ({fit.reason})";
+                        Debug.LogWarning(
+                            $"[ProcederalItemGenerator] Soft compatibility warning: {fit.primary} + {fit.modifier} score {fit.score:0.00}{reasonSuffix}.",
+                            this
+                        );
+                    }
+                }
             }
+
             return set;
         }
 
-        private bool ShouldApplyModifierForPrimary(string primaryName, string modifierName)
+        private ModifierFitResult EvaluateModifierFit(
+            IMechanicCatalog catalog,
+            string primaryName,
+            string modifierName,
+            MechanicKind kind
+        )
         {
-            if (string.IsNullOrWhiteSpace(primaryName) || string.IsNullOrWhiteSpace(modifierName))
-                return false;
-            // Check JSON-based incompatibilities from Primary Mechanic List
-            var incompatible = LoadStringArrayForMechanic(primaryName, "IncompatibleWith");
-            foreach (var s in incompatible)
+            var result = new ModifierFitResult
             {
-                if (string.Equals(s, modifierName, StringComparison.OrdinalIgnoreCase))
-                    return false;
-            }
-            return true;
-        }
+                primary = primaryName ?? string.Empty,
+                modifier = modifierName ?? string.Empty,
+                kind = kind,
+                score = 1f,
+                severity = ModifierFitSeverity.Normal,
+                reason = string.Empty,
+            };
 
-        private List<string> LoadStringArrayForMechanic(string mechanicName, string arrayName)
-        {
-            return GetCatalog().GetIncompatibleWith(mechanicName);
+            if (string.IsNullOrWhiteSpace(primaryName) || string.IsNullOrWhiteSpace(modifierName))
+            {
+                result.score = 0f;
+                result.severity = ModifierFitSeverity.Blocked;
+                result.reason = "Missing mechanic identifier.";
+                return result;
+            }
+
+            List<string> reasons = null;
+
+            var incompatible = catalog.GetIncompatibleWith(primaryName);
+            if (incompatible != null)
+            {
+                foreach (var entry in incompatible)
+                {
+                    if (string.Equals(entry, modifierName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.score = 0.2f;
+                        result.severity = ModifierFitSeverity.Caution;
+                        reasons ??= new List<string>();
+                        reasons.Add("Listed as incompatible in catalog");
+                        break;
+                    }
+                }
+            }
+
+            if (!catalog.TryGetPath(modifierName, out _))
+            {
+                result.score = Math.Min(result.score, 0.3f);
+                if (result.severity < ModifierFitSeverity.Caution)
+                    result.severity = ModifierFitSeverity.Caution;
+                reasons ??= new List<string>();
+                reasons.Add("Modifier not found in catalog");
+            }
+
+            if (string.Equals(primaryName, modifierName, StringComparison.OrdinalIgnoreCase))
+            {
+                result.score = Math.Min(result.score, 0.4f);
+                if (result.severity < ModifierFitSeverity.Caution)
+                    result.severity = ModifierFitSeverity.Caution;
+                reasons ??= new List<string>();
+                reasons.Add("Modifier matches primary mechanic");
+            }
+
+            result.reason =
+                reasons != null && reasons.Count > 0 ? string.Join("; ", reasons) : string.Empty;
+            return result;
         }
 
         internal void EnsureOwnerDrain(Transform drainOwner, ItemParams p)
@@ -747,9 +995,8 @@ namespace Game.Procederal
         // --- JSON settings helpers ---
         internal Dictionary<string, object> LoadAndMergeJsonSettings(string mechanicName)
         {
-            var dict = GetCatalog().GetMergedSettings(mechanicName);
-            NormalizeSettings(mechanicName, dict);
-            return dict;
+            var cache = GetSettingsCache();
+            return cache.Get(mechanicName, dict => NormalizeSettings(mechanicName, dict));
         }
 
         // Exposed for trusted internal API components (e.g., WhipArcSet)

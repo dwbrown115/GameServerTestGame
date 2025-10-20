@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -6,7 +7,7 @@ namespace Game.Procederal.Api
     /// Drives IMechanic.Tick for a registered subtree.
     /// ProcederalItemGenerator attaches this to the root it creates and calls RegisterTree.
     [DisallowMultipleComponent]
-    public class MechanicRunner : MonoBehaviour
+    public class MechanicRunner : MonoBehaviour, IPooledPayloadResettable
     {
         [Header("Debug")]
         public bool debugLogs = false;
@@ -66,6 +67,12 @@ namespace Game.Procederal.Api
                 _mechanics[i].Tick(dt);
                 i++;
             }
+        }
+
+        public void ResetForPool()
+        {
+            _mechanics.Clear();
+            _registered.Clear();
         }
     }
 }

@@ -2234,9 +2234,14 @@ MonoBehaviour:
   defaultParent: {fileID: 0}
   owner: {fileID: 332118775}
   target: {fileID: 0}
-  debugLogs: 0
+  debugLogs: 1
+  generatorChildrenCount: 4
+  autoApplyCompatibleModifiers: 1
+  autoApplyModifierDenyList: []
   primaryMechanicListJson: {fileID: 4900000, guid: a59d08fb5455140fbb680f7cc5fb8ead, type: 3}
   modifierMechanicListJson: {fileID: 4900000, guid: 015ff1a4eced04d149bffe69d1d4eaa1, type: 3}
+  mechanicCatalogSource: {fileID: 0}
+  objectFactorySource: {fileID: 0}
 --- !u!114 &1499619164
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2255,8 +2260,12 @@ MonoBehaviour:
   selectionProviderBehaviour: {fileID: 0}
   spawnOnStart: 1
   outputParent: {fileID: 0}
-  debugLogs: 0
+  debugLogs: 1
   rngSeed: 0
+  debugUseFixedSelection: 1
+  debugPrimary: Projectile
+  debugSecondary:
+  - Orbit
 --- !u!1 &1761067107
 GameObject:
   m_ObjectHideFlags: 0
@@ -2634,6 +2643,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4905377820044023616, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: maxHealth
+      value: 1000000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4905377820044023616, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
+      propertyPath: currentHealth
+      value: 1000000
+      objectReference: {fileID: 0}
     - target: {fileID: 8460879477050927709, guid: b3e39d3ea49e54c4cbed0210743cfbbf, type: 3}
       propertyPath: m_Name
       value: Player
@@ -2794,6 +2811,10 @@ PrefabInstance:
       value: MobSpawner
       objectReference: {fileID: 0}
     - target: {fileID: 8468775256017889677, guid: fa9ae4a09df494af7a27ebd55dc65189, type: 3}
+      propertyPath: maxMobs
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 8468775256017889677, guid: fa9ae4a09df494af7a27ebd55dc65189, type: 3}
       propertyPath: debugLogs
       value: 0
       objectReference: {fileID: 0}
@@ -2807,7 +2828,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8468775256017889677, guid: fa9ae4a09df494af7a27ebd55dc65189, type: 3}
       propertyPath: spawnInterval
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8468775256017889677, guid: fa9ae4a09df494af7a27ebd55dc65189, type: 3}
       propertyPath: maxSpawnDistance

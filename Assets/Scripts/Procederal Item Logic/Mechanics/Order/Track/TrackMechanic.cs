@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Order
@@ -90,31 +91,34 @@ namespace Mechanics.Order
 
         private Transform FindNearestMob()
         {
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-                return null;
-            Transform center = _ctx.Payload != null ? _ctx.Payload : transform;
-            float bestDist2 = float.MaxValue;
-            Transform best = null;
-            foreach (var go in mobs)
-            {
-                if (go == null)
-                    continue;
-                float d2 = (go.transform.position - center.position).sqrMagnitude;
-                if (searchRadius > 0f && d2 > searchRadius * searchRadius)
-                    continue;
-                if (d2 < bestDist2)
+            var origin = _ctx?.Payload != null ? _ctx.Payload : transform;
+            var owner = _ctx?.Owner;
+            float maxDistance = searchRadius > 0f ? searchRadius : Mathf.Infinity;
+
+            var target = TargetingServiceLocator.Service.FindNearestMob(
+                origin,
+                maxDistance,
+                filter: candidate =>
                 {
-                    bestDist2 = d2;
-                    best = go.transform;
+                    if (candidate == null)
+                        return false;
+                    if (owner == null)
+                        return true;
+                    return !(
+                        candidate == owner
+                        || candidate.IsChildOf(owner)
+                        || owner.IsChildOf(candidate)
+                    );
                 }
+            );
+
+            if (debugLogs && target != null)
+            {
+                float dist = Vector3.Distance(origin.position, target.position);
+                Debug.Log($"[TrackMechanic] Target={target.name} dist={dist:0.##}", this);
             }
-            if (debugLogs && best != null)
-                Debug.Log(
-                    $"[TrackMechanic] Target={best.name} dist={Mathf.Sqrt(bestDist2):0.##}",
-                    this
-                );
-            return best;
+
+            return target;
         }
 
         private static Vector2 RotateToward(Vector2 from, Vector2 to, float maxDeg)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -1075,24 +1076,23 @@ namespace Mechanics.Neuteral
         // Acquire nearest mob (tag "Mob"). Similar to TrackMechanic logic but localized here.
         private Transform FindNearestMob()
         {
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-                return null;
-            Vector3 origin = transform.position;
-            float bestDist2 = float.MaxValue;
-            Transform best = null;
-            foreach (var go in mobs)
-            {
-                if (go == null)
-                    continue;
-                float d2 = (go.transform.position - origin).sqrMagnitude;
-                if (d2 < bestDist2)
+            var origin = _ctx?.Payload != null ? _ctx.Payload : transform;
+            var owner = _ctx?.Owner;
+            return TargetingServiceLocator.Service.FindNearestMob(
+                origin,
+                filter: candidate =>
                 {
-                    bestDist2 = d2;
-                    best = go.transform;
+                    if (candidate == null)
+                        return false;
+                    if (owner == null)
+                        return true;
+                    return !(
+                        candidate == owner
+                        || candidate.IsChildOf(owner)
+                        || owner.IsChildOf(candidate)
+                    );
                 }
-            }
-            return best;
+            );
         }
 
         // Rotate current direction toward desired by at most maxDeg degrees this step.

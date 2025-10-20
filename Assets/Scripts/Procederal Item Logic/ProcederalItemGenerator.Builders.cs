@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
+using Game.Procederal.Core.Builders.Modifiers;
 using UnityEngine;
 
 namespace Game.Procederal
@@ -12,33 +13,9 @@ namespace Game.Procederal
             return owner != null ? owner : transform;
         }
 
-        private static Transform FindNearestMob(Transform from)
+        private GameObject CreateChild(string name, Transform parent)
         {
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-                return null;
-            float best = float.MaxValue;
-            Transform bestT = null;
-            foreach (var go in mobs)
-            {
-                if (go == null)
-                    continue;
-                float d2 = (go.transform.position - from.position).sqrMagnitude;
-                if (d2 < best)
-                {
-                    best = d2;
-                    bestT = go.transform;
-                }
-            }
-            return bestT;
-        }
-
-        private static GameObject CreateChild(string name, Transform parent)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = Vector3.zero;
-            return go;
+            return AcquireObject(name, parent);
         }
 
         internal void BuildRipple(
@@ -51,92 +28,26 @@ namespace Game.Procederal
             var ownerT = ResolveOwner();
             var json = LoadAndMergeJsonSettings("Ripple");
 
-            float startRadius = 1f;
-            if (json.TryGetValue("startRadius", out var sr))
-            {
-                if (sr is float fsr)
-                    startRadius = Mathf.Max(0f, fsr);
-                else if (sr is int isr)
-                    startRadius = Mathf.Max(0f, isr);
-            }
-            float endDiameter = 8f;
-            if (json.TryGetValue("endDiameter", out var ed))
-            {
-                if (ed is float fed)
-                    endDiameter = Mathf.Max(0.01f, fed);
-                else if (ed is int ied)
-                    endDiameter = Mathf.Max(0.01f, ied);
-            }
-            float growDuration = 1.5f;
-            if (json.TryGetValue("growDuration", out var gd))
-            {
-                if (gd is float fgd)
-                    growDuration = Mathf.Max(0.01f, fgd);
-                else if (gd is int igd)
-                    growDuration = Mathf.Max(0.01f, igd);
-            }
-            float edgeThickness = 0.2f;
-            if (json.TryGetValue("edgeThickness", out var et))
-            {
-                if (et is float fet)
-                    edgeThickness = Mathf.Max(0.01f, fet);
-                else if (et is int iet)
-                    edgeThickness = Mathf.Max(0.01f, iet);
-            }
-            int damage = 5;
-            if (json.TryGetValue("damage", out var dmg))
-            {
-                if (dmg is int id)
-                    damage = id;
-                else if (dmg is float fd)
-                    damage = Mathf.RoundToInt(fd);
-            }
-            bool showViz = true;
-            if (json.TryGetValue("showVisualization", out var sv))
-            {
-                if (sv is bool b)
-                    showViz = b;
-                else if (sv is string s && bool.TryParse(s, out var pb))
-                    showViz = pb;
-            }
-            Color vizColor = Color.cyan;
-            if (json.TryGetValue("spriteColor", out var sc))
-            {
-                Color c;
-                if (Config.TryParseColor(sc, out c))
-                    vizColor = c;
-            }
-            bool spawnOnInterval = false;
-            if (json.TryGetValue("spawnOnInterval", out var soi))
-            {
-                if (soi is bool b)
-                    spawnOnInterval = b;
-                else if (soi is string ss && bool.TryParse(ss, out var pb))
-                    spawnOnInterval = pb;
-            }
-            int numberToSpawn = 1;
-            if (
-                json.TryGetValue("numberOfItemsToSpawn", out var nts)
-                || json.TryGetValue("NumberOfItemsToSpawn", out nts)
-            )
-            {
-                if (nts is int ni)
-                    numberToSpawn = Mathf.Max(1, ni);
-                else if (nts is float nf)
-                    numberToSpawn = Mathf.Max(1, Mathf.RoundToInt(nf));
-                else if (nts is string ns && int.TryParse(ns, out var nsi))
-                    numberToSpawn = Mathf.Max(1, nsi);
-            }
-            float interval = 0.5f;
-            if (json.TryGetValue("interval", out var iv))
-            {
-                if (iv is float fiv)
-                    interval = Mathf.Max(0.01f, fiv);
-                else if (iv is int iiv)
-                    interval = Mathf.Max(0.01f, iiv);
-                else if (iv is string siv && float.TryParse(siv, out var pf))
-                    interval = Mathf.Max(0.01f, pf);
-            }
+            float startRadius = MechanicSettingNormalizer.Radius(json, "startRadius", 1f);
+            float endDiameter = MechanicSettingNormalizer.Float(json, "endDiameter", 8f, 0.01f);
+            float growDuration = MechanicSettingNormalizer.Duration(json, "growDuration", 1.5f);
+            float edgeThickness = MechanicSettingNormalizer.Float(
+                json,
+                "edgeThickness",
+                0.2f,
+                0.01f
+            );
+            int damage = MechanicSettingNormalizer.Damage(json, "damage", 5);
+            bool showViz = MechanicSettingNormalizer.Bool(json, "showVisualization", true);
+            Color vizColor = MechanicSettingNormalizer.Color(json, "spriteColor", Color.cyan);
+            bool spawnOnInterval = MechanicSettingNormalizer.Bool(json, "spawnOnInterval", false);
+            int numberToSpawn = MechanicSettingNormalizer.Count(
+                json,
+                1,
+                "numberOfItemsToSpawn",
+                "NumberOfItemsToSpawn"
+            );
+            float interval = MechanicSettingNormalizer.Interval(json, "interval", 0.5f);
 
             if (spawnOnInterval)
             {
@@ -195,32 +106,28 @@ namespace Game.Procederal
         {
             var ownerT = ResolveOwner();
             var json = LoadAndMergeJsonSettings("SwordSlash");
-            int seriesCount = 3;
-            float intervalBetween = 0.08f;
-            bool spawnOnInterval = false;
-            float seriesInterval = 0.8f;
-            float outerRadius = 1.5f;
-            float width = 0.5f;
-            float arcLen = 120f;
-            bool edgeOnly = true;
-            float edgeThickness = 0.2f;
-            int damage = 8;
-            float speed = 12f;
-            Color color = Color.white;
-
-            Config.ReadIf(json, "seriesCount", ref seriesCount);
-            Config.ReadIf(json, "intervalBetween", ref intervalBetween);
-            Config.ReadIf(json, "spawnOnInterval", ref spawnOnInterval);
-            Config.ReadIf(json, "interval", ref seriesInterval);
-            Config.ReadIf(json, "outerRadius", ref outerRadius);
-            Config.ReadIf(json, "width", ref width);
-            Config.ReadIf(json, "arcLengthDeg", ref arcLen);
-            Config.ReadIf(json, "edgeOnly", ref edgeOnly);
-            Config.ReadIf(json, "edgeThickness", ref edgeThickness);
-            Config.ReadIf(json, "damage", ref damage);
-            Config.ReadIf(json, "speed", ref speed);
-            if (json.TryGetValue("spriteColor", out var sc))
-                Config.TryParseColor(sc, out color);
+            int seriesCount = Mathf.Max(1, MechanicSettingNormalizer.Int(json, "seriesCount", 3));
+            float intervalBetween = MechanicSettingNormalizer.Float(
+                json,
+                "intervalBetween",
+                0.08f,
+                0f
+            );
+            bool spawnOnInterval = MechanicSettingNormalizer.Bool(json, "spawnOnInterval", false);
+            float seriesInterval = MechanicSettingNormalizer.Interval(json, "interval", 0.8f);
+            float outerRadius = MechanicSettingNormalizer.Radius(json, "outerRadius", 1.5f);
+            float width = MechanicSettingNormalizer.Float(json, "width", 0.5f, 0.0001f);
+            float arcLen = MechanicSettingNormalizer.Float(json, "arcLengthDeg", 120f, 1f, 359f);
+            bool edgeOnly = MechanicSettingNormalizer.Bool(json, "edgeOnly", true);
+            float edgeThickness = MechanicSettingNormalizer.Float(
+                json,
+                "edgeThickness",
+                0.2f,
+                0.0001f
+            );
+            int damage = MechanicSettingNormalizer.Damage(json, "damage", 8);
+            float speed = Mathf.Max(0.01f, MechanicSettingNormalizer.Speed(json, "speed", 12f));
+            Color color = MechanicSettingNormalizer.Color(json, "spriteColor", Color.white);
 
             if (spawnOnInterval)
             {
@@ -229,7 +136,7 @@ namespace Game.Procederal
                 spawner.owner = ownerT;
                 spawner.interval = Mathf.Max(0.01f, seriesInterval);
                 spawner.seriesCount = Mathf.Max(1, seriesCount);
-                spawner.intervalBetween = Mathf.Max(0f, intervalBetween);
+                spawner.intervalBetween = intervalBetween;
                 spawner.outerRadius = Mathf.Max(0.0001f, outerRadius);
                 spawner.width = Mathf.Max(0.0001f, width);
                 spawner.arcLengthDeg = Mathf.Clamp(arcLen, 1f, 359f);
@@ -255,8 +162,10 @@ namespace Game.Procederal
 
             if (instruction.HasSecondary(MechanicKind.Track) && ownerT != null)
             {
-                var nearest = FindNearestMob(ownerT);
-                if (nearest != null)
+                if (
+                    TargetingServiceLocator.Service.TryFindNearestMob(ownerT, out var nearest)
+                    && nearest != null
+                )
                 {
                     Vector2 to = (Vector2)(nearest.position - ownerT.position);
                     if (to.sqrMagnitude > 1e-6f)
@@ -417,89 +326,58 @@ namespace Game.Procederal
             bool wantOrbit = instruction.HasSecondary(MechanicKind.Orbit);
 
             var projectileJson = LoadAndMergeJsonSettings("Projectile");
-            string spriteType = null;
-            if (projectileJson.TryGetValue("spriteType", out var st))
-                spriteType = (st as string)?.Trim();
+            string spriteType = MechanicSettingNormalizer.String(
+                projectileJson,
+                "spriteType",
+                "circle"
+            );
             if (string.IsNullOrEmpty(spriteType))
                 spriteType = "circle";
-            string customPath = null;
-            if (projectileJson.TryGetValue("customSpritePath", out var cp))
-                customPath = (cp as string)?.Trim();
-            Color projColor = Color.white;
-            if (projectileJson.TryGetValue("spriteColor", out var sc))
-            {
-                if (!Config.TryParseColor(sc, out projColor))
-                    projColor = Color.white;
-            }
+            string customPath = MechanicSettingNormalizer.String(
+                projectileJson,
+                "customSpritePath",
+                null
+            );
+            Color projColor = MechanicSettingNormalizer.Color(
+                projectileJson,
+                "spriteColor",
+                Color.white
+            );
 
-            string spawnBehavior = null;
-            if (projectileJson.TryGetValue("spawnBehavior", out var sbRaw))
-                spawnBehavior = (sbRaw as string)?.Trim();
+            string spawnBehavior = MechanicSettingNormalizer.String(
+                projectileJson,
+                "spawnBehavior",
+                null
+            );
             string spawnBehaviorNorm = string.IsNullOrEmpty(spawnBehavior)
                 ? null
                 : spawnBehavior.ToLowerInvariant();
 
-            bool spawnOnInterval = false;
-            if (projectileJson.TryGetValue("spawnOnInterval", out var soi))
-            {
-                if (soi is bool b)
-                    spawnOnInterval = b;
-                else if (soi is string ss && bool.TryParse(ss, out var pb))
-                    spawnOnInterval = pb;
-            }
-            int numberToSpawn = 1;
-            if (
-                projectileJson.TryGetValue("numberOfItemsToSpawn", out var nts)
-                || projectileJson.TryGetValue("NumberOfItemsToSpawn", out nts)
-            )
-            {
-                if (nts is int ni)
-                    numberToSpawn = Mathf.Max(1, ni);
-                else if (nts is float nf)
-                    numberToSpawn = Mathf.Max(1, Mathf.RoundToInt(nf));
-                else if (nts is string ns && int.TryParse(ns, out var nsi))
-                    numberToSpawn = Mathf.Max(1, nsi);
-            }
-            float spawnInterval = 0.5f;
-            if (projectileJson.TryGetValue("interval", out var iv))
-            {
-                if (iv is float fiv)
-                    spawnInterval = Mathf.Max(0.01f, fiv);
-                else if (iv is int iiv)
-                    spawnInterval = Mathf.Max(0.01f, iiv);
-                else if (iv is string siv && float.TryParse(siv, out var pf))
-                    spawnInterval = Mathf.Max(0.01f, pf);
-            }
-            float spawnRadius = 0f;
-            if (projectileJson.TryGetValue("radius", out var rv))
-            {
-                if (rv is float fr)
-                    spawnRadius = Mathf.Max(0f, fr);
-                else if (rv is int ir)
-                    spawnRadius = Mathf.Max(0f, ir);
-                else if (rv is string sr && float.TryParse(sr, out var pr))
-                    spawnRadius = Mathf.Max(0f, pr);
-            }
-            float lifetime = -1f;
-            if (projectileJson.TryGetValue("lifetime", out var lt))
-            {
-                if (lt is float flt)
-                    lifetime = Mathf.Max(0f, flt);
-                else if (lt is int ilt)
-                    lifetime = Mathf.Max(0f, ilt);
-                else if (lt is string slt && float.TryParse(slt, out var plt))
-                    lifetime = Mathf.Max(0f, plt);
-            }
-            float projSpeed = -1f;
-            if (projectileJson.TryGetValue("speed", out var spd))
-            {
-                if (spd is float fs)
-                    projSpeed = fs;
-                else if (spd is int ispd)
-                    projSpeed = ispd;
-                else if (spd is string sspd && float.TryParse(sspd, out var pfs))
-                    projSpeed = pfs;
-            }
+            bool spawnOnInterval = MechanicSettingNormalizer.Bool(
+                projectileJson,
+                "spawnOnInterval",
+                false
+            );
+            int numberToSpawn = MechanicSettingNormalizer.Count(
+                projectileJson,
+                1,
+                "numberOfItemsToSpawn",
+                "NumberOfItemsToSpawn"
+            );
+            float spawnInterval = MechanicSettingNormalizer.Interval(
+                projectileJson,
+                "interval",
+                0.5f,
+                0.01f
+            );
+            float spawnRadius = MechanicSettingNormalizer.Radius(projectileJson, "radius", 0f);
+            float lifetime = MechanicSettingNormalizer.Lifetime(
+                projectileJson,
+                "lifetime",
+                -1f,
+                -1f
+            );
+            float projSpeed = MechanicSettingNormalizer.Speed(projectileJson, "speed", -1f);
 
             if (wantOrbit)
             {
@@ -628,51 +506,15 @@ namespace Game.Procederal
             var aura = CreateChild("Aura", root.transform);
             var auraJson = LoadAndMergeJsonSettings("Aura");
 
-            float jRadius = 2f;
-            if (auraJson.TryGetValue("radius", out var arv))
-            {
-                if (arv is float fr)
-                    jRadius = fr;
-                else if (arv is int ir)
-                    jRadius = ir;
-                else if (arv is string sr && float.TryParse(sr, out var rpf))
-                    jRadius = rpf;
-            }
-            float jInterval = 0.5f;
-            if (auraJson.TryGetValue("interval", out var aiv))
-            {
-                if (aiv is float fiv)
-                    jInterval = fiv;
-                else if (aiv is int iiv)
-                    jInterval = iiv;
-                else if (aiv is string siv && float.TryParse(siv, out var ipf))
-                    jInterval = ipf;
-            }
-            int jDamage = 1;
-            if (auraJson.TryGetValue("damagePerInterval", out var adv))
-            {
-                if (adv is int ai)
-                    jDamage = ai;
-                else if (adv is float af)
-                    jDamage = Mathf.RoundToInt(af);
-                else if (adv is string asv && int.TryParse(asv, out var ai2))
-                    jDamage = ai2;
-            }
-            bool jShowViz = true;
-            if (auraJson.TryGetValue("showVisualization", out var sv))
-            {
-                if (sv is bool sb)
-                    jShowViz = sb;
-                else if (sv is string ss && bool.TryParse(ss, out var sbb))
-                    jShowViz = sbb;
-            }
-            Color auraVizColor = new Color(0f, 0f, 0f, 0.5f);
-            if (auraJson.TryGetValue("spriteColor", out var asc))
-            {
-                Color c;
-                if (Config.TryParseColor(asc, out c))
-                    auraVizColor = c;
-            }
+            float jRadius = MechanicSettingNormalizer.Radius(auraJson, "radius", 2f);
+            float jInterval = MechanicSettingNormalizer.Interval(auraJson, "interval", 0.5f, 0.01f);
+            int jDamage = MechanicSettingNormalizer.Damage(auraJson, "damagePerInterval", 1);
+            bool jShowViz = MechanicSettingNormalizer.Bool(auraJson, "showVisualization", true);
+            Color auraVizColor = MechanicSettingNormalizer.Color(
+                auraJson,
+                "spriteColor",
+                new Color(0f, 0f, 0f, 0.5f)
+            );
 
             var auraSettings = new List<(string key, object val)>
             {
@@ -700,13 +542,7 @@ namespace Game.Procederal
             var ownerT = ResolveOwner();
             var beamJson = LoadAndMergeJsonSettings("Beam");
 
-            Color vizColor = Color.white;
-            if (beamJson.TryGetValue("spriteColor", out var sc))
-            {
-                Color c;
-                if (Config.TryParseColor(sc, out c))
-                    vizColor = c;
-            }
+            Color vizColor = MechanicSettingNormalizer.Color(beamJson, "spriteColor", Color.white);
 
             var beamSettings = new List<(string key, object val)>();
             if (beamJson.TryGetValue("maxDistance", out var md))
@@ -733,56 +569,24 @@ namespace Game.Procederal
             beamSettings.Add(("vizColor", vizColor));
             beamSettings.Add(("debugLogs", p.debugLogs || debugLogs));
 
-            bool spawnOnInterval = false;
-            if (beamJson.TryGetValue("spawnOnInterval", out var soi))
-            {
-                if (soi is bool b)
-                    spawnOnInterval = b;
-                else if (soi is string ss && bool.TryParse(ss, out var pb))
-                    spawnOnInterval = pb;
-            }
-            int numberToSpawn = 1;
-            if (
-                beamJson.TryGetValue("numberOfItemsToSpawn", out var nts)
-                || beamJson.TryGetValue("NumberOfItemsToSpawn", out nts)
-            )
-            {
-                if (nts is int ni)
-                    numberToSpawn = Mathf.Max(1, ni);
-                else if (nts is float nf)
-                    numberToSpawn = Mathf.Max(1, Mathf.RoundToInt(nf));
-                else if (nts is string ns && int.TryParse(ns, out var nsi))
-                    numberToSpawn = Mathf.Max(1, nsi);
-            }
-            float spawnInterval = 0.5f;
-            bool gotSpawnInterval = false;
-            if (beamJson.TryGetValue("spawnInterval", out var spiv))
-            {
-                if (spiv is float fsv)
-                {
-                    spawnInterval = Mathf.Max(0.01f, fsv);
-                    gotSpawnInterval = true;
-                }
-                else if (spiv is int isv)
-                {
-                    spawnInterval = Mathf.Max(0.01f, isv);
-                    gotSpawnInterval = true;
-                }
-                else if (spiv is string ssv && float.TryParse(ssv, out var psv))
-                {
-                    spawnInterval = Mathf.Max(0.01f, psv);
-                    gotSpawnInterval = true;
-                }
-            }
-            if (!gotSpawnInterval && beamJson.TryGetValue("interval", out var iv))
-            {
-                if (iv is float fiv)
-                    spawnInterval = Mathf.Max(0.01f, fiv);
-                else if (iv is int iiv)
-                    spawnInterval = Mathf.Max(0.01f, iiv);
-                else if (iv is string siv && float.TryParse(siv, out var pf))
-                    spawnInterval = Mathf.Max(0.01f, pf);
-            }
+            bool spawnOnInterval = MechanicSettingNormalizer.Bool(
+                beamJson,
+                "spawnOnInterval",
+                false
+            );
+            int numberToSpawn = MechanicSettingNormalizer.Count(
+                beamJson,
+                1,
+                "numberOfItemsToSpawn",
+                "NumberOfItemsToSpawn"
+            );
+            float spawnInterval = MechanicSettingNormalizer.Interval(
+                beamJson,
+                "interval",
+                0.5f,
+                0.01f
+            );
+
             if (debugLogs)
             {
                 Debug.Log(
@@ -797,16 +601,7 @@ namespace Game.Procederal
             string spawnBehaviorNorm = string.IsNullOrEmpty(spawnBehavior)
                 ? null
                 : spawnBehavior.ToLowerInvariant();
-            float spawnRadius = 0f;
-            if (beamJson.TryGetValue("spawnRadius", out var srv))
-            {
-                if (srv is float fr)
-                    spawnRadius = Mathf.Max(0f, fr);
-                else if (srv is int ir)
-                    spawnRadius = Mathf.Max(0f, ir);
-                else if (srv is string sr && float.TryParse(sr, out var pr))
-                    spawnRadius = Mathf.Max(0f, pr);
-            }
+            float spawnRadius = MechanicSettingNormalizer.Radius(beamJson, "spawnRadius", 0f);
 
             if (spawnOnInterval)
             {
@@ -852,148 +647,20 @@ namespace Game.Procederal
         {
             if (subItems == null)
                 return;
+
+            var strategy = ModifierStrategies.Get(kind);
+            if (strategy == null)
+            {
+                Log($"No modifier strategy registered for '{kind}'.");
+                return;
+            }
+
             foreach (var go in subItems)
             {
                 if (go == null)
                     continue;
-                switch (kind)
-                {
-                    case MechanicKind.RippleOnHit:
-                        if (HasMechanic(go, "Whip"))
-                        {
-                            Log("Skipping incompatible modifier 'RippleOnHit' on Whip.");
-                            break;
-                        }
-                        AddMechanicByName(
-                            go,
-                            "RippleOnHit",
-                            new (string key, object val)[]
-                            {
-                                ("debugLogs", p.debugLogs || debugLogs),
-                            }
-                        );
-                        break;
-                    case MechanicKind.Orbit:
-                        if (HasMechanic(go, "Beam"))
-                        {
-                            Log("Skipping incompatible modifier 'Orbit' on Beam.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Whip"))
-                        {
-                            Log("Skipping incompatible modifier 'Orbit' on Whip.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Ripple"))
-                        {
-                            Log("Skipping incompatible modifier 'Orbit' on Ripple.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Strike"))
-                        {
-                            Log("Skipping incompatible modifier 'Orbit' on Strike.");
-                            break;
-                        }
-                        SetExistingMechanicSetting(go, "Projectile", "disableSelfSpeed", true);
-                        AddMechanicByName(
-                            go,
-                            "Orbit",
-                            new (string key, object val)[]
-                            {
-                                ("radius", p.orbitRadius),
-                                ("angularSpeedDeg", p.orbitSpeedDeg > 0 ? p.orbitSpeedDeg : 90f),
-                            }
-                        );
-                        var orbitJson = LoadAndMergeJsonSettings("Orbit");
-                        if (orbitJson.TryGetValue("destroyOnHit", out var odh))
-                        {
-                            bool val = false;
-                            if (odh is bool bt)
-                                val = bt;
-                            else if (odh is string s && bool.TryParse(s, out var pb))
-                                val = pb;
-                            SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", val);
-                        }
-                        break;
-                    case MechanicKind.Explosion:
-                        AddMechanicByName(
-                            go,
-                            "Explosion",
-                            new (string key, object val)[]
-                            {
-                                ("debugLogs", p.debugLogs || debugLogs),
-                            }
-                        );
-                        break;
-                    case MechanicKind.Bounce:
-                        if (HasMechanic(go, "Aura"))
-                        {
-                            Log("Skipping incompatible modifier 'Bounce' on Aura.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Strike"))
-                        {
-                            Log("Skipping incompatible modifier 'Bounce' on Strike.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Whip"))
-                        {
-                            Log("Skipping incompatible modifier 'Bounce' on Whip.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Ripple"))
-                        {
-                            Log("Skipping incompatible modifier 'Bounce' on Ripple.");
-                            break;
-                        }
-                        AddMechanicByName(go, "Bounce", new (string key, object val)[] { });
-                        break;
-                    case MechanicKind.Drain:
-                        AddMechanicByName(
-                            go,
-                            "Drain",
-                            new (string key, object val)[]
-                            {
-                                ("radius", p.drainRadius),
-                                ("interval", Mathf.Max(0.01f, p.drainInterval)),
-                                ("damagePerInterval", Mathf.Max(0, p.drainDamage)),
-                                ("lifeStealRatio", Mathf.Clamp01(p.lifeStealRatio)),
-                            }
-                        );
-                        break;
-                    case MechanicKind.Lock:
-                        AddMechanicByName(go, "Lock", new (string key, object val)[] { });
-                        break;
-                    case MechanicKind.Track:
-                        if (HasMechanic(go, "Strike"))
-                        {
-                            Log("Skipping incompatible modifier 'Track' on Strike.");
-                            break;
-                        }
-                        if (HasMechanic(go, "Ripple"))
-                        {
-                            Log("Skipping incompatible modifier 'Track' on Ripple.");
-                            break;
-                        }
-                        AddMechanicByName(go, "Track", new (string key, object val)[] { });
-                        break;
-                    case MechanicKind.DamageOverTime:
-                        if (HasMechanic(go, "Whip"))
-                        {
-                            Log("Skipping incompatible modifier 'DamageOverTime' on Whip.");
-                            break;
-                        }
-                        AddMechanicByName(
-                            go,
-                            "DamageOverTime",
-                            new (string key, object val)[]
-                            {
-                                ("interval", p.drainInterval),
-                                ("damagePerInterval", p.drainDamage),
-                            }
-                        );
-                        break;
-                }
+
+                strategy.Apply(this, go, p);
                 InitializeMechanics(go, owner, target);
             }
         }
@@ -1007,13 +674,11 @@ namespace Game.Procederal
         {
             var strike = CreateChild("Strike", root.transform);
             var strikeJson = LoadAndMergeJsonSettings("Strike");
-            Color vizColor = Color.black;
-            if (strikeJson.TryGetValue("spriteColor", out var sc))
-            {
-                Color c;
-                if (Config.TryParseColor(sc, out c))
-                    vizColor = c;
-            }
+            Color vizColor = MechanicSettingNormalizer.Color(
+                strikeJson,
+                "spriteColor",
+                Color.black
+            );
 
             var settings = new List<(string key, object val)>();
             if (strikeJson.TryGetValue("interval", out var iv))

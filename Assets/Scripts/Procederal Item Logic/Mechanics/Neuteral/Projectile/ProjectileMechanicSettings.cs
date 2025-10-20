@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -9,125 +10,38 @@ namespace Mechanics.Neuteral
         {
             if (comp == null || s == null)
                 return;
-            if (TryGet<Vector2>(s, "direction", out var dir))
+            if (s.TryGetValue("direction", out var dirRaw) && dirRaw is Vector2 dir)
                 comp.direction = dir;
-            if (TryGet<float>(s, "speed", out var spd))
-                comp.speed = spd;
-            if (TryGet<int>(s, "damage", out var dmg))
-                comp.damage = dmg;
-            if (TryGet<bool>(s, "disableSelfSpeed", out var dss))
-                comp.disableSelfSpeed = dss;
-            if (TryGet<bool>(s, "requireMobTag", out var rmt))
-                comp.requireMobTag = rmt;
-            if (TryGet<bool>(s, "excludeOwner", out var eo))
-                comp.excludeOwner = eo;
-            if (TryGet<bool>(s, "destroyOnHit", out var doh))
-                comp.destroyOnHit = doh;
-            if (TryGet<bool>(s, "debugLogs", out var dl))
-                comp.debugLogs = dl;
-            if (TryGet<string>(s, "spriteType", out var st))
-                comp.spriteType = st;
-            if (TryGet<string>(s, "customSpritePath", out var csp))
-                comp.customSpritePath = csp;
-            if (s.TryGetValue("spriteColor", out var scRaw))
-            {
-                if (scRaw is Color col)
-                    comp.spriteColor = col;
-                else if (scRaw is string scs)
-                {
-                    if (ColorUtility.TryParseHtmlString(scs, out var parsed))
-                        comp.spriteColor = parsed;
-                    else if (TryColorName(scs, out var named))
-                        comp.spriteColor = named;
-                }
-            }
-        }
-
-        private static bool TryGet<T>(IDictionary<string, object> s, string key, out T value)
-        {
-            value = default;
-            if (s.TryGetValue(key, out var raw))
-            {
-                try
-                {
-                    if (raw is T tv)
-                    {
-                        value = tv;
-                        return true;
-                    }
-                    if (typeof(T) == typeof(string) && raw != null)
-                    {
-                        value = (T)(object)raw.ToString();
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(float)
-                        && raw is string fs
-                        && float.TryParse(fs, out var f)
-                    )
-                    {
-                        value = (T)(object)f;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(int)
-                        && raw is string isv
-                        && int.TryParse(isv, out var i)
-                    )
-                    {
-                        value = (T)(object)i;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(bool)
-                        && raw is string bs
-                        && bool.TryParse(bs, out var b)
-                    )
-                    {
-                        value = (T)(object)b;
-                        return true;
-                    }
-                }
-                catch { }
-            }
-            return false;
-        }
-
-        private static bool TryColorName(string name, out Color c)
-        {
-            c = Color.white;
-            switch (name.Trim().ToLowerInvariant())
-            {
-                case "red":
-                    c = Color.red;
-                    return true;
-                case "green":
-                    c = Color.green;
-                    return true;
-                case "blue":
-                    c = Color.blue;
-                    return true;
-                case "white":
-                    c = Color.white;
-                    return true;
-                case "black":
-                    c = Color.black;
-                    return true;
-                case "yellow":
-                    c = Color.yellow;
-                    return true;
-                case "cyan":
-                    c = Color.cyan;
-                    return true;
-                case "magenta":
-                    c = Color.magenta;
-                    return true;
-                case "gray":
-                case "grey":
-                    c = Color.gray;
-                    return true;
-            }
-            return false;
+            comp.speed = MechanicSettingNormalizer.Speed(s, "speed", comp.speed);
+            comp.damage = MechanicSettingNormalizer.Damage(s, "damage", comp.damage);
+            comp.disableSelfSpeed = MechanicSettingNormalizer.Bool(
+                s,
+                "disableSelfSpeed",
+                comp.disableSelfSpeed
+            );
+            comp.requireMobTag = MechanicSettingNormalizer.Bool(
+                s,
+                "requireMobTag",
+                comp.requireMobTag
+            );
+            comp.excludeOwner = MechanicSettingNormalizer.Bool(
+                s,
+                "excludeOwner",
+                comp.excludeOwner
+            );
+            comp.destroyOnHit = MechanicSettingNormalizer.Bool(
+                s,
+                "destroyOnHit",
+                comp.destroyOnHit
+            );
+            comp.debugLogs = MechanicSettingNormalizer.Bool(s, "debugLogs", comp.debugLogs);
+            comp.spriteType = MechanicSettingNormalizer.String(s, "spriteType", comp.spriteType);
+            comp.customSpritePath = MechanicSettingNormalizer.String(
+                s,
+                "customSpritePath",
+                comp.customSpritePath
+            );
+            comp.spriteColor = MechanicSettingNormalizer.Color(s, "spriteColor", comp.spriteColor);
         }
     }
 }

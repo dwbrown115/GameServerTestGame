@@ -10,8 +10,8 @@ namespace Game.Procederal.Core.Builders
     /// while keeping primary-specific construction in one place.
     public class GenericPrimaryBuilder : IPrimaryBuilder
     {
-        // Kind is not used for routing; this builder is registered for all kinds.
-        public Game.Procederal.MechanicKind Kind => Game.Procederal.MechanicKind.Projectile;
+        // Acts as a fallback builder when no mechanic-specific builder is registered.
+        public Game.Procederal.MechanicKind Kind => Game.Procederal.MechanicKind.None;
 
         private static bool _init;
 

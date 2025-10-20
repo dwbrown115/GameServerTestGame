@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using Game.Procederal;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
 {
     [DisallowMultipleComponent]
-    public class RippleIntervalSpawner : MonoBehaviour
+    public class RippleIntervalSpawner : MonoBehaviour, IModifierReceiver, IModifierOwnerProvider
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -53,6 +54,8 @@ namespace Game.Procederal.Api
                 return;
             _modifierSpecs.Add((mechanicName, settings));
         }
+
+        public Transform ModifierOwner => owner != null ? owner : transform;
 
         private void Update()
         {

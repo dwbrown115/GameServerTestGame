@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Order
@@ -9,56 +10,31 @@ namespace Mechanics.Order
         {
             if (comp == null || s == null)
                 return;
-            if (TryGet<float>(s, "stunTime", out var t))
-                comp.stunTime = Mathf.Max(0f, t);
-            if (TryGet<float>(s, "StunTime", out var t2))
-                comp.stunTime = Mathf.Max(0f, t2);
-            if (TryGet<float>(s, "Stun Time", out var t3))
-                comp.stunTime = Mathf.Max(0f, t3);
-            if (TryGet<float>(s, "stunChance", out var sc))
-                comp.stunChance = Mathf.Clamp01(sc);
-            if (TryGet<float>(s, "StunChance", out var sc2))
-                comp.stunChance = Mathf.Clamp01(sc2);
-            if (TryGet<float>(s, "Stun Chance", out var sc3))
-                comp.stunChance = Mathf.Clamp01(sc3);
-            if (TryGet<bool>(s, "debugLogs", out var dl))
-                comp.debugLogs = dl;
-        }
-
-        private static bool TryGet<T>(IDictionary<string, object> s, string key, out T value)
-        {
-            value = default;
-            if (s.TryGetValue(key, out var raw))
-            {
-                try
-                {
-                    if (raw is T tv)
-                    {
-                        value = tv;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(float)
-                        && raw is string fs
-                        && float.TryParse(fs, out var f)
-                    )
-                    {
-                        value = (T)(object)f;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(bool)
-                        && raw is string bs
-                        && bool.TryParse(bs, out var b)
-                    )
-                    {
-                        value = (T)(object)b;
-                        return true;
-                    }
-                }
-                catch { }
-            }
-            return false;
+            comp.stunTime = MechanicSettingNormalizer.Float(s, "stunTime", comp.stunTime, 0f);
+            comp.stunTime = MechanicSettingNormalizer.Float(s, "StunTime", comp.stunTime, 0f);
+            comp.stunTime = MechanicSettingNormalizer.Float(s, "Stun Time", comp.stunTime, 0f);
+            comp.stunChance = MechanicSettingNormalizer.Float(
+                s,
+                "stunChance",
+                comp.stunChance,
+                0f,
+                1f
+            );
+            comp.stunChance = MechanicSettingNormalizer.Float(
+                s,
+                "StunChance",
+                comp.stunChance,
+                0f,
+                1f
+            );
+            comp.stunChance = MechanicSettingNormalizer.Float(
+                s,
+                "Stun Chance",
+                comp.stunChance,
+                0f,
+                1f
+            );
+            comp.debugLogs = MechanicSettingNormalizer.Bool(s, "debugLogs", comp.debugLogs);
         }
     }
 }

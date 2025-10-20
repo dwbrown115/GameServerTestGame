@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Procederal;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -8,7 +9,7 @@ namespace Game.Procederal.Api
     /// Payload mechanic name and settings are provided at runtime via SetPayloadSettings.
     /// Modifiers are forwarded via AddModifierSpec and applied to each spawned child.
     [DisallowMultipleComponent]
-    public class GenericIntervalSpawner : MonoBehaviour
+    public class GenericIntervalSpawner : MonoBehaviour, IModifierReceiver, IModifierOwnerProvider
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -88,6 +89,8 @@ namespace Game.Procederal.Api
                 return;
             _modifierSpecs.Add((mechanicName, settings));
         }
+
+        public Transform ModifierOwner => owner != null ? owner : transform;
 
         // Allow external code (e.g., strategy) to reset previously added modifier specs when reusing a spawner
         public void ClearModifierSpecs()

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -8,7 +9,11 @@ namespace Game.Procederal.Api
     /// Optional spacing time between spawns; supports immediate batch spawn when spacing <= 0.
     /// Designed to be data-driven via config assembled before calling BeginSequence.
     [DisallowMultipleComponent]
-    public class SequenceSpawnBehavior : MonoBehaviour
+    public class SequenceSpawnBehavior
+        : MonoBehaviour,
+            IModifierReceiver,
+            IModifierOwnerProvider,
+            IAimAtNearestEnemyToggle
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -83,6 +88,14 @@ namespace Game.Procederal.Api
             _modifierSpecs.Add((mechanicName, settings));
         }
 
+        public Transform ModifierOwner => owner != null ? owner : transform;
+
+        public bool AimAtNearestEnemy
+        {
+            get => aimAtNearestEnemy;
+            set => aimAtNearestEnemy = value;
+        }
+
         public void BeginSequence()
         {
             if (generator == null || sequenceCount <= 0)
@@ -144,8 +157,10 @@ namespace Game.Procederal.Api
             }
             if (aimAtNearestEnemy && own != null)
             {
-                var target = FindNearestMob(own);
-                if (target != null)
+                if (
+                    TargetingServiceLocator.Service.TryFindNearestMob(own, out var target)
+                    && target != null
+                )
                 {
                     Vector2 to = (Vector2)(target.position - own.position);
                     if (to.sqrMagnitude > 1e-6f)
@@ -163,28 +178,6 @@ namespace Game.Procederal.Api
         public Vector2 PeekForwardDirection()
         {
             return ResolveForwardVector();
-        }
-
-        private Transform FindNearestMob(Transform origin)
-        {
-            // Minimal placeholder; extend with tag/layer filtering as needed
-            float best = float.MaxValue;
-            Transform bestT = null;
-            var all = GameObject.FindObjectsByType<Transform>(FindObjectsSortMode.None);
-            foreach (var t in all)
-            {
-                if (t == null || t == origin)
-                    continue;
-                if (!t.CompareTag("Mob"))
-                    continue;
-                float d = (t.position - origin.position).sqrMagnitude;
-                if (d < best)
-                {
-                    best = d;
-                    bestT = t;
-                }
-            }
-            return bestT;
         }
 
         private void SpawnOne(int index)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Procederal;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -7,7 +8,11 @@ namespace Game.Procederal.Api
     /// Periodically spawns a series of Sword Slash crescents that travel forward.
     /// Uses a static crescent payload plus a Projectile mechanic for motion and on-hit.
     [DisallowMultipleComponent]
-    public class SwordSlashIntervalSpawner : MonoBehaviour
+    public class SwordSlashIntervalSpawner
+        : MonoBehaviour,
+            IModifierReceiver,
+            IModifierOwnerProvider,
+            IAimAtNearestEnemyToggle
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -68,6 +73,14 @@ namespace Game.Procederal.Api
             _modifierSpecs.Add((mechanicName, settings));
         }
 
+        public Transform ModifierOwner => owner != null ? owner : transform;
+
+        public bool AimAtNearestEnemy
+        {
+            get => aimAtNearestEnemy;
+            set => aimAtNearestEnemy = value;
+        }
+
         private void StopSpawning()
         {
             _stopped = true;
@@ -104,15 +117,13 @@ namespace Game.Procederal.Api
                 dir = ownerRb.linearVelocity.normalized;
 
             // If configured, aim at nearest Mob
-            if (aimAtNearestEnemy)
+            if (aimAtNearestEnemy && ownerT != null)
             {
-                var nearest = FindNearestMob(ownerT);
-                if (nearest != null)
-                {
-                    Vector2 to = (Vector2)(nearest.position - ownerT.position);
-                    if (to.sqrMagnitude > 1e-6f)
-                        dir = to.normalized;
-                }
+                dir = TargetingServiceLocator.Service.ResolveDirectionToNearestMob(
+                    ownerT,
+                    dir,
+                    filter: t => t != ownerT
+                );
             }
 
             int count = Mathf.Max(1, seriesCount);
@@ -215,27 +226,6 @@ namespace Game.Procederal.Api
             // Safety lifetime cleanup
             var auto = go.AddComponent<_AutoDestroyAfterSeconds>();
             auto.seconds = 4f;
-        }
-
-        private static Transform FindNearestMob(Transform from)
-        {
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-                return null;
-            float best = float.MaxValue;
-            Transform bestT = null;
-            foreach (var go in mobs)
-            {
-                if (go == null)
-                    continue;
-                float d2 = (go.transform.position - from.position).sqrMagnitude;
-                if (d2 < best)
-                {
-                    best = d2;
-                    bestT = go.transform;
-                }
-            }
-            return bestT;
         }
 
         private class _AutoDestroyAfterSeconds : MonoBehaviour

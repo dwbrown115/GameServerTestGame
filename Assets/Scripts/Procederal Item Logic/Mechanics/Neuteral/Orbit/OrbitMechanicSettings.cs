@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -9,59 +10,18 @@ namespace Mechanics.Neuteral
         {
             if (comp == null || s == null)
                 return;
-            if (TryGet<float>(s, "angularSpeedDeg", out var asd))
-                comp.angularSpeedDeg = asd;
-            if (TryGet<float>(s, "radius", out var r))
-                comp.radius = Mathf.Max(0f, r);
-            if (TryGet<float>(s, "startAngleDeg", out var sad))
-                comp.startAngleDeg = sad;
-            if (TryGet<bool>(s, "debugLogs", out var dl))
-                comp.debugLogs = dl;
-        }
-
-        private static bool TryGet<T>(IDictionary<string, object> s, string key, out T value)
-        {
-            value = default;
-            if (s.TryGetValue(key, out var raw))
-            {
-                try
-                {
-                    if (raw is T tv)
-                    {
-                        value = tv;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(float)
-                        && raw is string fs
-                        && float.TryParse(fs, out var f)
-                    )
-                    {
-                        value = (T)(object)f;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(bool)
-                        && raw is string bs
-                        && bool.TryParse(bs, out var b)
-                    )
-                    {
-                        value = (T)(object)b;
-                        return true;
-                    }
-                    if (
-                        typeof(T) == typeof(int)
-                        && raw is string isv
-                        && int.TryParse(isv, out var i)
-                    )
-                    {
-                        value = (T)(object)i;
-                        return true;
-                    }
-                }
-                catch { }
-            }
-            return false;
+            comp.angularSpeedDeg = MechanicSettingNormalizer.Float(
+                s,
+                "angularSpeedDeg",
+                comp.angularSpeedDeg
+            );
+            comp.radius = MechanicSettingNormalizer.Radius(s, "radius", comp.radius);
+            comp.startAngleDeg = MechanicSettingNormalizer.Float(
+                s,
+                "startAngleDeg",
+                comp.startAngleDeg
+            );
+            comp.debugLogs = MechanicSettingNormalizer.Bool(s, "debugLogs", comp.debugLogs);
         }
     }
 }

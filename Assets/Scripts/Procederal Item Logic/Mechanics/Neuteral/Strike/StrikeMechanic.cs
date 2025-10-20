@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -83,44 +84,26 @@ namespace Mechanics.Neuteral
 
         private Transform PickRandomEnemy()
         {
-            var mobs = GameObject.FindGameObjectsWithTag("Mob");
-            if (mobs == null || mobs.Length == 0)
-                return null;
-            // Optionally filter out owner hierarchy
             Transform ownerT = _ctx != null ? _ctx.Owner : null;
-            // Try a few random picks to avoid O(n) search each tick
-            for (int tries = 0; tries < 3; tries++)
-            {
-                int idx = Random.Range(0, mobs.Length);
-                var t = mobs[idx]?.transform;
-                if (t == null)
-                    continue;
-                if (excludeOwner && ownerT != null)
+            return TargetingServiceLocator.Service.PickRandomMob(
+                _ctx?.Payload != null ? _ctx.Payload : transform,
+                filter: candidate =>
                 {
-                    if (t == ownerT || t.IsChildOf(ownerT) || ownerT.IsChildOf(t))
-                        continue;
+                    if (candidate == null)
+                        return false;
+                    if (excludeOwner && ownerT != null)
+                    {
+                        if (
+                            candidate == ownerT
+                            || candidate.IsChildOf(ownerT)
+                            || ownerT.IsChildOf(candidate)
+                        )
+                            return false;
+                    }
+                    var dmg = candidate.GetComponentInParent<IDamageable>();
+                    return dmg != null && dmg.IsAlive;
                 }
-                // Verify IDamageable exists and alive
-                var dmg = t.GetComponentInParent<IDamageable>();
-                if (dmg != null && dmg.IsAlive)
-                    return t;
-            }
-            // Fallback: linear search
-            foreach (var go in mobs)
-            {
-                if (go == null)
-                    continue;
-                var t = go.transform;
-                if (excludeOwner && ownerT != null)
-                {
-                    if (t == ownerT || t.IsChildOf(ownerT) || ownerT.IsChildOf(t))
-                        continue;
-                }
-                var dmg = t.GetComponentInParent<IDamageable>();
-                if (dmg != null && dmg.IsAlive)
-                    return t;
-            }
-            return null;
+            );
         }
 
         private void SpawnStrikeFlashOnTarget(Transform target)
