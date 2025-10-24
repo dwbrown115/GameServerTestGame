@@ -46,9 +46,13 @@ namespace Game.Procederal.Core.Builders
             float speed = Mathf.Max(0.01f, MechanicSettingNormalizer.Speed(json, "speed", 12f));
             Color color = MechanicSettingNormalizer.Color(json, "spriteColor", Color.white);
 
-            if (spawnOnInterval)
+            SwordSlashIntervalSpawner spawner = null;
+            bool wantsRepeating = spawnOnInterval || seriesInterval > 0.01f;
+            if (wantsRepeating)
             {
-                var spawner = root.AddComponent<SwordSlashIntervalSpawner>();
+                spawner =
+                    root.GetComponent<SwordSlashIntervalSpawner>()
+                    ?? root.AddComponent<SwordSlashIntervalSpawner>();
                 spawner.generator = gen;
                 spawner.owner = ownerT;
                 spawner.interval = Mathf.Max(0.01f, seriesInterval);
@@ -71,7 +75,9 @@ namespace Game.Procederal.Core.Builders
 
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
-                return;
+
+                if (spawnOnInterval)
+                    return;
             }
 
             Vector2 dir = Vector2.right;
@@ -100,75 +106,85 @@ namespace Game.Procederal.Core.Builders
                     ownerT != null
                         ? ownerT.position - (Vector3)(dir * spacing * i)
                         : root.transform.position;
-                var shell = new SpawnHelpers.PayloadShellOptions
+                var localPos = root.transform.InverseTransformPoint(spawnPos);
+
+                var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
                 {
-                    parent = root.transform,
-                    position = spawnPos,
-                    layer = ownerT != null ? ownerT.gameObject.layer : root.layer,
-                    spriteType = null,
-                    customSpritePath = null,
-                    spriteColor = color,
-                    createCollider = false,
-                    colliderRadius = 0.5f,
-                    createRigidBody = true,
-                    bodyType = RigidbodyType2D.Dynamic,
-                    freezeRotation = true,
-                    addAutoDestroy = true,
-                    lifetimeSeconds = 4f,
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "SwordSlash",
+                        Settings = new (string key, object val)[]
+                        {
+                            ("outerRadius", outerRadius),
+                            ("width", width),
+                            ("arcLengthDeg", arcLen),
+                            ("edgeOnly", edgeOnly),
+                            ("edgeThickness", edgeThickness),
+                            ("showVisualization", true),
+                            ("vizColor", color),
+                        },
+                    },
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Projectile",
+                        Settings = new (string key, object val)[]
+                        {
+                            ("direction", dir),
+                            ("speed", speed),
+                            ("damage", damage),
+                            ("requireMobTag", true),
+                            ("excludeOwner", true),
+                            ("destroyOnHit", true),
+                            ("disableSelfSpeed", true),
+                        },
+                    },
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "ChildMovementMechanic",
+                        Settings = new (string key, object val)[]
+                        {
+                            ("direction", dir),
+                            ("speed", speed),
+                            ("disableSelfSpeed", false),
+                        },
+                    },
                 };
 
-                var slash = SpawnHelpers.CreatePayloadShell($"SwordSlash_{i}", shell);
-                if (slash.transform.parent != root.transform)
-                    slash.transform.SetParent(root.transform, worldPositionStays: true);
-
-                gen.AddMechanicByName(
-                    slash,
-                    "SwordSlash",
-                    new (string key, object val)[]
+                var spec = new UnifiedChildBuilder.ChildSpec
+                {
+                    ChildName = $"SwordSlash_{i}",
+                    Parent = root.transform,
+                    LocalPosition = localPos,
+                    Layer = ownerT != null ? ownerT.gameObject.layer : root.layer,
+                    Visual = new UnifiedChildBuilder.SpriteSpec { Enabled = false },
+                    Rigidbody = new UnifiedChildBuilder.RigidbodySpec
                     {
-                        ("outerRadius", outerRadius),
-                        ("width", width),
-                        ("arcLengthDeg", arcLen),
-                        ("edgeOnly", edgeOnly),
-                        ("edgeThickness", edgeThickness),
-                        ("showVisualization", true),
-                        ("vizColor", color),
-                    }
-                );
+                        Enabled = true,
+                        BodyType = RigidbodyType2D.Dynamic,
+                        FreezeRotation = true,
+                        GravityScale = 0f,
+                        Interpolation = RigidbodyInterpolation2D.Interpolate,
+                        CollisionDetection = CollisionDetectionMode2D.Continuous,
+                    },
+                    Mechanics = mechanics,
+                    LifetimeSeconds = 4f,
+                    InitializeMechanics = false,
+                };
 
+                var slash = UnifiedChildBuilder.BuildChild(gen, spec);
+                slash.transform.position = spawnPos;
                 slash.transform.right = dir;
 
-                gen.AddMechanicByName(
-                    slash,
-                    "Projectile",
-                    new (string key, object val)[]
-                    {
-                        ("direction", dir),
-                        ("speed", speed),
-                        ("damage", damage),
-                        ("requireMobTag", true),
-                        ("excludeOwner", true),
-                        ("destroyOnHit", true),
-                        ("disableSelfSpeed", true),
-                    }
-                );
-
-                gen.AddMechanicByName(
-                    slash,
-                    "ChildMovementMechanic",
-                    new (string key, object val)[]
-                    {
-                        ("direction", dir),
-                        ("speed", speed),
-                        ("disableSelfSpeed", false),
-                    }
-                );
+                gen.InitializeMechanics(slash, gen.owner, gen.target);
 
                 var rb = slash.GetComponent<Rigidbody2D>();
                 if (rb != null)
                     rb.linearVelocity = dir * speed;
 
-                gen.InitializeMechanics(slash, gen.owner, gen.target);
+                var sr = slash.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.enabled = false;
+
                 subItems.Add(slash);
             }
         }

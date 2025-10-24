@@ -223,6 +223,10 @@ namespace Game.Procederal.Api
             // Initialize mechanics
             generator.InitializeMechanics(go, owner, generator.target);
 
+            var sprite = go.GetComponent<SpriteRenderer>();
+            if (sprite != null)
+                sprite.enabled = false;
+
             // Safety lifetime cleanup
             var auto = go.AddComponent<_AutoDestroyAfterSeconds>();
             auto.seconds = 4f;

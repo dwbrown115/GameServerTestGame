@@ -68,6 +68,24 @@ namespace Game.Procederal.Core.Builders
                 0.5f,
                 0.01f
             );
+            if (spawnInterval <= 0.01f && beamJson.TryGetValue("spawnInterval", out var siRaw))
+            {
+                switch (siRaw)
+                {
+                    case float f:
+                        spawnInterval = Mathf.Max(0.01f, f);
+                        break;
+                    case double d:
+                        spawnInterval = Mathf.Max(0.01f, (float)d);
+                        break;
+                    case int i:
+                        spawnInterval = Mathf.Max(0.01f, i);
+                        break;
+                    case string s when float.TryParse(s, out var parsed):
+                        spawnInterval = Mathf.Max(0.01f, parsed);
+                        break;
+                }
+            }
 
             if (gen.debugLogs)
             {
@@ -85,12 +103,19 @@ namespace Game.Procederal.Core.Builders
                 : spawnBehavior.ToLowerInvariant();
             float spawnRadius = MechanicSettingNormalizer.Radius(beamJson, "spawnRadius", 0f);
 
-            if (spawnOnInterval)
+            BeamIntervalSpawner spawner = null;
+            bool wantsRepeating =
+                spawnOnInterval
+                || spawnInterval > 0.01f
+                || string.Equals(spawnBehaviorNorm, "interval");
+            if (wantsRepeating)
             {
-                var spawner = root.AddComponent<BeamIntervalSpawner>();
+                spawner =
+                    root.GetComponent<BeamIntervalSpawner>()
+                    ?? root.AddComponent<BeamIntervalSpawner>();
                 spawner.generator = gen;
                 spawner.owner = ownerT;
-                spawner.interval = spawnInterval;
+                spawner.interval = Mathf.Max(0.01f, spawnInterval);
                 spawner.countPerInterval = Mathf.Max(1, numberToSpawn);
                 spawner.debugLogs = p.debugLogs || gen.debugLogs;
 
@@ -116,12 +141,27 @@ namespace Game.Procederal.Core.Builders
                 spawner.spawnRadius = spawnRadius;
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
-                return;
+
+                if (spawnOnInterval || string.Equals(spawnBehaviorNorm, "interval"))
+                    return;
             }
 
-            var beam = gen.CreateChild("Beam", root.transform);
-            gen.AddMechanicByName(beam, "Beam", beamSettings.ToArray());
-            gen.InitializeMechanics(beam, gen.owner, gen.target);
+            var spec = new UnifiedChildBuilder.ChildSpec
+            {
+                ChildName = "Beam",
+                Parent = root.transform,
+                Layer = root.layer,
+                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                {
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Beam",
+                        Settings = beamSettings.ToArray(),
+                    },
+                },
+            };
+
+            var beam = UnifiedChildBuilder.BuildChild(gen, spec);
             subItems.Add(beam);
         }
     }

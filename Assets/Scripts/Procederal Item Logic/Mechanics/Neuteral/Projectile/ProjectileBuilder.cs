@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Procederal.Core;
 using UnityEngine;
@@ -210,45 +211,6 @@ namespace Game.Procederal.Core.Builders
 
             for (int i = 0; i < count; i++)
             {
-                var go = new GameObject($"Projectile_{i}");
-                go.transform.SetParent(root.transform, false);
-                go.transform.localPosition = Vector3.zero;
-                go.transform.localScale = Vector3.one * visualScale;
-
-                var sr = go.AddComponent<SpriteRenderer>();
-                Sprite chosen = null;
-                switch ((spriteType ?? "circle").ToLowerInvariant())
-                {
-                    case "custom":
-                        if (!string.IsNullOrEmpty(customPath))
-                            chosen = Resources.Load<Sprite>(customPath);
-                        if (chosen == null)
-                            chosen = Game.Procederal.ProcederalItemGenerator.GetUnitCircleSprite();
-                        break;
-                    case "square":
-                        chosen = Game.Procederal.ProcederalItemGenerator.GetUnitSquareSprite();
-                        break;
-                    case "circle":
-                    default:
-                        chosen = Game.Procederal.ProcederalItemGenerator.GetUnitCircleSprite();
-                        break;
-                }
-                sr.sprite = chosen;
-                sr.color = projColor;
-                sr.sortingOrder = 0;
-
-                var collider = go.AddComponent<CircleCollider2D>();
-                collider.isTrigger = true;
-                collider.radius = 0.5f;
-
-                if (go.GetComponent<Rigidbody2D>() == null)
-                {
-                    var rb = go.AddComponent<Rigidbody2D>();
-                    rb.bodyType = RigidbodyType2D.Kinematic;
-                    rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-                    rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-                }
-
                 var projectileSettings = new List<(string key, object val)>
                 {
                     ("damage", p != null ? p.projectileDamage : 1),
@@ -266,21 +228,30 @@ namespace Game.Procederal.Core.Builders
                     projectileSettings.Add(("customSpritePath", customPath));
                 projectileSettings.Add(("spriteColor", projColor));
 
-                gen.AddMechanicByName(go, "Projectile", projectileSettings.ToArray());
+                var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                {
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Projectile",
+                        Settings = projectileSettings.ToArray(),
+                    },
+                };
 
+                List<Action<GameObject>> mutators = null;
                 if (wantOrbit)
                 {
                     float orbitRadius = p != null ? p.orbitRadius : 0f;
                     float orbitSpeed = p != null && p.orbitSpeedDeg > 0f ? p.orbitSpeedDeg : 90f;
-
-                    gen.AddMechanicByName(
-                        go,
-                        "Orbit",
-                        new (string key, object val)[]
+                    mechanics.Add(
+                        new UnifiedChildBuilder.MechanicSpec
                         {
-                            ("radius", orbitRadius),
-                            ("angularSpeedDeg", orbitSpeed),
-                            ("debugLogs", wantDebugLogs),
+                            Name = "Orbit",
+                            Settings = new (string key, object val)[]
+                            {
+                                ("radius", orbitRadius),
+                                ("angularSpeedDeg", orbitSpeed),
+                                ("debugLogs", wantDebugLogs),
+                            },
                         }
                     );
 
@@ -292,9 +263,49 @@ namespace Game.Procederal.Core.Builders
                         Mathf.Sin(radians) * orbitRadius,
                         0f
                     );
-                    go.transform.localPosition = pos;
+                    mutators = new List<Action<GameObject>>
+                    {
+                        go => go.transform.localPosition = pos,
+                    };
                 }
 
+                var spec = new UnifiedChildBuilder.ChildSpec
+                {
+                    ChildName = $"Projectile_{i}",
+                    Parent = root.transform,
+                    LocalScale = Vector3.one * visualScale,
+                    Layer = root.layer,
+                    Visual = new UnifiedChildBuilder.SpriteSpec
+                    {
+                        Enabled = true,
+                        SpriteType = string.IsNullOrEmpty(spriteType) ? "circle" : spriteType,
+                        CustomSpritePath = customPath,
+                        Color = projColor,
+                        SortingOrder = 0,
+                    },
+                    Collider = new UnifiedChildBuilder.ColliderSpec
+                    {
+                        Enabled = true,
+                        Shape = UnifiedChildBuilder.ColliderShape2D.Circle,
+                        Radius = 0.5f,
+                        Offset = Vector2.zero,
+                        IsTrigger = true,
+                    },
+                    Rigidbody = new UnifiedChildBuilder.RigidbodySpec
+                    {
+                        Enabled = true,
+                        BodyType = RigidbodyType2D.Kinematic,
+                        FreezeRotation = false,
+                        GravityScale = 0f,
+                        Interpolation = RigidbodyInterpolation2D.Interpolate,
+                        CollisionDetection = CollisionDetectionMode2D.Continuous,
+                    },
+                    Mechanics = mechanics,
+                    Mutators = mutators,
+                    InitializeMechanics = false,
+                };
+
+                var go = UnifiedChildBuilder.BuildChild(gen, spec);
                 gen.InitializeMechanics(go, gen.owner, gen.target);
                 gen.SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", destroyOnHit);
                 subItems.Add(go);

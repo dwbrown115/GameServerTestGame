@@ -48,6 +48,7 @@
     <Analyzer Include="/Applications/Unity/Hub/Editor/6000.2.8f1/Unity.app/Contents/Tools/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/UnifiedChildBuilder.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Spawn Resolvers/ISpawnPositionResolver.cs" />
     <Compile Include="Assets/Scripts/Managers/LeaderboardRowView.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/PayloadTriggerRelay.cs" />

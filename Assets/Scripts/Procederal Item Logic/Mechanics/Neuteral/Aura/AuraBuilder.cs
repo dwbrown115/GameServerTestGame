@@ -16,7 +16,6 @@ namespace Game.Procederal.Core.Builders
             List<GameObject> subItems
         )
         {
-            var aura = gen.CreateChild("Aura", root.transform);
             var auraJson = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
                 gen.LoadAndMergeJsonSettings("Aura"),
                 gen.CollectSecondarySettings(instruction)
@@ -42,9 +41,23 @@ namespace Game.Procederal.Core.Builders
                 ("debugLogs", p.debugLogs || gen.debugLogs),
             };
 
-            gen.AddMechanicByName(aura, "Aura", auraSettings.ToArray());
-            aura.transform.localScale = Vector3.one;
-            gen.InitializeMechanics(aura, gen.owner, gen.target);
+            var spec = new UnifiedChildBuilder.ChildSpec
+            {
+                ChildName = "Aura",
+                Parent = root.transform,
+                Layer = root.layer,
+                LocalScale = Vector3.one,
+                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                {
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Aura",
+                        Settings = auraSettings.ToArray(),
+                    },
+                },
+            };
+
+            var aura = UnifiedChildBuilder.BuildChild(gen, spec);
             subItems.Add(aura);
         }
     }

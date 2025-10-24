@@ -41,7 +41,6 @@ namespace Game.Procederal.Core.Builders
 
             for (int i = 0; i < count; i++)
             {
-                var whip = gen.CreateChild($"Whip_{i}", root.transform);
                 var settings = new List<(string key, object val)>();
                 if (whipJson.TryGetValue("outerRadius", out var or))
                     settings.Add(("outerRadius", or));
@@ -65,8 +64,22 @@ namespace Game.Procederal.Core.Builders
                 settings.Add(("requireMobTag", true));
                 settings.Add(("debugLogs", p.debugLogs || gen.debugLogs));
 
-                gen.AddMechanicByName(whip, "Whip", settings.ToArray());
-                gen.InitializeMechanics(whip, gen.owner, gen.target);
+                var spec = new UnifiedChildBuilder.ChildSpec
+                {
+                    ChildName = $"Whip_{i}",
+                    Parent = root.transform,
+                    Layer = root.layer,
+                    Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                    {
+                        new UnifiedChildBuilder.MechanicSpec
+                        {
+                            Name = "Whip",
+                            Settings = settings.ToArray(),
+                        },
+                    },
+                };
+
+                var whip = UnifiedChildBuilder.BuildChild(gen, spec);
                 subItems.Add(whip);
             }
 

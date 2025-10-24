@@ -16,7 +16,6 @@ namespace Game.Procederal.Core.Builders
             List<GameObject> subItems
         )
         {
-            var strike = gen.CreateChild("Strike", root.transform);
             var strikeJson = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
                 gen.LoadAndMergeJsonSettings("Strike"),
                 gen.CollectSecondarySettings(instruction)
@@ -40,8 +39,22 @@ namespace Game.Procederal.Core.Builders
             settings.Add(("vizColor", vizColor));
             settings.Add(("debugLogs", p.debugLogs || gen.debugLogs));
 
-            gen.AddMechanicByName(strike, "Strike", settings.ToArray());
-            gen.InitializeMechanics(strike, gen.owner, gen.target);
+            var spec = new UnifiedChildBuilder.ChildSpec
+            {
+                ChildName = "Strike",
+                Parent = root.transform,
+                Layer = root.layer,
+                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                {
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Strike",
+                        Settings = settings.ToArray(),
+                    },
+                },
+            };
+
+            var strike = UnifiedChildBuilder.BuildChild(gen, spec);
             subItems.Add(strike);
         }
     }

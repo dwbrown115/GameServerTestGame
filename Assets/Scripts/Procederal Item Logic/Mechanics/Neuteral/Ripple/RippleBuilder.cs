@@ -58,12 +58,16 @@ namespace Game.Procederal.Core.Builders
             );
             float interval = MechanicSettingNormalizer.Interval(rippleJson, "interval", 0.5f);
 
-            if (spawnOnInterval)
+            RippleIntervalSpawner spawner = null;
+            bool wantsRepeating = spawnOnInterval || interval > 0.01f;
+            if (wantsRepeating)
             {
-                var spawner = root.AddComponent<RippleIntervalSpawner>();
+                spawner =
+                    root.GetComponent<RippleIntervalSpawner>()
+                    ?? root.AddComponent<RippleIntervalSpawner>();
                 spawner.generator = gen;
                 spawner.owner = ownerT;
-                spawner.interval = interval;
+                spawner.interval = Mathf.Max(0.01f, interval);
                 spawner.countPerInterval = Mathf.Max(1, numberToSpawn);
                 spawner.startRadius = startRadius;
                 spawner.endDiameter = endDiameter;
@@ -78,28 +82,39 @@ namespace Game.Procederal.Core.Builders
 
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
-                return;
+
+                if (spawnOnInterval)
+                    return;
             }
 
-            var ripple = gen.CreateChild("Ripple", root.transform);
-            gen.AddMechanicByName(
-                ripple,
-                "Ripple",
-                new (string key, object val)[]
+            var spec = new UnifiedChildBuilder.ChildSpec
+            {
+                ChildName = "Ripple",
+                Parent = root.transform,
+                Layer = root.layer,
+                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
                 {
-                    ("startRadius", startRadius),
-                    ("endDiameter", endDiameter),
-                    ("growDuration", growDuration),
-                    ("edgeThickness", edgeThickness),
-                    ("damage", damage),
-                    ("excludeOwner", true),
-                    ("requireMobTag", true),
-                    ("showVisualization", showViz),
-                    ("vizColor", vizColor),
-                    ("debugLogs", p.debugLogs || gen.debugLogs),
-                }
-            );
-            gen.InitializeMechanics(ripple, gen.owner, gen.target);
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Ripple",
+                        Settings = new (string key, object val)[]
+                        {
+                            ("startRadius", startRadius),
+                            ("endDiameter", endDiameter),
+                            ("growDuration", growDuration),
+                            ("edgeThickness", edgeThickness),
+                            ("damage", damage),
+                            ("excludeOwner", true),
+                            ("requireMobTag", true),
+                            ("showVisualization", showViz),
+                            ("vizColor", vizColor),
+                            ("debugLogs", p.debugLogs || gen.debugLogs),
+                        },
+                    },
+                },
+            };
+
+            var ripple = UnifiedChildBuilder.BuildChild(gen, spec);
             subItems.Add(ripple);
         }
     }
