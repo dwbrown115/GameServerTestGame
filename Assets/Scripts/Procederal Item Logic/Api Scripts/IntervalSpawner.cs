@@ -217,6 +217,15 @@ namespace Game.Procederal.Api
 
                 // Initialize mechanics with proper context once after adding all
                 generator.InitializeMechanics(go, owner, generator.target);
+                if (overrideDestroyOnHit)
+                {
+                    generator.SetExistingMechanicSetting(
+                        go,
+                        "Projectile",
+                        "destroyOnHit",
+                        destroyOnHit
+                    );
+                }
 
                 // If destroyOnHit is explicitly disabled, do not auto-destroy by lifetime
                 if (lifetime > 0f && !(overrideDestroyOnHit && !destroyOnHit))

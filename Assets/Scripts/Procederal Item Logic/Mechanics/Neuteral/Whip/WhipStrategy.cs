@@ -15,7 +15,8 @@ namespace Game.Procederal.Core.Builders.Strategies
             List<GameObject> subItems
         )
         {
-            gen.BuildWhip(root, instruction, p, subItems);
+            var builder = Core.Builders.PrimaryBuilders.Get(Kind);
+            builder?.Build(gen, root, instruction, p, subItems);
         }
     }
 }

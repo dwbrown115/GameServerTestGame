@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace Game.Procederal.Ota
@@ -136,9 +137,33 @@ namespace Game.Procederal.Ota
         )
         {
             var asset = Resources.Load<TextAsset>(resourcePath);
-            if (asset == null || string.IsNullOrWhiteSpace(asset.text))
-                return Empty;
-            return FromJson(asset.text, resourcePath);
+            if (asset != null && !string.IsNullOrWhiteSpace(asset.text))
+                return FromJson(asset.text, resourcePath);
+
+            try
+            {
+                string dataPath = Application.dataPath;
+                if (!string.IsNullOrWhiteSpace(dataPath))
+                {
+                    string mechanicsIndex = Path.Combine(
+                        dataPath,
+                        "Scripts",
+                        "Procederal Item Logic",
+                        "Mechanics",
+                        "index.json"
+                    );
+                    if (File.Exists(mechanicsIndex))
+                        return FromJson(File.ReadAllText(mechanicsIndex), mechanicsIndex);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(
+                    $"[MechanicOtaManifest] Failed to load mechanics index fallback: {ex.Message}"
+                );
+            }
+
+            return Empty;
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Core.Builders
@@ -15,7 +16,36 @@ namespace Game.Procederal.Core.Builders
             List<GameObject> subItems
         )
         {
-            gen.BuildAura(root, instruction, p, subItems);
+            var aura = gen.CreateChild("Aura", root.transform);
+            var auraJson = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
+                gen.LoadAndMergeJsonSettings("Aura"),
+                gen.CollectSecondarySettings(instruction)
+            );
+
+            float jRadius = MechanicSettingNormalizer.Radius(auraJson, "radius", 2f);
+            float jInterval = MechanicSettingNormalizer.Interval(auraJson, "interval", 0.5f, 0.01f);
+            int jDamage = MechanicSettingNormalizer.Damage(auraJson, "damagePerInterval", 1);
+            bool jShowViz = MechanicSettingNormalizer.Bool(auraJson, "showVisualization", true);
+            Color auraVizColor = MechanicSettingNormalizer.Color(
+                auraJson,
+                "spriteColor",
+                new Color(0f, 0f, 0f, 0.5f)
+            );
+
+            var auraSettings = new List<(string key, object val)>
+            {
+                ("radius", jRadius),
+                ("interval", Mathf.Max(0.01f, jInterval)),
+                ("damagePerInterval", Mathf.Max(0, jDamage)),
+                ("showVisualization", jShowViz),
+                ("vizColor", auraVizColor),
+                ("debugLogs", p.debugLogs || gen.debugLogs),
+            };
+
+            gen.AddMechanicByName(aura, "Aura", auraSettings.ToArray());
+            aura.transform.localScale = Vector3.one;
+            gen.InitializeMechanics(aura, gen.owner, gen.target);
+            subItems.Add(aura);
         }
     }
 }

@@ -33,15 +33,27 @@ namespace Game.Procederal.Core
             StringComparer.OrdinalIgnoreCase
         );
 
+        /// <summary>
+        /// When true, emit verbose diagnostics about manifest resolution and path lookups.
+        /// </summary>
+        public static bool VerboseLogging { get; set; }
+
         public void EnsureInitialized(TextAsset primaryJson, TextAsset modifierJson)
         {
             string p = primaryJson != null ? primaryJson.text : null;
             string m = modifierJson != null ? modifierJson.text : null;
 
+            LogVerbose(
+                $"EnsureInitialized invoked. primaryJson={(primaryJson != null)}, modifierJson={(modifierJson != null)}"
+            );
+
             if (!_manifestInitialized)
             {
-                _builtinManifest = MechanicOtaManifest.LoadFromResources();
+                _builtinManifest = MechanicJsonProjectProvider.LoadManifest();
                 _manifestInitialized = true;
+                LogVerbose(
+                    $"Loaded builtin manifest entries={_builtinManifest?.Entries?.Count ?? 0}"
+                );
             }
 
             RefreshEffectiveManifest();
@@ -52,7 +64,11 @@ namespace Game.Procederal.Core
                 m = BuildAggregateFromManifest(_effectiveManifest, "Modifier");
 
             if (_initialized && p == _primaryJson && m == _modifierJson)
+            {
+                LogVerbose("Initialization skipped (no changes).");
                 return;
+            }
+
             _primaryJson = p;
             _modifierJson = m;
             _mergedCache.Clear();
@@ -60,15 +76,21 @@ namespace Game.Procederal.Core
             _incompatCache.Clear();
             _initialized = true;
 
-            // Pre-scan for paths for quick lookups
             FillPaths(_primaryJson);
             FillPaths(_modifierJson);
+
+            LogVerbose(
+                $"Initialization complete. Cached primaries={_primaryJson != null}, modifiers={_modifierJson != null}, pathCacheSize={_pathCache.Count}"
+            );
         }
 
         public void ApplyOverlayManifest(MechanicOtaManifest manifest)
         {
             _overlayManifest = manifest ?? MechanicOtaManifest.Empty;
             _initialized = false;
+            LogVerbose(
+                $"Overlay manifest applied. entries={_overlayManifest?.Entries?.Count ?? 0}"
+            );
             EnsureInitialized(null, null);
         }
 
@@ -89,26 +111,60 @@ namespace Game.Procederal.Core
 
         public bool TryGetPath(string mechanicName, out string path)
         {
+            LogVerbose($"TryGetPath called for '{mechanicName}'.");
+
+            path = null;
+
             if (string.IsNullOrWhiteSpace(mechanicName))
             {
-                path = null;
+                LogVerbose("Mechanic name missing for TryGetPath.");
                 return false;
             }
+
             if (_pathCache.TryGetValue(mechanicName, out path))
+            {
+                LogVerbose($"Path cache hit for '{mechanicName}' => {path}");
                 return true;
-            // Fallback: attempt parse once
+            }
+
             path = ExtractStringField(_primaryJson, mechanicName, "MechanicPath");
             if (!string.IsNullOrEmpty(path))
             {
                 _pathCache[mechanicName] = path;
+                LogVerbose($"Path resolved from primary aggregate for '{mechanicName}' => {path}");
                 return true;
             }
+
             path = ExtractStringField(_modifierJson, mechanicName, "MechanicPath");
             if (!string.IsNullOrEmpty(path))
             {
                 _pathCache[mechanicName] = path;
+                LogVerbose($"Path resolved from modifier aggregate for '{mechanicName}' => {path}");
                 return true;
             }
+
+            if (
+                _effectiveManifest != null
+                && _effectiveManifest.TryGetEntry(mechanicName, out var entry)
+            )
+            {
+                if (MechanicJsonProjectProvider.TryResolveMechanicPath(entry, out var resolvedPath))
+                {
+                    _pathCache[mechanicName] = resolvedPath;
+                    path = resolvedPath;
+                    LogVerbose(
+                        $"Path resolved from manifest entry for '{mechanicName}' => {resolvedPath}"
+                    );
+                    return true;
+                }
+
+                LogVerboseWarning(
+                    $"Manifest entry present but mechanicPath missing for '{mechanicName}'."
+                );
+            }
+
+            LogVerboseWarning($"Failed to resolve path for '{mechanicName}'.");
+            path = null;
             return false;
         }
 
@@ -117,7 +173,10 @@ namespace Game.Procederal.Core
             if (string.IsNullOrWhiteSpace(mechanicName))
                 return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (_mergedCache.TryGetValue(mechanicName, out var cached))
+            {
+                LogVerbose($"Merged settings cache hit for '{mechanicName}'.");
                 return new Dictionary<string, object>(cached, StringComparer.OrdinalIgnoreCase);
+            }
 
             var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in GetKvpArray(mechanicName, "Generator"))
@@ -128,10 +187,14 @@ namespace Game.Procederal.Core
                 dict[kv.Key] = kv.Value;
             foreach (var kv in GetKvpArray(mechanicName, "MechanicOverrides"))
                 dict[kv.Key] = kv.Value;
+
             _mergedCache[mechanicName] = new Dictionary<string, object>(
                 dict,
                 StringComparer.OrdinalIgnoreCase
             );
+
+            LogVerbose($"Cached merged settings for '{mechanicName}' with keys={dict.Count}");
+
             return dict;
         }
 
@@ -149,12 +212,19 @@ namespace Game.Procederal.Core
             {
                 _effectiveManifest = _builtinManifest.Merge(_overlayManifest);
             }
+
+            LogVerbose(
+                $"Effective manifest refreshed. entries={_effectiveManifest?.Entries?.Count ?? 0}"
+            );
         }
 
         private string BuildAggregateFromManifest(MechanicOtaManifest manifest, string category)
         {
             if (manifest == null)
+            {
+                LogVerbose($"BuildAggregate skipped for category={category} (manifest null).");
                 return "[]";
+            }
 
             var sb = new StringBuilder();
             sb.Append('[');
@@ -169,7 +239,12 @@ namespace Game.Procederal.Core
 
                 string text = LoadJsonFromEntry(entry);
                 if (string.IsNullOrWhiteSpace(text))
+                {
+                    LogVerbose(
+                        $"Aggregate skipped empty text for '{entry.mechanicName}' in category={category}"
+                    );
                     continue;
+                }
 
                 if (wrote)
                     sb.Append(',');
@@ -178,7 +253,9 @@ namespace Game.Procederal.Core
             }
 
             sb.Append(']');
-            return wrote ? sb.ToString() : "[]";
+            string aggregate = wrote ? sb.ToString() : "[]";
+            LogVerbose($"Aggregate built for category={category} length={aggregate.Length}");
+            return aggregate;
         }
 
         private static string LoadJsonFromEntry(MechanicOtaManifestEntry entry)
@@ -186,12 +263,9 @@ namespace Game.Procederal.Core
             if (entry == null)
                 return null;
 
-            if (IsDevEnvironment())
-            {
-                var devJson = TryLoadFromDevSources(entry);
-                if (!string.IsNullOrWhiteSpace(devJson))
-                    return devJson;
-            }
+            var projectJson = MechanicJsonProjectProvider.TryLoadMechanicJson(entry);
+            if (!string.IsNullOrWhiteSpace(projectJson))
+                return projectJson;
 
             if (!string.IsNullOrWhiteSpace(entry.resourcePath))
             {
@@ -233,50 +307,6 @@ namespace Game.Procederal.Core
             }
 
             return null;
-        }
-
-        private static bool IsDevEnvironment()
-        {
-#if UNITY_EDITOR
-            return true;
-#else
-            return Debug.isDebugBuild;
-#endif
-        }
-
-        private static string TryLoadFromDevSources(MechanicOtaManifestEntry entry)
-        {
-            if (entry == null || string.IsNullOrWhiteSpace(entry.sourcePath))
-                return null;
-
-            try
-            {
-                string dataPath = Application.dataPath;
-                if (string.IsNullOrWhiteSpace(dataPath))
-                    return null;
-
-                var mechanicsRoot = Path.Combine(
-                    dataPath,
-                    "Scripts",
-                    "Procederal Item Logic",
-                    "Mechanics"
-                );
-
-                var relative = entry.sourcePath.Replace('/', Path.DirectorySeparatorChar);
-                var fullPath = Path.Combine(mechanicsRoot, relative);
-
-                if (!File.Exists(fullPath))
-                    return null;
-
-                return File.ReadAllText(fullPath);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning(
-                    $"[MechanicsRegistry] Failed to load dev mechanic '{entry.sourcePath}': {ex.Message}"
-                );
-                return null;
-            }
         }
 
         private static IEnumerable<string> GetRuntimeSearchRoots()
@@ -343,7 +373,10 @@ namespace Game.Procederal.Core
                 searchPos = q2 + 1;
                 string path = ExtractStringFieldAfter(json, searchPos, "MechanicPath");
                 if (!string.IsNullOrWhiteSpace(foundName) && !string.IsNullOrWhiteSpace(path))
+                {
                     _pathCache[foundName] = path;
+                    LogVerbose($"FillPaths cached path for '{foundName}' => {path}");
+                }
             }
         }
 
@@ -551,14 +584,12 @@ namespace Game.Procederal.Core
             if (string.IsNullOrWhiteSpace(raw))
                 return null;
             raw = raw.Trim();
-            // Simple string array parsing: ["A","B"] -> string[] {A,B}
             if (raw.StartsWith("[") && raw.EndsWith("]"))
             {
-                // Attempt lightweight parse for string tokens only
                 var inner = raw.Substring(1, raw.Length - 2).Trim();
                 if (inner.Length == 0)
-                    return new string[0];
-                var list = new System.Collections.Generic.List<string>();
+                    return Array.Empty<string>();
+                var list = new List<string>();
                 int i = 0;
                 while (i < inner.Length)
                 {
@@ -577,16 +608,14 @@ namespace Game.Procederal.Core
                     }
                     else
                     {
-                        // Non-quoted token until comma
                         int j = inner.IndexOf(',', i);
                         string token = (
                             j < 0 ? inner.Substring(i) : inner.Substring(i, j - i)
                         ).Trim();
                         if (token.Length > 0)
                             list.Add(token);
-                        i = (j < 0 ? inner.Length : j + 1);
+                        i = j < 0 ? inner.Length : j + 1;
                     }
-                    // Skip comma
                     while (i < inner.Length && inner[i] != '"' && inner[i] != ',')
                         i++;
                     if (i < inner.Length && inner[i] == ',')
@@ -609,12 +638,23 @@ namespace Game.Procederal.Core
                 )
             )
             {
-                // Preserve ints when possible
                 if (Mathf.Approximately(f, Mathf.Round(f)))
                     return (int)Mathf.Round(f);
                 return f;
             }
-            return raw; // fallback string
+            return raw;
+        }
+
+        private static void LogVerbose(string message)
+        {
+            if (VerboseLogging)
+                Debug.Log("[MechanicsRegistry] " + message);
+        }
+
+        private static void LogVerboseWarning(string message)
+        {
+            if (VerboseLogging)
+                Debug.LogWarning("[MechanicsRegistry] " + message);
         }
     }
 }

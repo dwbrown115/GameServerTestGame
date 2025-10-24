@@ -6,6 +6,7 @@ namespace Game.Procederal.Core.Builders.Strategies
     public class SwordSlashStrategy : IPrimaryStrategy
     {
         public Game.Procederal.MechanicKind Kind => Game.Procederal.MechanicKind.SwordSlash;
+
         public void Build(
             Game.Procederal.ProcederalItemGenerator gen,
             GameObject root,
@@ -14,7 +15,8 @@ namespace Game.Procederal.Core.Builders.Strategies
             List<GameObject> subItems
         )
         {
-            gen.BuildSwordSlash(root, instruction, p, subItems);
+            var builder = Core.Builders.PrimaryBuilders.Get(Kind);
+            builder?.Build(gen, root, instruction, p, subItems);
         }
     }
 }

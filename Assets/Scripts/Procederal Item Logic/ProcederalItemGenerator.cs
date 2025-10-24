@@ -339,15 +339,10 @@ namespace Game.Procederal
                 );
                 _catalogFallbackWarned = true;
             }
-            if (primaryMechanicListJson != null || modifierMechanicListJson != null)
-            {
-                MechanicsRegistry.Instance.EnsureInitialized(
-                    primaryMechanicListJson,
-                    modifierMechanicListJson
-                );
-            }
+            var registry = MechanicsRegistry.Instance;
+            registry.EnsureInitialized(primaryMechanicListJson, modifierMechanicListJson);
 
-            AssignCatalog(MechanicsRegistry.Instance);
+            AssignCatalog(registry);
             return _catalog;
         }
 

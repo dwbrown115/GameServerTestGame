@@ -4,9 +4,14 @@ namespace Game.Procederal.Core
 {
     /// Unity-friendly provider that bootstraps the MechanicsRegistry and exposes it via IMechanicCatalog.
     [DefaultExecutionOrder(-500)]
-    public sealed class MechanicCatalogBehaviour : MonoBehaviour, IMechanicCatalogProvider, IMechanicCatalogInitializer
+    public sealed class MechanicCatalogBehaviour
+        : MonoBehaviour,
+            IMechanicCatalogProvider,
+            IMechanicCatalogInitializer
     {
-        [Tooltip("Optional override catalog for primary mechanics. Leave null to rely on OTA/Resources.")]
+        [Tooltip(
+            "Optional override catalog for primary mechanics. Leave null to rely on OTA/Resources."
+        )]
         public TextAsset primaryCatalogOverride;
 
         [Tooltip("Optional override catalog for modifiers. Leave null to rely on OTA/Resources.")]
@@ -19,15 +24,23 @@ namespace Game.Procederal.Core
 
         private void Awake()
         {
+            MechanicsRegistry.VerboseLogging = false;
             if (!initializeOnAwake)
                 return;
 
-            MechanicsRegistry.Instance.EnsureInitialized(primaryCatalogOverride, modifierCatalogOverride);
+            MechanicsRegistry.Instance.EnsureInitialized(
+                primaryCatalogOverride,
+                modifierCatalogOverride
+            );
         }
 
         public void EnsureReady()
         {
-            MechanicsRegistry.Instance.EnsureInitialized(primaryCatalogOverride, modifierCatalogOverride);
+            MechanicsRegistry.VerboseLogging = false;
+            MechanicsRegistry.Instance.EnsureInitialized(
+                primaryCatalogOverride,
+                modifierCatalogOverride
+            );
         }
     }
 }
