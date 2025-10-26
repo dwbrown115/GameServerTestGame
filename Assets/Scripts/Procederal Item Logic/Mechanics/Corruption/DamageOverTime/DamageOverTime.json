@@ -6,7 +6,7 @@
   "Generator": [],
   "Properties": [
     { "damagePerTick": 2 },
-    { "interval": 0.5 },
+    { "damageInterval": 0.5 },
     { "duration": 3 },
     { "allowStacking": true },
     { "effectId": "generic" }

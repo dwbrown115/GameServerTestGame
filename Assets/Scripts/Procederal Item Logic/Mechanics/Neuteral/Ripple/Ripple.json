@@ -6,7 +6,7 @@
     { "AllowMultiple": false },
     { "spawnBehavior": "interval" },
     { "childrenToSpawn": 1 },
-    { "interval": 0.6 },
+    { "spawnInterval": 0.6 },
     { "immediateFirstBurst": false }
   ],
   "Properties": [

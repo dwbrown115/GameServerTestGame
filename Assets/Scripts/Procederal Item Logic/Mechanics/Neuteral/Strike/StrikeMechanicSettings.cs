@@ -10,7 +10,13 @@ namespace Mechanics.Neuteral
         {
             if (comp == null || s == null)
                 return;
-            comp.interval = MechanicSettingNormalizer.Interval(s, "interval", comp.interval);
+            comp.interval = MechanicSettingNormalizer.Interval(
+                s,
+                comp.interval,
+                0.0001f,
+                "damageInterval",
+                "interval"
+            );
             comp.damagePerInterval = MechanicSettingNormalizer.Damage(
                 s,
                 "damagePerInterval",

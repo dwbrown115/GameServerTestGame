@@ -12,7 +12,7 @@
     { "DestroyOnHit": false },
     { "damagePerInterval": 5 },
     { "radius": 2 },
-    { "interval": 0.1 },
+    { "damageInterval": 0.1 },
     { "spriteType": "circle" },
     { "spriteColor": "#00000080" }
   ],

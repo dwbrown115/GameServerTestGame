@@ -42,6 +42,30 @@ namespace Game.Procederal.Api
         public string customSpritePath = null;
         public Color spriteColor = Color.white;
 
+        [Header("Payload Shell")]
+        [Tooltip("If false, skips adding a SpriteRenderer to spawned payload shells.")]
+        public bool createSpriteRenderer = true;
+
+        [Tooltip("If false, skips adding a CircleCollider2D to spawned payload shells.")]
+        public bool createCollider = true;
+
+        [Tooltip("Radius to apply when createCollider is true (in world units).")]
+        public float colliderRadius = 0.5f;
+
+        [Tooltip("If false, skips adding a Rigidbody2D to spawned payload shells.")]
+        public bool createRigidBody = true;
+
+        [Tooltip("Body type assigned when createRigidBody is true.")]
+        public RigidbodyType2D rigidBodyType = RigidbodyType2D.Kinematic;
+
+        [Tooltip("Freeze Z rotation on the payload Rigidbody2D when created.")]
+        public bool freezeRotation = true;
+
+        [Tooltip(
+            "Attach an AutoDestroyAfterSeconds timer when lifetime > 0. Disable when payload mechanics manage lifetime themselves."
+        )]
+        public bool autoDestroyPayloads = true;
+
         [Header("Debug")]
         public bool debugLogs = false;
 
@@ -183,15 +207,18 @@ namespace Game.Procederal.Api
                     parent = transform,
                     position = pos,
                     layer = owner != null ? owner.gameObject.layer : gameObject.layer,
-                    spriteType = string.IsNullOrEmpty(spriteType) ? null : spriteType,
+                    spriteType =
+                        (createSpriteRenderer && !string.IsNullOrEmpty(spriteType))
+                            ? spriteType
+                            : null,
                     customSpritePath = customSpritePath,
                     spriteColor = spriteColor,
-                    createCollider = true,
-                    colliderRadius = 0.5f,
-                    createRigidBody = true,
-                    bodyType = RigidbodyType2D.Dynamic,
-                    freezeRotation = true,
-                    addAutoDestroy = lifetime > 0f,
+                    createCollider = createCollider,
+                    colliderRadius = colliderRadius,
+                    createRigidBody = createRigidBody,
+                    bodyType = rigidBodyType,
+                    freezeRotation = freezeRotation,
+                    addAutoDestroy = autoDestroyPayloads && lifetime > 0f,
                     lifetimeSeconds = lifetime > 0f ? lifetime : 0f,
                 };
                 var go = SpawnHelpers.CreatePayloadShell($"{payloadMechanicName}_Spawned", shell);
@@ -242,7 +269,7 @@ namespace Game.Procederal.Api
 
                 var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
-                    runner.RegisterTree(transform);
+                    runner.RegisterTree(go.transform);
             }
         }
 

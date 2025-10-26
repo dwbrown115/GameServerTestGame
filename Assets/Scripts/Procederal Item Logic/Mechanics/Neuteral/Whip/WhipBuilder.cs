@@ -50,7 +50,9 @@ namespace Game.Procederal.Core.Builders
                     settings.Add(("arcLengthDeg", ad));
                 if (whipJson.TryGetValue("drawDuration", out var dd))
                     settings.Add(("drawDuration", dd));
-                if (whipJson.TryGetValue("interval", out var iv))
+                if (whipJson.TryGetValue("damageInterval", out var dmgInterval))
+                    settings.Add(("interval", dmgInterval));
+                else if (whipJson.TryGetValue("interval", out var iv))
                     settings.Add(("interval", iv));
                 if (whipJson.TryGetValue("damagePerInterval", out var dmg))
                     settings.Add(("damagePerInterval", dmg));

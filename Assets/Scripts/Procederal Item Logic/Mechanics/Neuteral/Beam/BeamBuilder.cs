@@ -42,7 +42,9 @@ namespace Game.Procederal.Core.Builders
                 beamSettings.Add(("damagePerInterval", dpi));
             if (beamJson.TryGetValue("damage", out var dmg))
                 beamSettings.Add(("damage", dmg));
-            if (beamJson.TryGetValue("interval", out var biv))
+            if (beamJson.TryGetValue("damageInterval", out var dmgInterval))
+                beamSettings.Add(("interval", dmgInterval));
+            else if (beamJson.TryGetValue("interval", out var biv))
                 beamSettings.Add(("interval", biv));
             beamSettings.Add(("requireMobTag", true));
             beamSettings.Add(("excludeOwner", true));
@@ -64,28 +66,11 @@ namespace Game.Procederal.Core.Builders
             );
             float spawnInterval = MechanicSettingNormalizer.Interval(
                 beamJson,
-                "interval",
                 0.5f,
-                0.01f
+                0.01f,
+                "spawnInterval",
+                "interval"
             );
-            if (spawnInterval <= 0.01f && beamJson.TryGetValue("spawnInterval", out var siRaw))
-            {
-                switch (siRaw)
-                {
-                    case float f:
-                        spawnInterval = Mathf.Max(0.01f, f);
-                        break;
-                    case double d:
-                        spawnInterval = Mathf.Max(0.01f, (float)d);
-                        break;
-                    case int i:
-                        spawnInterval = Mathf.Max(0.01f, i);
-                        break;
-                    case string s when float.TryParse(s, out var parsed):
-                        spawnInterval = Mathf.Max(0.01f, parsed);
-                        break;
-                }
-            }
 
             if (gen.debugLogs)
             {

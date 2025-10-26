@@ -182,14 +182,20 @@ namespace Game.Procederal.Api
                         break;
                     // Future extendables, e.g. default damage/radius if present
                     case "DefaultDamage":
-                        p.projectileDamage = ParseInt(kv.Value, p.projectileDamage);
-                        p.auraDamage = ParseInt(kv.Value, p.auraDamage);
+                        int defaultDamage = ParseInt(kv.Value, p.projectileDamage);
+                        p.projectileDamage = defaultDamage;
+                        p.auraDamage = defaultDamage;
+                        p.damageZoneDamage = defaultDamage;
                         break;
                     case "DefaultRadius":
-                        p.auraRadius = ParseFloat(kv.Value, p.auraRadius);
+                        float defaultRadius = ParseFloat(kv.Value, p.auraRadius);
+                        p.auraRadius = defaultRadius;
+                        p.damageZoneRadius = defaultRadius;
                         break;
                     case "DefaultInterval":
-                        p.auraInterval = ParseFloat(kv.Value, p.auraInterval);
+                        float defaultInterval = ParseFloat(kv.Value, p.auraInterval);
+                        p.auraInterval = defaultInterval;
+                        p.damageZoneInterval = defaultInterval;
                         break;
                 }
             }
@@ -199,14 +205,17 @@ namespace Game.Procederal.Api
             {
                 p.projectileDamage = primary.DefaultDamage;
                 p.auraDamage = primary.DefaultDamage;
+                p.damageZoneDamage = primary.DefaultDamage;
             }
             if (primary.DefaultRadius > 0f)
             {
                 p.auraRadius = primary.DefaultRadius;
+                p.damageZoneRadius = primary.DefaultRadius;
             }
             if (primary.DefaultInterval > 0f)
             {
                 p.auraInterval = primary.DefaultInterval;
+                p.damageZoneInterval = primary.DefaultInterval;
             }
             // DestroyOnHit default for projectile
             p.projectileDestroyOnHit = p.projectileDestroyOnHit || primary.DestroyOnHitDefault;
@@ -258,14 +267,20 @@ namespace Game.Procederal.Api
                             p.projectileDamage = ParseInt(kv.Value, p.projectileDamage);
                         else if (primaryKind == MechanicKind.Aura)
                             p.auraDamage = ParseInt(kv.Value, p.auraDamage);
+                        else if (primaryKind == MechanicKind.DamageZone)
+                            p.damageZoneDamage = ParseInt(kv.Value, p.damageZoneDamage);
                         break;
                     case "Radius":
                         if (primaryKind == MechanicKind.Aura)
                             p.auraRadius = ParseFloat(kv.Value, p.auraRadius);
+                        else if (primaryKind == MechanicKind.DamageZone)
+                            p.damageZoneRadius = ParseFloat(kv.Value, p.damageZoneRadius);
                         break;
                     case "Interval":
                         if (primaryKind == MechanicKind.Aura)
                             p.auraInterval = ParseFloat(kv.Value, p.auraInterval);
+                        else if (primaryKind == MechanicKind.DamageZone)
+                            p.damageZoneInterval = ParseFloat(kv.Value, p.damageZoneInterval);
                         break;
                 }
             }

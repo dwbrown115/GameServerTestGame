@@ -31,7 +31,13 @@ namespace Game.Procederal.Core.Builders
                 0f
             );
             bool spawnOnInterval = MechanicSettingNormalizer.Bool(json, "spawnOnInterval", false);
-            float seriesInterval = MechanicSettingNormalizer.Interval(json, "interval", 0.8f);
+            float seriesInterval = MechanicSettingNormalizer.Interval(
+                json,
+                0.8f,
+                0.01f,
+                "spawnInterval",
+                "interval"
+            );
             float outerRadius = MechanicSettingNormalizer.Radius(json, "outerRadius", 1.5f);
             float width = MechanicSettingNormalizer.Float(json, "width", 0.5f, 0.0001f);
             float arcLen = MechanicSettingNormalizer.Float(json, "arcLengthDeg", 120f, 1f, 359f);

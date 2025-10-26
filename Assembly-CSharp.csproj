@@ -58,12 +58,15 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalogInitializer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/PrimaryBuilders.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/DamageOverTime/DamageOverTimeMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Utilities/ColorUtils.cs" />
     <Compile Include="Assets/Scripts/Apis/WebSocketAuthenticator.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextSelector_A.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ThrowMovementMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Managers/SkinShopManager.cs" />
     <Compile Include="Assets/Scripts/Managers/LoginManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/ISpawnPositionResolver.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/DamageZone/DamageZoneMechanic.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/HomeScreenScript.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitMechanic.cs" />
     <Compile Include="Assets/Scripts/Player/OfflineSpawnService.cs" />
@@ -76,6 +79,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceBatchAnchor.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/IModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Utilities/CustomCertificateHandler.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ThrowMovementMechanic.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark02.cs" />
     <Compile Include="Assets/Scripts/Combat/PlayerProjectileShooter.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanicOld.cs" />
@@ -90,6 +94,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/ProcederalItemGenerator.Builders.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Lock/LockModifierStrategy.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/DamageZone/DamageZoneBuilder.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlash/SwordSlashPayload.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/ChangeUserInfoScreen.cs" />
     <Compile Include="Assets/Scripts/Utilities/ISpawnItemResponseHandler.cs" />
@@ -124,7 +129,9 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Projectile/ProjectileMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/IsNumberValid.cs" />
     <Compile Include="Assets/Scripts/Managers/WebsocketManager.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/DropMovementMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlash/SwordSlashBuilder.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Common/AreaDamageMechanicBase.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_UiFrameRateCounter.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/TimeUI.cs" />
     <Compile Include="Assets/Scripts/Pickups/RuntimeCollectibleValidator.cs" />
@@ -159,6 +166,7 @@
     <Compile Include="Assets/Scripts/Managers/PersistentPlayerData.cs" />
     <Compile Include="Assets/Scripts/Managers/GameSceneManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Spawn Resolvers/NeutralSpawnPositon.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/DropMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/Explosion/ExplosionMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IntervalProjectileSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicsRegistry.cs" />
@@ -260,6 +268,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/ModifierStrategies.cs" />
     <Compile Include="Assets/Scripts/UI/ProgrammaticSkinItemState.cs" />
     <Compile Include="Assets/Scripts/Utilities/IDamageable.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/DamageZone/DamageZoneMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleBuilder.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlash/SwordSlashStrategy.cs" />
     <Compile Include="Assets/Scripts/Utilities/AuthVisabilityHandler.cs" />

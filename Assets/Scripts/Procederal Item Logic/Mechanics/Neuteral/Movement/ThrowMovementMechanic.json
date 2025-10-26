@@ -1,0 +1,18 @@
+{
+  "MechanicName": "ThrowMovementMechanic",
+  "MechanicCategory": "Primary",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ThrowMovementMechanic.cs",
+  "Generator": [{ "AllowMultiple": true }],
+  "Properties": [
+    { "direction": "right" },
+    { "initialSpeed": 12 },
+    { "gravity": 22 },
+    { "downwardSpeedClamp": 24 },
+    { "stopAfterSeconds": 0.65 },
+    { "alignToVelocity": true },
+    { "zeroVelocityOnStop": true },
+    { "disableOnStop": false }
+  ],
+  "IncompatibleWith": [],
+  "MechanicOverrides": []
+}

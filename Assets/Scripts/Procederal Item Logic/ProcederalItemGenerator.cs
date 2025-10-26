@@ -15,6 +15,7 @@ namespace Game.Procederal
         Projectile,
         Orbit,
         Aura,
+        DamageZone,
         Drain,
         Beam,
         Lock,
@@ -52,6 +53,10 @@ namespace Game.Procederal
                     return MechanicKind.Orbit;
                 case "aura":
                     return MechanicKind.Aura;
+                case "damagezone":
+                case "damage-zone":
+                case "zone":
+                    return MechanicKind.DamageZone;
                 case "drain":
                     return MechanicKind.Drain;
                 case "beam":
@@ -118,6 +123,12 @@ namespace Game.Procederal
         public float auraRadius = 2f;
         public float auraInterval = 0.5f;
         public int auraDamage = 1;
+
+        // Damage Zone params
+        public float damageZoneRadius = 2f;
+        public float damageZoneInterval = 0.5f;
+        public int damageZoneDamage = 2;
+        public float damageZoneLifetime = 4f;
 
         // Drain params
         public float drainRadius = 2f;

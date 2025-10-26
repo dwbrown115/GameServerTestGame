@@ -137,9 +137,10 @@ namespace Game.Procederal.Core.Builders
             );
             float spawnInterval = MechanicSettingNormalizer.Interval(
                 projectileJson,
-                "interval",
                 0.5f,
-                0.01f
+                0.01f,
+                "spawnInterval",
+                "interval"
             );
             float spawnRadius = MechanicSettingNormalizer.Radius(projectileJson, "radius", 0f);
             float lifetime = MechanicSettingNormalizer.Float(projectileJson, "lifetime", -1f);

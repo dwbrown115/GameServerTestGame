@@ -8,6 +8,14 @@
     "hash": "b99917830af0f2449cadbedd154cc045c72d45886fa57c6b0d3447dc3b6fcf0d"
   },
   {
+    "mechanicName": "DamageZone",
+    "category": "Primary",
+    "resourcePath": "Primary/DamageZone",
+    "file": "Primary/DamageZone.json",
+    "sourcePath": "Neuteral/DamageZone/DamageZone.json",
+    "hash": ""
+  },
+  {
     "mechanicName": "Beam",
     "category": "Primary",
     "resourcePath": "Primary/Beam",
@@ -31,6 +39,22 @@
     "file": "Primary/ChildMovementMechanic.json",
     "sourcePath": "Neuteral/Movement/ChildMovementMechanic.json",
     "hash": "716dac8d240348e14574cabc84e2928cdd7328e7e79a8874373472dd576299ed"
+  },
+  {
+    "mechanicName": "DropMovementMechanic",
+    "category": "Primary",
+    "resourcePath": "Primary/DropMovementMechanic",
+    "file": "Primary/DropMovementMechanic.json",
+    "sourcePath": "Neuteral/Movement/DropMovementMechanic.json",
+    "hash": ""
+  },
+  {
+    "mechanicName": "ThrowMovementMechanic",
+    "category": "Primary",
+    "resourcePath": "Primary/ThrowMovementMechanic",
+    "file": "Primary/ThrowMovementMechanic.json",
+    "sourcePath": "Neuteral/Movement/ThrowMovementMechanic.json",
+    "hash": ""
   },
   {
     "mechanicName": "DamageOverTime",

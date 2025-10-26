@@ -153,6 +153,37 @@ namespace Game.Procederal.Core
             return Float(source, key, fallback, min);
         }
 
+        public static float Interval(
+            IDictionary<string, object> source,
+            float fallback,
+            params string[] keys
+        )
+        {
+            return Interval(source, fallback, 0.0001f, keys);
+        }
+
+        public static float Interval(
+            IDictionary<string, object> source,
+            float fallback,
+            float min,
+            params string[] keys
+        )
+        {
+            float clampedFallback = Mathf.Max(min, fallback);
+            if (source == null || keys == null || keys.Length == 0)
+                return clampedFallback;
+
+            foreach (var key in keys)
+            {
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+                if (TryGet(source, key, out float value))
+                    return Mathf.Max(min, value);
+            }
+
+            return clampedFallback;
+        }
+
         public static float Duration(
             IDictionary<string, object> source,
             string key,

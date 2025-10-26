@@ -1,0 +1,24 @@
+{
+  "MechanicName": "DamageZone",
+  "MechanicCategory": "Primary",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/DamageZone/DamageZoneMechanic.cs",
+  "Generator": [
+    { "AllowMultiple": true },
+    { "spawnBehavior": "interval" },
+    { "spawnInterval": 1.0 },
+    { "childrenToSpawn": 1 },
+    { "immediateFirstBurst": true }
+  ],
+  "Properties": [
+    { "radius": 2.5 },
+    { "damageInterval": 0.35 },
+    { "damagePerInterval": 6 },
+    { "lifetimeSeconds": 4 },
+    { "destroyOnExpire": true },
+    { "movementMode": "drop" },
+    { "spriteType": "circle" },
+    { "spriteColor": "#FF7A33CC" }
+  ],
+  "IncompatibleWith": ["Orbit"],
+  "MechanicOverrides": []
+}

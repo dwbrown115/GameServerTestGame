@@ -27,7 +27,9 @@ namespace Game.Procederal.Core.Builders
             );
 
             var settings = new List<(string key, object val)>();
-            if (strikeJson.TryGetValue("interval", out var iv))
+            if (strikeJson.TryGetValue("damageInterval", out var dmgInterval))
+                settings.Add(("interval", dmgInterval));
+            else if (strikeJson.TryGetValue("interval", out var iv))
                 settings.Add(("interval", iv));
             if (strikeJson.TryGetValue("damagePerInterval", out var dmg))
                 settings.Add(("damagePerInterval", dmg));

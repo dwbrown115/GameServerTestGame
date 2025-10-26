@@ -56,7 +56,13 @@ namespace Game.Procederal.Core.Builders
                 "NumberOfItemsToSpawn",
                 "childrenToSpawn"
             );
-            float interval = MechanicSettingNormalizer.Interval(rippleJson, "interval", 0.5f);
+            float interval = MechanicSettingNormalizer.Interval(
+                rippleJson,
+                0.5f,
+                0.01f,
+                "spawnInterval",
+                "interval"
+            );
 
             RippleIntervalSpawner spawner = null;
             bool wantsRepeating = spawnOnInterval || interval > 0.01f;

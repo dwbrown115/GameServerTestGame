@@ -319,14 +319,30 @@ public class MechanicHost : MonoBehaviour
                         radiusApplied = true;
                         Log($"Applied override to AuraMechanic.radius={mechanicRadius}.");
                     }
+                    else if (comp is Mechanics.Neuteral.DamageZoneMechanic dz)
+                    {
+                        dz.radius = mechanicRadius;
+                        radiusApplied = true;
+                        Log($"Applied override to DamageZoneMechanic.radius={mechanicRadius}.");
+                    }
                     // Drain has no radius in event-based model
                 }
-                if (overrideAuraShowVisualization && comp is Mechanics.Neuteral.AuraMechanic amViz)
+                if (overrideAuraShowVisualization)
                 {
-                    amViz.showVisualization = auraShowVisualization;
-                    Log(
-                        $"Applied override to AuraMechanic.showVisualization={auraShowVisualization}."
-                    );
+                    if (comp is Mechanics.Neuteral.AuraMechanic amViz)
+                    {
+                        amViz.showVisualization = auraShowVisualization;
+                        Log(
+                            $"Applied override to AuraMechanic.showVisualization={auraShowVisualization}."
+                        );
+                    }
+                    else if (comp is Mechanics.Neuteral.DamageZoneMechanic dzViz)
+                    {
+                        dzViz.showVisualization = auraShowVisualization;
+                        Log(
+                            $"Applied override to DamageZoneMechanic.showVisualization={auraShowVisualization}."
+                        );
+                    }
                 }
                 if (overrideOrbitSpeed && comp is Mechanics.Neuteral.OrbitMechanic os)
                 {
@@ -339,10 +355,20 @@ public class MechanicHost : MonoBehaviour
                     os.angularSpeedDeg = speed;
                     Log($"Applied override to OrbitMechanic.angularSpeedDeg={speed}.");
                 }
-                if (overrideAuraInterval && comp is Mechanics.Neuteral.AuraMechanic amInterval)
+                if (overrideAuraInterval)
                 {
-                    amInterval.interval = Mathf.Max(0.01f, auraInterval);
-                    Log($"Applied override to AuraMechanic.interval={amInterval.interval}.");
+                    if (comp is Mechanics.Neuteral.AuraMechanic amInterval)
+                    {
+                        amInterval.interval = Mathf.Max(0.01f, auraInterval);
+                        Log($"Applied override to AuraMechanic.interval={amInterval.interval}.");
+                    }
+                    else if (comp is Mechanics.Neuteral.DamageZoneMechanic dzInterval)
+                    {
+                        dzInterval.interval = Mathf.Max(0.01f, auraInterval);
+                        Log(
+                            $"Applied override to DamageZoneMechanic.interval={dzInterval.interval}."
+                        );
+                    }
                 }
                 // Drain has no interval; event-based only
 
@@ -362,6 +388,14 @@ public class MechanicHost : MonoBehaviour
                             $"Applied override to AuraMechanic.damagePerInterval={aam.damagePerInterval}."
                         );
                     }
+                    else if (comp is Mechanics.Neuteral.DamageZoneMechanic dzd)
+                    {
+                        dzd.debugLogs = debugLogs;
+                        dzd.damagePerInterval = Mathf.Max(0, damageAmount);
+                        Log(
+                            $"Applied override to DamageZoneMechanic.damagePerInterval={dzd.damagePerInterval}."
+                        );
+                    }
                     // Drain is event-based; no damagePerInterval override
                 }
                 else
@@ -370,6 +404,8 @@ public class MechanicHost : MonoBehaviour
                         pmDbg.debugLogs = debugLogs;
                     if (comp is Mechanics.Neuteral.AuraMechanic amDbg)
                         amDbg.debugLogs = debugLogs;
+                    if (comp is Mechanics.Neuteral.DamageZoneMechanic dzDbg)
+                        dzDbg.debugLogs = debugLogs;
                     if (comp is Mechanics.Corruption.DrainMechanic dmDbg)
                         dmDbg.debugLogs = debugLogs;
                 }

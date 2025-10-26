@@ -1,0 +1,17 @@
+{
+  "MechanicName": "DropMovementMechanic",
+  "MechanicCategory": "Primary",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/DropMovementMechanic.cs",
+  "Generator": [{ "AllowMultiple": true }],
+  "Properties": [
+    { "direction": "down" },
+    { "initialSpeed": 0 },
+    { "gravity": 25 },
+    { "maxSpeed": 18 },
+    { "stopAfterSeconds": 0.45 },
+    { "zeroVelocityOnStop": true },
+    { "disableOnStop": true }
+  ],
+  "IncompatibleWith": [],
+  "MechanicOverrides": []
+}

@@ -17,7 +17,13 @@ namespace Mechanics.Neuteral
                 "damagePerInterval",
                 comp.damagePerInterval
             );
-            comp.interval = MechanicSettingNormalizer.Interval(s, "interval", comp.interval);
+            comp.interval = MechanicSettingNormalizer.Interval(
+                s,
+                comp.interval,
+                0.0001f,
+                "damageInterval",
+                "interval"
+            );
             comp.centerOnTarget = MechanicSettingNormalizer.Bool(
                 s,
                 "centerOnTarget",

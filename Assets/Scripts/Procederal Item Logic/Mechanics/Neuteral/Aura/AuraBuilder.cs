@@ -22,7 +22,13 @@ namespace Game.Procederal.Core.Builders
             );
 
             float jRadius = MechanicSettingNormalizer.Radius(auraJson, "radius", 2f);
-            float jInterval = MechanicSettingNormalizer.Interval(auraJson, "interval", 0.5f, 0.01f);
+            float jInterval = MechanicSettingNormalizer.Interval(
+                auraJson,
+                0.5f,
+                0.01f,
+                "damageInterval",
+                "interval"
+            );
             int jDamage = MechanicSettingNormalizer.Damage(auraJson, "damagePerInterval", 1);
             bool jShowViz = MechanicSettingNormalizer.Bool(auraJson, "showVisualization", true);
             Color auraVizColor = MechanicSettingNormalizer.Color(

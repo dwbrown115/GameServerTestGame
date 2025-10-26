@@ -6,7 +6,7 @@
     { "AllowMultiple": false },
     { "spawnBehavior": "static" },
     { "childrenToSpawn": 1 },
-    { "interval": 0.5 },
+    { "damageInterval": 0.5 },
     { "immediateFirstBurst": false }
   ],
   "Properties": [
