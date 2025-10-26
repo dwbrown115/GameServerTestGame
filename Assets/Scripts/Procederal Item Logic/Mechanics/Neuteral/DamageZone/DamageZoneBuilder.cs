@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Game.Procederal.Core;
 using UnityEngine;
@@ -116,6 +117,7 @@ namespace Game.Procederal.Core.Builders
                     Settings = zoneSettings.ToArray(),
                 },
             };
+
             AttachMovementIfRequested(merged, root.transform, p, gen, mechanics);
 
             // Allow the generator to request interval spawning instead of a single child.

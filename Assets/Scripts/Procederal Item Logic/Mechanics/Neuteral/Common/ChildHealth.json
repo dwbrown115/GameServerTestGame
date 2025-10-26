@@ -1,0 +1,18 @@
+{
+  "MechanicName": "ChildHealth",
+  "MechanicCategory": "Modifier",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Common/ChildHealthMechanic.cs",
+  "Generator": [{ "AllowMultiple": true }],
+  "Properties": [
+    { "maxHealth": 5 },
+    { "resetHealthOnEnable": true },
+    { "destroyOnDepleted": true },
+    { "disableMechanicOnDepleted": true },
+    { "disableGameObjectOnDepleted": false },
+    { "disableCollidersOnDepleted": true },
+    { "sendMessageOnDepleted": "OnChildPayloadDepleted" },
+    { "sendMessageToPayload": true },
+    { "sendMessageToOwner": false }
+  ],
+  "MechanicOverrides": []
+}

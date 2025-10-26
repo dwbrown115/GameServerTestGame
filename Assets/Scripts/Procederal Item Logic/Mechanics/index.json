@@ -16,6 +16,14 @@
     "hash": ""
   },
   {
+    "mechanicName": "ChildHealth",
+    "category": "Modifier",
+    "resourcePath": "Modifier/ChildHealth",
+    "file": "Modifier/ChildHealth.json",
+    "sourcePath": "Neuteral/Common/ChildHealth.json",
+    "hash": ""
+  },
+  {
     "mechanicName": "Beam",
     "category": "Primary",
     "resourcePath": "Primary/Beam",

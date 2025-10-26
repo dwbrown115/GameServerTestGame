@@ -150,6 +150,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/ShaderPropAnimator.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Strike/StrikeMechanic.cs" />
     <Compile Include="Assets/Scripts/Auth/JwtValidator.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Common/ChildHealthMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Strike/StrikeMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/UI/HealthBarUI.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextInfoDebugTool.cs" />
@@ -276,6 +277,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Track/TrackMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Strategies/PrimaryStrategies.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Aura/AuraBuilder.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Common/ChildHealthMechanic.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/TextMesh Pro/Shaders/TMPro.cginc" />
