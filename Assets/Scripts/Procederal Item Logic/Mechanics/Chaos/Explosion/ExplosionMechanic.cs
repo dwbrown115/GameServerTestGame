@@ -30,12 +30,28 @@ namespace Mechanics.Chaos
         [Tooltip("Layer mask of colliders to consider for explosion.")]
         public LayerMask explosionLayers = ~0;
 
+        [Header("Auto Trigger")]
+        [Tooltip("Automatically trigger the explosion after the configured countdown.")]
+        public bool triggerAfterCountdown = false;
+
+        [Tooltip("Seconds to wait before auto-triggering the explosion (0 triggers immediately).")]
+        [Min(0f)]
+        public float countdownSeconds = 0f;
+
+        [Tooltip(
+            "Use the payload transform position when triggering from the countdown (else fallback to owner/self)."
+        )]
+        public bool countdownUsePayloadPosition = true;
+
         [Header("Debug")]
         public bool debugLogs = false;
 
         private MechanicContext _ctx;
         private readonly List<Collider2D> _overlaps = new();
         private static Material _lineMat;
+        private float _countdownRemaining;
+        private bool _countdownArmed;
+        private bool _hasExploded;
 
         [Header("Visualization")]
         [Tooltip("Show a red circle outline when the explosion triggers.")]
@@ -50,15 +66,36 @@ namespace Mechanics.Chaos
         public void Initialize(MechanicContext ctx)
         {
             _ctx = ctx;
+            if (triggerAfterCountdown)
+            {
+                ArmCountdown(Mathf.Max(0f, countdownSeconds));
+            }
+            else
+            {
+                _countdownArmed = false;
+            }
+            _hasExploded = false;
         }
 
         public void Tick(float dt)
         {
-            // no per-frame behavior required
+            if (_countdownArmed)
+            {
+                _countdownRemaining -= dt;
+                if (_countdownRemaining <= 0f)
+                {
+                    _countdownArmed = false;
+                    TriggerCountdownExplosion();
+                }
+            }
         }
 
         public int TriggerExplosion(Vector2 epicenter)
         {
+            if (_hasExploded)
+                return 0;
+
+            _hasExploded = true;
             int layerMask = explosionLayers.value;
             _overlaps.Clear();
             Physics2D.OverlapCircle(
@@ -103,6 +140,8 @@ namespace Mechanics.Chaos
                 Vector2 hitNormal = (c.transform.position - (Vector3)epicenter).normalized;
                 dmg.TakeDamage(dealt, epicenter, hitNormal);
                 totalDamage += dealt;
+
+                TryDestroyExplodableTarget(c.gameObject);
 
                 if (debugLogs)
                     Debug.Log(
@@ -194,6 +233,73 @@ namespace Mechanics.Chaos
 
             // Auto-destroy viz
             Destroy(go, Mathf.Max(0.01f, vizDuration));
+        }
+
+        private void ArmCountdown(float seconds)
+        {
+            _countdownRemaining = Mathf.Max(0f, seconds);
+            _countdownArmed = true;
+            if (_countdownRemaining <= 0f)
+            {
+                _countdownArmed = false;
+                TriggerCountdownExplosion();
+            }
+        }
+
+        private void TriggerCountdownExplosion()
+        {
+            Vector2 epicenter = ResolveCountdownEpicenter();
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[ExplosionMechanic] Countdown complete. Triggering at {epicenter}.",
+                    this
+                );
+            }
+            TriggerExplosion(epicenter);
+        }
+
+        private Vector2 ResolveCountdownEpicenter()
+        {
+            if (_ctx != null)
+            {
+                if (countdownUsePayloadPosition && _ctx.Payload != null)
+                    return _ctx.Payload.position;
+                if (_ctx.Owner != null)
+                    return _ctx.Owner.position;
+                if (_ctx.Payload != null)
+                    return _ctx.Payload.position;
+            }
+            return transform != null ? (Vector2)transform.position : Vector2.zero;
+        }
+
+        private void TryDestroyExplodableTarget(GameObject target)
+        {
+            if (target == null)
+                return;
+
+            // Prefer child health mechanic: mark depleted so it fires its own cleanup logic.
+            var childHealth =
+                target.GetComponentInChildren<Mechanics.Neuteral.ChildHealthMechanic>();
+            if (childHealth != null && childHealth.IsAlive)
+            {
+                childHealth.SetCurrentHealth(0, clampToMax: true);
+                return;
+            }
+
+            Destroy(target);
+        }
+
+        private void OnDestroy()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            if (_hasExploded)
+                return;
+
+            Vector2 epicenter = ResolveCountdownEpicenter();
+            TriggerExplosion(epicenter);
         }
     }
 }

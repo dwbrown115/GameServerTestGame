@@ -4,7 +4,7 @@
   "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Common/ChildHealthMechanic.cs",
   "Generator": [{ "AllowMultiple": true }],
   "Properties": [
-    { "maxHealth": 5 },
+    { "maxHealth": 20 },
     { "resetHealthOnEnable": true },
     { "destroyOnDepleted": true },
     { "disableMechanicOnDepleted": true },
