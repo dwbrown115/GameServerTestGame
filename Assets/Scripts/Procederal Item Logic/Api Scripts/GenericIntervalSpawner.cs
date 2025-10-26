@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Procederal;
 using Game.Procederal.Core;
+using Mechanics.Neuteral;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -66,8 +67,38 @@ namespace Game.Procederal.Api
         )]
         public bool autoDestroyPayloads = true;
 
+        [Header("Duplicate Avoidance")]
+        [Tooltip(
+            "If true, skip spawning when an existing payload mechanic is already within duplicateCheckRadius of the owner."
+        )]
+        public bool avoidDuplicateNearOwner = false;
+
+        [Tooltip(
+            "Radius used for owner-centric duplicate checking (fallbacks to colliderRadius when <= 0)."
+        )]
+        public float duplicateCheckRadius = 0f;
+
+        [Tooltip(
+            "Mechanic token checked when avoidDuplicateNearOwner is enabled (ex: DamageZone)."
+        )]
+        public string duplicateMechanicName = null;
+
         [Header("Debug")]
         public bool debugLogs = false;
+
+        [Header("Collisions")]
+        [Tooltip(
+            "When set, sphere overlap checks are performed against the provided layer mask before spawning."
+        )]
+        public bool preventOverlap = false;
+
+        [Tooltip(
+            "Radius used for overlap avoidance checks. Falls back to colliderRadius when <= 0."
+        )]
+        public float overlapRadius = 0.5f;
+
+        [Tooltip("Layer mask to test when preventOverlap is enabled.")]
+        public LayerMask overlapLayerMask = ~0;
 
         // Generic modifier specs to add to each spawned payload
         private readonly List<(
@@ -202,6 +233,30 @@ namespace Game.Procederal.Api
                     pos = center.position + (Vector3)(dir * Mathf.Max(0f, spawnRadius));
                 }
 
+                if (preventOverlap && IsOverlapping(pos))
+                {
+                    if (debugLogs)
+                    {
+                        Debug.Log(
+                            $"[GenericIntervalSpawner] Skipping spawn due to overlap at {pos}.",
+                            this
+                        );
+                    }
+                    continue;
+                }
+
+                if (avoidDuplicateNearOwner && ShouldSkipForDuplicateNearOwner())
+                {
+                    if (debugLogs)
+                    {
+                        Debug.Log(
+                            "[GenericIntervalSpawner] Skipping spawn; existing payload near owner.",
+                            this
+                        );
+                    }
+                    continue;
+                }
+
                 var shell = new SpawnHelpers.PayloadShellOptions
                 {
                     parent = transform,
@@ -271,6 +326,58 @@ namespace Game.Procederal.Api
                 if (runner != null)
                     runner.RegisterTree(go.transform);
             }
+        }
+
+        private bool IsOverlapping(Vector3 position)
+        {
+            float radius = overlapRadius > 0f ? overlapRadius : colliderRadius;
+            if (radius <= 0f)
+                radius = 0.5f;
+
+            var hits = Physics2D.OverlapCircleAll(position, radius, overlapLayerMask);
+            if (hits == null || hits.Length == 0)
+                return false;
+
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var hit = hits[i];
+                if (hit == null)
+                    continue;
+
+                // Ignore collisions with the owner or this spawner itself
+                if (owner != null && hit.transform.IsChildOf(owner))
+                    continue;
+                if (hit.transform == transform)
+                    continue;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ShouldSkipForDuplicateNearOwner()
+        {
+            Transform ownerRef = owner != null ? owner : transform;
+            if (ownerRef == null)
+                return false;
+
+            float radius = duplicateCheckRadius > 0f ? duplicateCheckRadius : colliderRadius;
+            if (radius <= 0f)
+                radius = 0.5f;
+
+            if (
+                string.Equals(
+                    duplicateMechanicName,
+                    "DamageZone",
+                    System.StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return DamageZoneMechanic.HasZoneWithinRadius(ownerRef.position, radius);
+            }
+
+            return false;
         }
 
         private void EnsureResolver()

@@ -162,6 +162,10 @@ namespace Game.Procederal.Core.Builders
                 spawner.customSpritePath = null;
                 spawner.spriteColor = vizColor;
                 spawner.colliderRadius = Mathf.Max(0.01f, radius);
+                spawner.preventOverlap = false;
+                spawner.avoidDuplicateNearOwner = true;
+                spawner.duplicateMechanicName = "DamageZone";
+                spawner.duplicateCheckRadius = Mathf.Max(0.01f, radius);
                 spawner.debugLogs = p.debugLogs || gen.debugLogs;
 
                 if (gen.autoApplyCompatibleModifiers)

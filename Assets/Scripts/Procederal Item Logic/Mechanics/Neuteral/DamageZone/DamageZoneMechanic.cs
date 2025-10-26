@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -7,6 +8,8 @@ namespace Mechanics.Neuteral
     [DisallowMultipleComponent]
     public class DamageZoneMechanic : AreaDamageMechanicBase
     {
+        private static readonly HashSet<DamageZoneMechanic> ActiveZones = new();
+
         [Header("Anchoring")]
         [Tooltip("Follow owner position instead of staying on the spawned payload.")]
         public bool followOwner = false;
@@ -36,6 +39,16 @@ namespace Mechanics.Neuteral
         private float _delayRemaining;
         private bool _expired;
         private bool _detached;
+
+        private void OnEnable()
+        {
+            ActiveZones.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            ActiveZones.Remove(this);
+        }
 
         public override Color spriteColor
         {
@@ -164,6 +177,28 @@ namespace Mechanics.Neuteral
         {
             Gizmos.color = new Color(1f, 0.35f, 0f, 0.3f);
             Gizmos.DrawWireSphere(transform.position, radius);
+        }
+
+        internal static bool HasZoneWithinRadius(Vector2 center, float radius)
+        {
+            float clampedRadius = Mathf.Max(0f, radius);
+            float radiusSq = clampedRadius * clampedRadius;
+            if (radiusSq <= 0f)
+                return false;
+
+            foreach (var zone in ActiveZones)
+            {
+                if (zone == null)
+                    continue;
+                var zoneTransform = zone.transform;
+                if (zoneTransform == null)
+                    continue;
+                Vector2 zonePos = zoneTransform.position;
+                if ((zonePos - center).sqrMagnitude <= radiusSq)
+                    return true;
+            }
+
+            return false;
         }
     }
 }
