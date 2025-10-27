@@ -2,15 +2,13 @@ using UnityEngine;
 
 namespace Mechanics.Neuteral
 {
-    /// Horizontal throw with simple downward gravity, intended for placing payloads at range.
+    /// Moves a payload at constant velocity for a limited time, then optionally detaches it.
     [DisallowMultipleComponent]
     public class ThrowMovementMechanic : MonoBehaviour, IMechanic
     {
         [Header("Throw Motion")]
         public Vector2 direction = Vector2.right;
         public float initialSpeed = 12f;
-        public float gravity = 22f;
-        public float downwardSpeedClamp = 24f;
         public float stopAfterSeconds = 0.65f;
 
         [Header("Behaviour")]
@@ -18,20 +16,37 @@ namespace Mechanics.Neuteral
         public bool zeroVelocityOnStop = true;
         public bool disableOnStop = false;
 
+        [Tooltip("Detach the payload from its parent once the throw completes.")]
+        public bool detachOnStop = true;
+
+        [Tooltip("Detach the payload from its parent as soon as the throw begins.")]
+        public bool detachOnStart = true;
+
+        [Tooltip("Randomize the direction on start using a chaos-style spread.")]
+        public bool randomizeDirectionOnStart = false;
+
         [Header("Debug")]
         public bool debugLogs = false;
 
         private MechanicContext _ctx;
         private Rigidbody2D _rb;
-        private Vector2 _velocity;
         private float _timer;
         private bool _stopped;
+        private Vector2 _moveDir;
 
         public void Initialize(MechanicContext ctx)
         {
             _ctx = ctx;
-            Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
-            _velocity = dir * Mathf.Max(0f, initialSpeed);
+
+            if (randomizeDirectionOnStart)
+            {
+                Vector2 chaos = Random.insideUnitCircle;
+                if (chaos.sqrMagnitude < 0.001f)
+                    chaos = Vector2.right;
+                direction = chaos.normalized;
+            }
+
+            _moveDir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
 
             _rb = ctx != null ? ctx.PayloadRb2D : null;
             if (_rb == null)
@@ -44,18 +59,30 @@ namespace Mechanics.Neuteral
                 _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             }
 
+            if (_rb.bodyType != RigidbodyType2D.Kinematic)
+            {
+                _rb.bodyType = RigidbodyType2D.Kinematic;
+                _rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+            }
+
             _rb.gravityScale = 0f;
             _rb.freezeRotation = true;
+            _rb.linearVelocity = Vector2.zero;
+            _rb.angularVelocity = 0f;
 
             if (alignToVelocity && ctx != null && ctx.Payload != null)
-                ctx.Payload.right = dir;
+                ctx.Payload.right = _moveDir;
 
             GameOverController.OnCountdownFinished += StopMovement;
+
+            if (detachOnStart)
+                DetachPayload();
 
             if (debugLogs)
             {
                 Debug.Log(
-                    $"[ThrowMovementMechanic] Initialized dir={dir} speed={_velocity.magnitude:F2} stopAfter={stopAfterSeconds:F2}",
+                    $"[ThrowMovementMechanic] Initialized dir={_moveDir} speed={Mathf.Max(0f, initialSpeed):F2} stopAfter={stopAfterSeconds:F2}",
                     this
                 );
             }
@@ -69,41 +96,15 @@ namespace Mechanics.Neuteral
                 return;
 
             _timer += dt;
-
-            _velocity += Vector2.down * Mathf.Max(0f, gravity) * dt;
-            if (downwardSpeedClamp > 0f && _velocity.y < -downwardSpeedClamp)
-                _velocity.y = -downwardSpeedClamp;
-
-            Vector2 displacement = _velocity * dt;
+            float speed = Mathf.Max(0f, initialSpeed);
+            Vector2 displacement = _moveDir * speed * dt;
 
             if (_rb != null)
             {
-                if (_rb.bodyType == RigidbodyType2D.Dynamic)
-                {
-                    _rb.linearVelocity = _velocity;
-                }
-                else
-                {
-                    _rb.MovePosition(_rb.position + displacement);
-                }
+                _rb.MovePosition(_rb.position + displacement);
             }
-            else if (_ctx != null && _ctx.Payload != null)
-            {
-                _ctx.Payload.position += (Vector3)displacement;
-            }
-            else
-            {
-                transform.position += (Vector3)displacement;
-            }
-
-            if (
-                alignToVelocity
-                && _ctx != null
-                && _ctx.Payload != null
-                && _velocity.sqrMagnitude > 0.0001f
-            )
-                _ctx.Payload.right = _velocity.normalized;
-
+            if (detachOnStop)
+                DetachPayload();
             if (stopAfterSeconds > 0f && _timer >= stopAfterSeconds)
             {
                 if (debugLogs)
@@ -117,19 +118,33 @@ namespace Mechanics.Neuteral
             if (_stopped)
                 return;
             _stopped = true;
-            _velocity = Vector2.zero;
 
             if (_rb != null)
             {
                 if (zeroVelocityOnStop)
                 {
-                    if (_rb.bodyType == RigidbodyType2D.Dynamic)
-                        _rb.linearVelocity = Vector2.zero;
-                    else
-                        _rb.MovePosition(_rb.position);
+                    _rb.linearVelocity = Vector2.zero;
+                    _rb.angularVelocity = 0f;
+                    _rb.MovePosition(_rb.position);
                 }
+                _rb.bodyType = RigidbodyType2D.Kinematic;
+                _rb.gravityScale = 0f;
+                _rb.Sleep();
                 if (disableOnStop)
                     _rb.simulated = false;
+            }
+
+            Transform payload = _ctx != null ? _ctx.Payload : transform;
+            if (detachOnStop && payload != null && payload.parent != null)
+            {
+                payload.SetParent(null, worldPositionStays: true);
+                if (debugLogs)
+                {
+                    Debug.Log(
+                        "[ThrowMovementMechanic] Detached payload from parent after completing throw.",
+                        this
+                    );
+                }
             }
 
             if (disableOnStop)
@@ -141,6 +156,19 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= StopMovement;
+        }
+
+        private void DetachPayload()
+        {
+            Transform payload = _ctx != null ? _ctx.Payload : transform;
+            if (payload == null || payload.parent == null)
+                return;
+
+            payload.SetParent(null, worldPositionStays: true);
+            if (debugLogs)
+            {
+                Debug.Log("[ThrowMovementMechanic] Detached payload from parent.", this);
+            }
         }
     }
 }

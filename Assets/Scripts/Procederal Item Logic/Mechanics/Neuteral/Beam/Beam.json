@@ -11,6 +11,7 @@
   ],
   "Properties": [
     { "DestroyOnHit": false },
+    { "movementMode": "default" },
     { "damagePerInterval": 3 },
     { "damageInterval": 0.25 },
     { "radius": 0.5 },

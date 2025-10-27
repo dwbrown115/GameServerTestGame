@@ -22,18 +22,6 @@ namespace Mechanics.Neuteral
                 "throwInitialSpeed",
                 comp.initialSpeed
             );
-            comp.gravity = MechanicSettingNormalizer.Float(settings, "gravity", comp.gravity);
-            comp.gravity = MechanicSettingNormalizer.Float(settings, "throwGravity", comp.gravity);
-            comp.downwardSpeedClamp = MechanicSettingNormalizer.Float(
-                settings,
-                "downwardSpeedClamp",
-                comp.downwardSpeedClamp
-            );
-            comp.downwardSpeedClamp = MechanicSettingNormalizer.Float(
-                settings,
-                "throwMaxFallSpeed",
-                comp.downwardSpeedClamp
-            );
             comp.stopAfterSeconds = MechanicSettingNormalizer.Duration(
                 settings,
                 "stopAfterSeconds",
@@ -75,6 +63,31 @@ namespace Mechanics.Neuteral
                 comp.disableOnStop
             );
             comp.debugLogs = MechanicSettingNormalizer.Bool(settings, "debugLogs", comp.debugLogs);
+            comp.detachOnStop = MechanicSettingNormalizer.Bool(
+                settings,
+                "detachOnStop",
+                comp.detachOnStop
+            );
+            comp.detachOnStart = MechanicSettingNormalizer.Bool(
+                settings,
+                "detachOnStart",
+                comp.detachOnStart
+            );
+            comp.detachOnStart = MechanicSettingNormalizer.Bool(
+                settings,
+                "throwDetachOnStart",
+                comp.detachOnStart
+            );
+            comp.randomizeDirectionOnStart = MechanicSettingNormalizer.Bool(
+                settings,
+                "randomizeDirectionOnStart",
+                comp.randomizeDirectionOnStart
+            );
+            comp.randomizeDirectionOnStart = MechanicSettingNormalizer.Bool(
+                settings,
+                "throwRandomizeDirection",
+                comp.randomizeDirectionOnStart
+            );
 
             comp.direction = ParseDirection(
                 settings,

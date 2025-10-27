@@ -62,6 +62,9 @@ namespace Game.Procederal.Api
         [Tooltip("Freeze Z rotation on the payload Rigidbody2D when created.")]
         public bool freezeRotation = true;
 
+        [Tooltip("Parent spawned payloads to this spawner. Disable to detach into world space.")]
+        public bool parentSpawnedToSpawner = true;
+
         [Tooltip(
             "Attach an AutoDestroyAfterSeconds timer when lifetime > 0. Disable when payload mechanics manage lifetime themselves."
         )]
@@ -202,6 +205,7 @@ namespace Game.Procederal.Api
             }
 
             Transform center = owner != null ? owner : transform;
+            var runner = GetComponent<MechanicRunner>();
             int spawnCount = Mathf.Max(1, countPerInterval);
             for (int i = 0; i < spawnCount; i++)
             {
@@ -259,7 +263,7 @@ namespace Game.Procederal.Api
 
                 var shell = new SpawnHelpers.PayloadShellOptions
                 {
-                    parent = transform,
+                    parent = parentSpawnedToSpawner ? transform : null,
                     position = pos,
                     layer = owner != null ? owner.gameObject.layer : gameObject.layer,
                     spriteType =
@@ -277,8 +281,15 @@ namespace Game.Procederal.Api
                     lifetimeSeconds = lifetime > 0f ? lifetime : 0f,
                 };
                 var go = SpawnHelpers.CreatePayloadShell($"{payloadMechanicName}_Spawned", shell);
-                if (go.transform.parent != transform)
-                    go.transform.SetParent(transform, worldPositionStays: true);
+                if (parentSpawnedToSpawner)
+                {
+                    if (go.transform.parent != transform)
+                        go.transform.SetParent(transform, worldPositionStays: true);
+                }
+                else
+                {
+                    go.transform.SetParent(null, worldPositionStays: true);
+                }
 
                 // Build payload settings for this instance (allow direction injection if requested via key)
                 var settings = new List<(string key, object val)>(_payloadSettings);
@@ -322,7 +333,6 @@ namespace Game.Procederal.Api
 
                 generator.InitializeMechanics(go, owner, generator.target);
 
-                var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
                     runner.RegisterTree(go.transform);
             }

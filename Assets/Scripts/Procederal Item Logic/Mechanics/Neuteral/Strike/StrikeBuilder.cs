@@ -20,6 +20,13 @@ namespace Game.Procederal.Core.Builders
                 gen.LoadAndMergeJsonSettings("Strike"),
                 gen.CollectSecondarySettings(instruction)
             );
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                strikeJson
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
             Color vizColor = MechanicSettingNormalizer.Color(
                 strikeJson,
                 "spriteColor",
@@ -41,22 +48,34 @@ namespace Game.Procederal.Core.Builders
             settings.Add(("vizColor", vizColor));
             settings.Add(("debugLogs", p.debugLogs || gen.debugLogs));
 
+            var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+            {
+                new UnifiedChildBuilder.MechanicSpec
+                {
+                    Name = "Strike",
+                    Settings = settings.ToArray(),
+                },
+            };
+
+            Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                strikeJson,
+                root.transform,
+                p,
+                gen,
+                mechanics
+            );
+
             var spec = new UnifiedChildBuilder.ChildSpec
             {
                 ChildName = "Strike",
                 Parent = root.transform,
                 Layer = root.layer,
-                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
-                {
-                    new UnifiedChildBuilder.MechanicSpec
-                    {
-                        Name = "Strike",
-                        Settings = settings.ToArray(),
-                    },
-                },
+                Mechanics = mechanics,
             };
 
             var strike = UnifiedChildBuilder.BuildChild(gen, spec);
+            if (shouldDetachChildren)
+                strike.transform.SetParent(null, worldPositionStays: true);
             subItems.Add(strike);
         }
     }

@@ -114,6 +114,24 @@ namespace Game.Procederal.Core.Builders
                 Color.white
             );
 
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                projectileJson
+            );
+            bool movementRequiresDetachment =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
+            bool detachAfterInitialization = movementRequiresDetachment;
+            bool movementOverridesProjectileMotion =
+                movementMode
+                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Drop
+                || movementMode
+                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
+
+            DebugLog(
+                $"movementMode={movementMode} detachesAfterInit={detachAfterInitialization} wantOrbit={wantOrbit}"
+            );
+
             string spawnBehaviorRaw = MechanicSettingNormalizer.String(
                 projectileJson,
                 "spawnBehavior",
@@ -128,6 +146,12 @@ namespace Game.Procederal.Core.Builders
                 "spawnOnInterval",
                 false
             );
+            bool wantsInterval = spawnOnInterval;
+            if (!wantsInterval && !string.IsNullOrEmpty(spawnBehavior))
+            {
+                if (string.Equals(spawnBehavior, "interval", StringComparison.OrdinalIgnoreCase))
+                    wantsInterval = true;
+            }
             int numberPerInterval = MechanicSettingNormalizer.Count(
                 projectileJson,
                 count,
@@ -142,9 +166,14 @@ namespace Game.Procederal.Core.Builders
                 "spawnInterval",
                 "interval"
             );
-            float spawnRadius = MechanicSettingNormalizer.Radius(projectileJson, "radius", 0f);
+            float spawnRadius = MechanicSettingNormalizer.Radius(projectileJson, "spawnRadius", 0f);
             float lifetime = MechanicSettingNormalizer.Float(projectileJson, "lifetime", -1f);
             float projSpeed = MechanicSettingNormalizer.Float(projectileJson, "speed", -1f);
+            float colliderRadius = MechanicSettingNormalizer.Radius(
+                projectileJson,
+                "colliderRadius",
+                MechanicSettingNormalizer.Radius(projectileJson, "radius", 0.5f)
+            );
             float visualScale = MechanicSettingNormalizer.Float(
                 projectileJson,
                 "projectileSize",
@@ -163,7 +192,7 @@ namespace Game.Procederal.Core.Builders
                 true
             );
 
-            if (spawnOnInterval)
+            if (wantsInterval)
             {
                 var spawner = root.AddComponent<Game.Procederal.Api.IntervalSpawner>();
                 spawner.generator = gen;
@@ -175,11 +204,19 @@ namespace Game.Procederal.Core.Builders
                 spawner.spriteType = spriteType;
                 spawner.customSpritePath = customPath;
                 spawner.spriteColor = projColor;
+                spawner.spawnScale = Mathf.Max(0.0001f, visualScale);
+                spawner.colliderRadius = Mathf.Max(0.0001f, colliderRadius);
                 spawner.excludeOwner = excludeOwner;
                 spawner.requireMobTag = requireMobTag;
                 spawner.projectileSpeed = projSpeed > 0f ? projSpeed : -1f;
                 spawner.damage = p != null ? p.projectileDamage : 1;
                 spawner.debugLogs = wantDebugLogs;
+                spawner.parentSpawnedToSpawner = !movementRequiresDetachment;
+                spawner.debugMovementLabel = movementMode.ToString();
+                spawner.disableProjectileSelfSpeed = movementOverridesProjectileMotion;
+
+                // Reset any lingering modifier specs from previous builds before reapplying
+                spawner.ClearModifierSpecs();
 
                 bool shouldOverrideDestroy =
                     destroyExplicit || (p != null && p.projectileDestroyOnHit != true);
@@ -203,9 +240,56 @@ namespace Game.Procederal.Core.Builders
                         spawner.spawnResolverBehaviour = neutral;
                     }
                 }
+                else if (
+                    movementMode
+                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw
+                )
+                {
+                    var chaos =
+                        root.GetComponent<Game.Procederal.Api.ChaosSpawnPosition>()
+                        ?? root.AddComponent<Game.Procederal.Api.ChaosSpawnPosition>();
+                    spawner.spawnResolverBehaviour = chaos;
+                }
 
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
+
+                // Forward any configured movementMode as modifier specs so interval-spawned projectiles get the same movement.
+                var movementSpecs =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMechanicSpecs(
+                        projectileJson,
+                        root.transform,
+                        p,
+                        gen
+                    );
+                if (movementSpecs != null && movementSpecs.Count > 0)
+                {
+                    foreach (var ms in movementSpecs)
+                    {
+                        if (string.IsNullOrWhiteSpace(ms.Name))
+                            continue;
+                        // Don't forward the primary 'Projectile' mechanic here
+                        if (
+                            string.Equals(
+                                ms.Name,
+                                "Projectile",
+                                System.StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                            continue;
+                        spawner.AddModifierSpec(
+                            ms.Name,
+                            ms.Settings ?? System.Array.Empty<(string key, object val)>()
+                        );
+                        DebugLog(
+                            $"Forwarded movement mechanic spec '{ms.Name}' to interval spawner"
+                        );
+                    }
+                }
+
+                DebugLog(
+                    $"Configured interval spawner parentSpawnedToSpawner={spawner.parentSpawnedToSpawner} debugMovementLabel={spawner.debugMovementLabel}"
+                );
 
                 return;
             }
@@ -219,7 +303,7 @@ namespace Game.Procederal.Core.Builders
                     ("excludeOwner", excludeOwner),
                     ("requireMobTag", requireMobTag),
                     ("debugLogs", wantDebugLogs),
-                    ("disableSelfSpeed", wantOrbit),
+                    ("disableSelfSpeed", wantOrbit || movementOverridesProjectileMotion),
                 };
                 if (projSpeed > 0f)
                     projectileSettings.Add(("speed", projSpeed));
@@ -237,6 +321,15 @@ namespace Game.Procederal.Core.Builders
                         Settings = projectileSettings.ToArray(),
                     },
                 };
+
+                // Allow movementMode to append Drop/Throw movement mechanics when requested.
+                Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                    projectileJson,
+                    root.transform,
+                    p,
+                    gen,
+                    mechanics
+                );
 
                 List<Action<GameObject>> mutators = null;
                 if (wantOrbit)
@@ -288,7 +381,7 @@ namespace Game.Procederal.Core.Builders
                     {
                         Enabled = true,
                         Shape = UnifiedChildBuilder.ColliderShape2D.Circle,
-                        Radius = 0.5f,
+                        Radius = Mathf.Max(0.0001f, colliderRadius),
                         Offset = Vector2.zero,
                         IsTrigger = true,
                     },
@@ -308,6 +401,20 @@ namespace Game.Procederal.Core.Builders
 
                 var go = UnifiedChildBuilder.BuildChild(gen, spec);
                 gen.InitializeMechanics(go, gen.owner, gen.target);
+                if (detachAfterInitialization)
+                {
+                    go.transform.SetParent(null, worldPositionStays: true);
+                    DebugLog(
+                        $"Detached projectile '{go.name}' from '{root.name}' (movementMode={movementMode})"
+                    );
+                }
+                else if (wantDebugLogs)
+                {
+                    Debug.Log(
+                        $"[ProjectileBuilder] Keeping projectile '{go.name}' parented to '{root.name}' (movementMode={movementMode})",
+                        go
+                    );
+                }
                 gen.SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", destroyOnHit);
                 subItems.Add(go);
             }

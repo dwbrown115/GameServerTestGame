@@ -28,6 +28,9 @@ namespace Game.Procederal.Api
         public Color vizColor = new Color(0.3f, 0.7f, 1f, 0.6f);
         public bool debugLogs = false;
 
+        [Tooltip("Parent spawned ripples to this spawner. Disable to detach into world space.")]
+        public bool parentSpawnedToSpawner = true;
+
         // Generic modifier specs to add to each ripple (if any applicable modifiers are desired)
         private readonly List<(
             string mechanicName,
@@ -86,10 +89,18 @@ namespace Game.Procederal.Api
             }
             int spawnCount = Mathf.Max(1, countPerInterval);
             Transform center = owner != null ? owner : transform;
+            var runner = GetComponent<MechanicRunner>();
             for (int i = 0; i < spawnCount; i++)
             {
                 var go = new GameObject("Ripple_Spawned");
-                go.transform.SetParent(transform, worldPositionStays: true);
+                if (parentSpawnedToSpawner)
+                {
+                    go.transform.SetParent(transform, worldPositionStays: true);
+                }
+                else
+                {
+                    go.transform.SetParent(null, worldPositionStays: true);
+                }
                 go.transform.position = center.position;
                 go.transform.localScale = Vector3.one;
                 go.layer = (owner != null ? owner.gameObject.layer : go.layer);
@@ -118,9 +129,8 @@ namespace Game.Procederal.Api
                 }
                 generator.InitializeMechanics(go, owner, generator.target);
 
-                var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
-                    runner.RegisterTree(transform);
+                    runner.RegisterTree(go.transform);
             }
         }
     }

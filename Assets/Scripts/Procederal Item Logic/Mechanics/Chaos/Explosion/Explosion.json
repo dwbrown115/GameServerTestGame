@@ -9,6 +9,12 @@
     { "baseDamage": 20 },
     { "minDamageFraction": 0.1 },
     { "excludeOwner": false },
+    { "triggerAfterCountdown": false},
+    { "countdownSeconds": 1.0 },
+    { "countdownUsePayloadPosition": true },
+    { "showVisualization": true },
+    { "vizDuration": 0.2 },
+    { "vizSegments": 64 },
     { "debugLogs": false }
   ],
   "MechanicOverrides": []

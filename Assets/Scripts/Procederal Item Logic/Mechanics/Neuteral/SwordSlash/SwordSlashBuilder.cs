@@ -23,6 +23,13 @@ namespace Game.Procederal.Core.Builders
                 gen.LoadAndMergeJsonSettings("SwordSlash"),
                 secondarySettings
             );
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                json
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
             int seriesCount = Mathf.Max(1, MechanicSettingNormalizer.Int(json, "seriesCount", 3));
             float intervalBetween = MechanicSettingNormalizer.Float(
                 json,
@@ -78,9 +85,39 @@ namespace Game.Procederal.Core.Builders
                     Game.Procederal.MechanicKind.Track
                 );
                 spawner.debugLogs = p.debugLogs || gen.debugLogs;
+                spawner.parentSpawnedToSpawner = !shouldDetachChildren;
 
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
+
+                // forward movementMode (if present) as modifier specs to the interval spawner
+                var movementSpecs =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMechanicSpecs(
+                        json,
+                        root.transform,
+                        p,
+                        gen
+                    );
+                if (movementSpecs != null && movementSpecs.Count > 0)
+                {
+                    foreach (var ms in movementSpecs)
+                    {
+                        if (string.IsNullOrWhiteSpace(ms.Name))
+                            continue;
+                        if (
+                            string.Equals(
+                                ms.Name,
+                                "SwordSlash",
+                                System.StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                            continue;
+                        spawner.AddModifierSpec(
+                            ms.Name,
+                            ms.Settings ?? System.Array.Empty<(string key, object val)>()
+                        );
+                    }
+                }
 
                 if (spawnOnInterval)
                     return;
@@ -156,6 +193,15 @@ namespace Game.Procederal.Core.Builders
                     },
                 };
 
+                // Allow 'movementMode' to append movement mechanics for the created slash child.
+                Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                    json,
+                    root.transform,
+                    p,
+                    gen,
+                    mechanics
+                );
+
                 var spec = new UnifiedChildBuilder.ChildSpec
                 {
                     ChildName = $"SwordSlash_{i}",
@@ -182,6 +228,8 @@ namespace Game.Procederal.Core.Builders
                 slash.transform.right = dir;
 
                 gen.InitializeMechanics(slash, gen.owner, gen.target);
+                if (shouldDetachChildren)
+                    slash.transform.SetParent(null, worldPositionStays: true);
 
                 var rb = slash.GetComponent<Rigidbody2D>();
                 if (rb != null)

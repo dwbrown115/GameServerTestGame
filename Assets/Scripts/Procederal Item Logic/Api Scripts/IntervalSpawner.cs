@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Procederal;
 using Game.Procederal.Core;
@@ -39,6 +40,12 @@ namespace Game.Procederal.Api
         public bool requireMobTag = true;
         public float projectileSpeed = -1f; // if > 0, overrides JSON default
 
+        [Tooltip("When true, disables the ProjectileMechanic's self-driven movement.")]
+        public bool disableProjectileSelfSpeed = false;
+
+        [Tooltip("Parent spawned objects to this spawner. Disable to detach into world space.")]
+        public bool parentSpawnedToSpawner = true;
+
         [Header("Modifiers (applies to each child)")]
         [Tooltip(
             "If true, projectiles will report damage to an owner DrainMechanic configured by this spawner."
@@ -59,12 +66,24 @@ namespace Game.Procederal.Api
         public string customSpritePath = null;
         public Color spriteColor = Color.white;
 
+        [Tooltip("Uniform scale applied to spawned payloads (1 = default size).")]
+        public float spawnScale = 1f;
+
+        [Tooltip("Circle collider radius before scale is applied.")]
+        public float colliderRadius = 0.5f;
+
         [Header("Debug")]
         public bool debugLogs = false;
+
+        [Tooltip("Debug-only label describing the configured movement mode for spawned payloads.")]
+        public string debugMovementLabel = "unset";
 
         private float _timer;
         private readonly List<GameObject> _spawned = new();
         private bool _stopped;
+
+        private Collider2D[] _ownerCollidersCache = Array.Empty<Collider2D>();
+        private Transform _cachedOwnerForColliders;
 
         private void OnEnable()
         {
@@ -98,6 +117,11 @@ namespace Game.Procederal.Api
             _modifierSpecs.Add((mechanicName, settings));
         }
 
+        public void ClearModifierSpecs()
+        {
+            _modifierSpecs.Clear();
+        }
+
         public Transform ModifierOwner => owner != null ? owner : transform;
 
         private void StopSpawning()
@@ -116,7 +140,14 @@ namespace Game.Procederal.Api
                 return;
             }
             Transform center = owner != null ? owner : transform;
-            int beforeCount = _spawned.Count;
+            var runner = GetComponent<MechanicRunner>();
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[IntervalSpawner] SpawnBurst start (mode={debugMovementLabel}, parentToSpawner={parentSpawnedToSpawner}, count={Mathf.Max(1, countPerInterval)})",
+                    this
+                );
+            }
             for (int i = 0; i < Mathf.Max(1, countPerInterval); i++)
             {
                 // Compute spawn pos + initial direction using resolver, with fallbacks
@@ -135,16 +166,32 @@ namespace Game.Procederal.Api
                 if (!got)
                 {
                     // Final safety fallback: random
-                    dir = Random.insideUnitCircle.normalized;
+                    dir = UnityEngine.Random.insideUnitCircle.normalized;
                     if (dir.sqrMagnitude < 0.001f)
                         dir = Vector2.right;
                     pos = center.position + (Vector3)(dir * Mathf.Max(0f, spawnRadius));
                 }
 
                 var go = new GameObject("Projectile_Spawned");
-                go.transform.SetParent(transform, worldPositionStays: true);
+                if (parentSpawnedToSpawner)
+                {
+                    go.transform.SetParent(transform, worldPositionStays: true);
+                }
+                else
+                {
+                    go.transform.SetParent(null, worldPositionStays: true);
+                }
                 go.transform.position = pos;
-                go.transform.localScale = Vector3.one;
+                float scale = Mathf.Max(0.0001f, spawnScale);
+                go.transform.localScale = Vector3.one * scale;
+
+                if (debugLogs)
+                {
+                    Debug.Log(
+                        $"[IntervalSpawner] Spawned child '{go.name}' parent={(go.transform.parent == transform ? "spawner" : "world")} dir={dir} speedSetting={projectileSpeed}",
+                        go
+                    );
+                }
 
                 // Visuals
                 var sr = go.AddComponent<SpriteRenderer>();
@@ -171,10 +218,10 @@ namespace Game.Procederal.Api
                 // Collider and RB
                 var cc = go.AddComponent<CircleCollider2D>();
                 cc.isTrigger = true;
-                cc.radius = 0.5f;
+                cc.radius = Mathf.Max(0.0001f, colliderRadius);
                 go.layer = (owner != null ? owner.gameObject.layer : go.layer);
                 var rb = go.AddComponent<Rigidbody2D>();
-                rb.bodyType = RigidbodyType2D.Dynamic;
+                rb.bodyType = RigidbodyType2D.Kinematic;
                 rb.gravityScale = 0f;
                 rb.freezeRotation = true;
                 rb.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -186,7 +233,7 @@ namespace Game.Procederal.Api
                     ("direction", (Vector2)dir),
                     ("excludeOwner", excludeOwner),
                     ("requireMobTag", requireMobTag),
-                    ("disableSelfSpeed", false),
+                    ("disableSelfSpeed", disableProjectileSelfSpeed),
                     ("debugLogs", debugLogs),
                 };
                 if (overrideDamage)
@@ -227,6 +274,8 @@ namespace Game.Procederal.Api
                     );
                 }
 
+                IgnoreOwnerCollisions(go);
+
                 // If destroyOnHit is explicitly disabled, do not auto-destroy by lifetime
                 if (lifetime > 0f && !(overrideDestroyOnHit && !destroyOnHit))
                 {
@@ -234,12 +283,50 @@ namespace Game.Procederal.Api
                 }
 
                 _spawned.Add(go);
+
+                if (runner != null)
+                    runner.RegisterTree(go.transform);
+            }
+        }
+
+        private void IgnoreOwnerCollisions(GameObject payload)
+        {
+            if (!excludeOwner || owner == null || payload == null)
+                return;
+
+            if (owner != _cachedOwnerForColliders)
+            {
+                _cachedOwnerForColliders = owner;
+                _ownerCollidersCache = owner.GetComponentsInChildren<Collider2D>(true);
             }
 
-            var runner = GetComponent<MechanicRunner>();
-            if (runner != null && _spawned.Count > beforeCount)
+            if (_ownerCollidersCache == null || _ownerCollidersCache.Length == 0)
+                return;
+
+            var payloadColliders = payload.GetComponentsInChildren<Collider2D>(true);
+            if (payloadColliders == null || payloadColliders.Length == 0)
+                return;
+
+            for (int i = 0; i < _ownerCollidersCache.Length; i++)
             {
-                runner.RegisterTree(transform);
+                var ownerCollider = _ownerCollidersCache[i];
+                if (ownerCollider == null)
+                    continue;
+                for (int j = 0; j < payloadColliders.Length; j++)
+                {
+                    var payloadCollider = payloadColliders[j];
+                    if (payloadCollider == null)
+                        continue;
+                    Physics2D.IgnoreCollision(payloadCollider, ownerCollider, true);
+                }
+            }
+
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[IntervalSpawner] Ignoring collisions between payload '{payload.name}' and owner '{owner.name}' colliders ({_ownerCollidersCache.Length})",
+                    this
+                );
             }
         }
 

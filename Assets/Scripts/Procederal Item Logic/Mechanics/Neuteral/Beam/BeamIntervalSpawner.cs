@@ -28,6 +28,9 @@ namespace Game.Procederal.Api
         [Header("Debug")]
         public bool debugLogs = false;
 
+        [Tooltip("Parent spawned beams to this spawner. Disable to detach into world space.")]
+        public bool parentSpawnedToSpawner = true;
+
         // Settings to apply to each spawned Beam
         private readonly List<(string key, object val)> _beamSettings = new();
 
@@ -99,6 +102,7 @@ namespace Game.Procederal.Api
             Transform center = owner != null ? owner : transform;
 
             int spawnCount = Mathf.Max(1, countPerInterval);
+            var runner = GetComponent<MechanicRunner>();
             for (int i = 0; i < spawnCount; i++)
             {
                 // Compute spawn pos + suggested direction
@@ -125,7 +129,14 @@ namespace Game.Procederal.Api
                 }
 
                 var go = new GameObject("Beam_Spawned");
-                go.transform.SetParent(transform, worldPositionStays: true);
+                if (parentSpawnedToSpawner)
+                {
+                    go.transform.SetParent(transform, worldPositionStays: true);
+                }
+                else
+                {
+                    go.transform.SetParent(null, worldPositionStays: true);
+                }
                 go.transform.position = pos;
                 go.transform.localScale = Vector3.one;
                 go.layer = (owner != null ? owner.gameObject.layer : go.layer);
@@ -176,9 +187,8 @@ namespace Game.Procederal.Api
                 generator.InitializeMechanics(go, owner, generator.target);
 
                 // Register with runner for ticking
-                var runner = GetComponent<MechanicRunner>();
                 if (runner != null)
-                    runner.RegisterTree(transform);
+                    runner.RegisterTree(go.transform);
             }
         }
 

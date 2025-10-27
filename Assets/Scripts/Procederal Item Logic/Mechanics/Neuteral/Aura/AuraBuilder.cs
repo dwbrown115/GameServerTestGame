@@ -21,6 +21,14 @@ namespace Game.Procederal.Core.Builders
                 gen.CollectSecondarySettings(instruction)
             );
 
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                auraJson
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
+
             float jRadius = MechanicSettingNormalizer.Radius(auraJson, "radius", 2f);
             float jInterval = MechanicSettingNormalizer.Interval(
                 auraJson,
@@ -47,23 +55,35 @@ namespace Game.Procederal.Core.Builders
                 ("debugLogs", p.debugLogs || gen.debugLogs),
             };
 
+            var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+            {
+                new UnifiedChildBuilder.MechanicSpec
+                {
+                    Name = "Aura",
+                    Settings = auraSettings.ToArray(),
+                },
+            };
+
+            Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                auraJson,
+                root.transform,
+                p,
+                gen,
+                mechanics
+            );
+
             var spec = new UnifiedChildBuilder.ChildSpec
             {
                 ChildName = "Aura",
                 Parent = root.transform,
                 Layer = root.layer,
                 LocalScale = Vector3.one,
-                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
-                {
-                    new UnifiedChildBuilder.MechanicSpec
-                    {
-                        Name = "Aura",
-                        Settings = auraSettings.ToArray(),
-                    },
-                },
+                Mechanics = mechanics,
             };
 
             var aura = UnifiedChildBuilder.BuildChild(gen, spec);
+            if (shouldDetachChildren)
+                aura.transform.SetParent(null, worldPositionStays: true);
             subItems.Add(aura);
         }
     }

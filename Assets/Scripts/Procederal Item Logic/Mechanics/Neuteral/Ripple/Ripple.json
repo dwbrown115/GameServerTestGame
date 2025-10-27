@@ -11,6 +11,7 @@
   ],
   "Properties": [
     { "DestroyOnHit": false },
+    { "movementMode": "default" },
     { "startRadius": 1.0 },
     { "endDiameter": 8.0 },
     { "growDuration": 1.5 },

@@ -193,8 +193,8 @@ namespace Game.Procederal.Core
         [Serializable]
         private sealed class MechanicJsonHeader
         {
-            public string MechanicPath;
-            public string mechanicPath;
+            public string MechanicPath = string.Empty;
+            public string mechanicPath = string.Empty;
         }
     }
 }

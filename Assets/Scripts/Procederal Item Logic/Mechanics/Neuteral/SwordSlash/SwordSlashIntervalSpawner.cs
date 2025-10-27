@@ -46,6 +46,9 @@ namespace Game.Procederal.Api
         [Header("Debug")]
         public bool debugLogs = false;
 
+        [Tooltip("Parent spawned slashes to this spawner. Disable to detach into world space.")]
+        public bool parentSpawnedToSpawner = true;
+
         // Runtime modifier specs to apply to each spawned slash
         private readonly List<(
             string mechanicName,
@@ -128,22 +131,27 @@ namespace Game.Procederal.Api
 
             int count = Mathf.Max(1, seriesCount);
             float spacing = Mathf.Max(0f, intervalBetween) * Mathf.Max(0.01f, speed);
+            var runner = GetComponent<MechanicRunner>();
             for (int i = 0; i < count; i++)
             {
                 Vector3 pos = ownerT.position - (Vector3)(dir * spacing * i);
-                SpawnOneSlash(pos, dir);
+                var slash = SpawnOneSlash(pos, dir);
+                if (runner != null && slash != null)
+                    runner.RegisterTree(slash.transform);
             }
-
-            // Register with runner for ticking
-            var runner = GetComponent<MechanicRunner>();
-            if (runner != null)
-                runner.RegisterTree(transform);
         }
 
-        private void SpawnOneSlash(Vector3 pos, Vector2 dir)
+        private GameObject SpawnOneSlash(Vector3 pos, Vector2 dir)
         {
             var go = new GameObject("SwordSlash_Spawned");
-            go.transform.SetParent(transform, worldPositionStays: true);
+            if (parentSpawnedToSpawner)
+            {
+                go.transform.SetParent(transform, worldPositionStays: true);
+            }
+            else
+            {
+                go.transform.SetParent(null, worldPositionStays: true);
+            }
             go.transform.position = pos;
             go.transform.localScale = Vector3.one;
             go.layer = (owner != null ? owner.gameObject.layer : go.layer);
@@ -230,6 +238,8 @@ namespace Game.Procederal.Api
             // Safety lifetime cleanup
             var auto = go.AddComponent<_AutoDestroyAfterSeconds>();
             auto.seconds = 4f;
+
+            return go;
         }
 
         private class _AutoDestroyAfterSeconds : MonoBehaviour

@@ -22,6 +22,13 @@ namespace Game.Procederal.Core.Builders
                 gen.LoadAndMergeJsonSettings("Beam"),
                 gen.CollectSecondarySettings(instruction)
             );
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                beamJson
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
 
             Color vizColor = MechanicSettingNormalizer.Color(beamJson, "spriteColor", Color.white);
 
@@ -124,29 +131,71 @@ namespace Game.Procederal.Core.Builders
 
                 spawner.SetBeamSettings(beamSettings.ToArray());
                 spawner.spawnRadius = spawnRadius;
+                spawner.parentSpawnedToSpawner = !shouldDetachChildren;
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
+
+                // forward movementMode (if configured) to the interval spawner as modifier specs
+                var movementSpecs =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMechanicSpecs(
+                        beamJson,
+                        root.transform,
+                        p,
+                        gen
+                    );
+                if (movementSpecs != null && movementSpecs.Count > 0)
+                {
+                    foreach (var ms in movementSpecs)
+                    {
+                        if (string.IsNullOrWhiteSpace(ms.Name))
+                            continue;
+                        if (
+                            string.Equals(
+                                ms.Name,
+                                "Beam",
+                                System.StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                            continue;
+                        spawner.AddModifierSpec(
+                            ms.Name,
+                            ms.Settings ?? System.Array.Empty<(string key, object val)>()
+                        );
+                    }
+                }
 
                 if (spawnOnInterval || string.Equals(spawnBehaviorNorm, "interval"))
                     return;
             }
+
+            var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+            {
+                new UnifiedChildBuilder.MechanicSpec
+                {
+                    Name = "Beam",
+                    Settings = beamSettings.ToArray(),
+                },
+            };
+
+            Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                beamJson,
+                root.transform,
+                p,
+                gen,
+                mechanics
+            );
 
             var spec = new UnifiedChildBuilder.ChildSpec
             {
                 ChildName = "Beam",
                 Parent = root.transform,
                 Layer = root.layer,
-                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
-                {
-                    new UnifiedChildBuilder.MechanicSpec
-                    {
-                        Name = "Beam",
-                        Settings = beamSettings.ToArray(),
-                    },
-                },
+                Mechanics = mechanics,
             };
 
             var beam = UnifiedChildBuilder.BuildChild(gen, spec);
+            if (shouldDetachChildren)
+                beam.transform.SetParent(null, worldPositionStays: true);
             subItems.Add(beam);
         }
     }

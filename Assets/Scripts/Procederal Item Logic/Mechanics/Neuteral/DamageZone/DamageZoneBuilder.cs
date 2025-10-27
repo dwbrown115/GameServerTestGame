@@ -118,6 +118,14 @@ namespace Game.Procederal.Core.Builders
                 },
             };
 
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                merged
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
+
             AttachMovementIfRequested(merged, root.transform, p, gen, mechanics);
 
             // Allow the generator to request interval spawning instead of a single child.
@@ -157,6 +165,7 @@ namespace Game.Procederal.Core.Builders
                 );
                 spawner.payloadMechanicName = "DamageZone";
                 spawner.SetPayloadSettings(zoneSettings.ToArray());
+                spawner.parentSpawnedToSpawner = !shouldDetachChildren;
                 spawner.createSpriteRenderer = false; // DamageZone handles its own visualization
                 spawner.createCollider = false; // AreaDamageMechanicBase queries overlaps without collider
                 spawner.autoDestroyPayloads = destroyOnExpire;
@@ -245,6 +254,8 @@ namespace Game.Procederal.Core.Builders
             };
 
             var zone = UnifiedChildBuilder.BuildChild(gen, spec);
+            if (shouldDetachChildren)
+                zone.transform.SetParent(null, worldPositionStays: true);
             subItems.Add(zone);
         }
 

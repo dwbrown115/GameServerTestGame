@@ -141,7 +141,7 @@ namespace Mechanics.Chaos
                 dmg.TakeDamage(dealt, epicenter, hitNormal);
                 totalDamage += dealt;
 
-                TryDestroyExplodableTarget(c.gameObject);
+                TryDestroyExplodableTarget(c.gameObject, dmg);
 
                 if (debugLogs)
                     Debug.Log(
@@ -273,17 +273,34 @@ namespace Mechanics.Chaos
             return transform != null ? (Vector2)transform.position : Vector2.zero;
         }
 
-        private void TryDestroyExplodableTarget(GameObject target)
+        private void TryDestroyExplodableTarget(GameObject target, IDamageable damageable)
         {
             if (target == null)
                 return;
 
             // Prefer child health mechanic: mark depleted so it fires its own cleanup logic.
-            var childHealth =
-                target.GetComponentInChildren<Mechanics.Neuteral.ChildHealthMechanic>();
+            var childHealth = target.GetComponentInParent<Mechanics.Neuteral.ChildHealthMechanic>();
             if (childHealth != null && childHealth.IsAlive)
             {
                 childHealth.SetCurrentHealth(0, clampToMax: true);
+                return;
+            }
+
+            if (damageable != null)
+            {
+                if (damageable is PlayerHealth || damageable is MobHealth)
+                {
+                    // Players and mobs manage their own lifecycle via health; never destroy their objects here.
+                    return;
+                }
+
+                if (!damageable.IsAlive && damageable is Component damageableComponent)
+                {
+                    Destroy(damageableComponent.gameObject);
+                    return;
+                }
+
+                // Damageable still alive; leave it alone so it can continue playing.
                 return;
             }
 

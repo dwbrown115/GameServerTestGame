@@ -22,6 +22,13 @@ namespace Game.Procederal.Core.Builders
                 gen.LoadAndMergeJsonSettings("Ripple"),
                 secondarySettings
             );
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                rippleJson
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
             var ownerT = gen.ResolveOwner();
             float startRadius = MechanicSettingNormalizer.Radius(rippleJson, "startRadius", 1f);
             float endDiameter = MechanicSettingNormalizer.Float(
@@ -85,42 +92,85 @@ namespace Game.Procederal.Core.Builders
                 spawner.showVisualization = showViz;
                 spawner.vizColor = vizColor;
                 spawner.debugLogs = p.debugLogs || gen.debugLogs;
+                spawner.parentSpawnedToSpawner = !shouldDetachChildren;
 
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
 
+                // forward movementMode (if any) as modifier specs so interval spawns receive movement
+                var movementSpecs =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMechanicSpecs(
+                        rippleJson,
+                        root.transform,
+                        p,
+                        gen
+                    );
+                if (movementSpecs != null && movementSpecs.Count > 0)
+                {
+                    foreach (var ms in movementSpecs)
+                    {
+                        if (string.IsNullOrWhiteSpace(ms.Name))
+                            continue;
+                        if (
+                            string.Equals(
+                                ms.Name,
+                                "Ripple",
+                                System.StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                            continue;
+                        spawner.AddModifierSpec(
+                            ms.Name,
+                            ms.Settings ?? System.Array.Empty<(string key, object val)>()
+                        );
+                    }
+                }
+
                 if (spawnOnInterval)
                     return;
             }
+
+            var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+            {
+                new UnifiedChildBuilder.MechanicSpec
+                {
+                    Name = "Ripple",
+                    Settings = new (string key, object val)[]
+                    {
+                        ("startRadius", startRadius),
+                        ("endDiameter", endDiameter),
+                        ("growDuration", growDuration),
+                        ("edgeThickness", edgeThickness),
+                        ("damage", damage),
+                        ("excludeOwner", true),
+                        ("requireMobTag", true),
+                        ("showVisualization", showViz),
+                        ("vizColor", vizColor),
+                        ("debugLogs", p.debugLogs || gen.debugLogs),
+                    },
+                },
+            };
+
+            // Attach movement if the merged JSON requested it.
+            Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                rippleJson,
+                root.transform,
+                p,
+                gen,
+                mechanics
+            );
 
             var spec = new UnifiedChildBuilder.ChildSpec
             {
                 ChildName = "Ripple",
                 Parent = root.transform,
                 Layer = root.layer,
-                Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
-                {
-                    new UnifiedChildBuilder.MechanicSpec
-                    {
-                        Name = "Ripple",
-                        Settings = new (string key, object val)[]
-                        {
-                            ("startRadius", startRadius),
-                            ("endDiameter", endDiameter),
-                            ("growDuration", growDuration),
-                            ("edgeThickness", edgeThickness),
-                            ("damage", damage),
-                            ("excludeOwner", true),
-                            ("requireMobTag", true),
-                            ("showVisualization", showViz),
-                            ("vizColor", vizColor),
-                            ("debugLogs", p.debugLogs || gen.debugLogs),
-                        },
-                    },
-                },
+                Mechanics = mechanics,
             };
 
             var ripple = UnifiedChildBuilder.BuildChild(gen, spec);
+            if (shouldDetachChildren)
+                ripple.transform.SetParent(null, worldPositionStays: true);
             subItems.Add(ripple);
         }
     }

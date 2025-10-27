@@ -11,6 +11,7 @@
   ],
   "Properties": [
     { "DestroyOnHit": false },
+    { "movementMode": "default" },
     { "damagePerInterval": 10 },
     { "spriteColor": "#000000FF" },
     { "showVisualization": true }

@@ -23,6 +23,13 @@ namespace Game.Procederal.Core.Builders
                 gen.LoadAndMergeJsonSettings("Whip"),
                 secondarySettings
             );
+            var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
+                whipJson
+            );
+            bool shouldDetachChildren =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
+                    movementMode
+                );
             int desired = MechanicSettingNormalizer.Count(
                 whipJson,
                 1,
@@ -66,22 +73,35 @@ namespace Game.Procederal.Core.Builders
                 settings.Add(("requireMobTag", true));
                 settings.Add(("debugLogs", p.debugLogs || gen.debugLogs));
 
+                var mechanics = new List<UnifiedChildBuilder.MechanicSpec>
+                {
+                    new UnifiedChildBuilder.MechanicSpec
+                    {
+                        Name = "Whip",
+                        Settings = settings.ToArray(),
+                    },
+                };
+
+                // Attach movement mode if requested by merged settings
+                Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
+                    whipJson,
+                    root.transform,
+                    p,
+                    gen,
+                    mechanics
+                );
+
                 var spec = new UnifiedChildBuilder.ChildSpec
                 {
                     ChildName = $"Whip_{i}",
                     Parent = root.transform,
                     Layer = root.layer,
-                    Mechanics = new List<UnifiedChildBuilder.MechanicSpec>
-                    {
-                        new UnifiedChildBuilder.MechanicSpec
-                        {
-                            Name = "Whip",
-                            Settings = settings.ToArray(),
-                        },
-                    },
+                    Mechanics = mechanics,
                 };
 
                 var whip = UnifiedChildBuilder.BuildChild(gen, spec);
+                if (shouldDetachChildren)
+                    whip.transform.SetParent(null, worldPositionStays: true);
                 subItems.Add(whip);
             }
 
