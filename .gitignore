@@ -71,3 +71,4 @@ crashlytics-build.properties
 *.crt
 *.crt.txt
 ToDo.md
+_TemporaryFiles/

@@ -1,5 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
 using UnityEngine;
@@ -275,6 +280,12 @@ namespace Game.Procederal
         [SerializeField]
         private UnityEngine.Object objectFactorySource;
 
+        [Header("Debug Output")]
+        [Tooltip(
+            "Delete generated mechanic dump files when the game ends or the application quits."
+        )]
+        public bool deleteMechanicDumpOnShutdown = true;
+
         private IMechanicCatalog _catalog;
         private MechanicSettingsCache _settingsCache;
         private bool _catalogFallbackWarned;
@@ -286,6 +297,11 @@ namespace Game.Procederal
         private readonly HashSet<string> _softFitNotices = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase
         );
+
+        private static readonly List<string> _mechanicDumpFiles = new List<string>();
+        private static readonly object _mechanicDumpLock = new object();
+        private static bool _mechanicDumpCleanupRegistered = false;
+        private MechanicDumpContext _activeDumpContext;
 
         public void SetMechanicCatalog(IMechanicCatalog catalog)
         {
@@ -570,14 +586,11 @@ namespace Game.Procederal
             }
             p ??= new ItemParams();
 
-            string secondaryLabel =
-                (instruction.secondary != null && instruction.secondary.Count > 0)
-                    ? "+" + string.Join("+", instruction.secondary)
-                    : string.Empty;
             var parentTransform =
                 parent != null ? parent : (defaultParent != null ? defaultParent : transform);
-            var rootName = $"Item_{instruction.primary}{secondaryLabel}";
-            var root = AcquireObject(rootName, parentTransform);
+            string baseName = BuildMechanicDumpBaseName(instruction);
+            var root = AcquireObject("GeneratedItem", parentTransform);
+            root.name = baseName;
             if (root == null)
             {
                 Log("Failed to acquire root GameObject for generated item.");
@@ -585,29 +598,40 @@ namespace Game.Procederal
             }
 
             var subItems = new List<GameObject>();
+            var previousContext = _activeDumpContext;
+            var context = new MechanicDumpContext();
+            _activeDumpContext = context;
+            try
+            {
+                var kind = instruction.GetPrimaryKind();
+                var builder = Game.Procederal.Core.Builders.PrimaryBuilders.Get(kind);
+                if (builder == null)
+                {
+                    Log($"Unsupported primary mechanic '{instruction.primary}'.");
+                }
+                else
+                {
+                    builder.Build(this, root, instruction, p, subItems);
+                }
+                if (autoApplyCompatibleModifiers && subItems.Count > 0)
+                {
+                    foreach (var mk in GetModifiersToApply(instruction))
+                        AddModifierToAll(subItems, mk, p);
+                }
 
-            var kind = instruction.GetPrimaryKind();
-            var builder = Game.Procederal.Core.Builders.PrimaryBuilders.Get(kind);
-            if (builder == null)
-            {
-                Log($"Unsupported primary mechanic '{instruction.primary}'.");
-            }
-            else
-            {
-                builder.Build(this, root, instruction, p, subItems);
-            }
-            if (autoApplyCompatibleModifiers && subItems.Count > 0)
-            {
-                foreach (var mk in GetModifiersToApply(instruction))
-                    AddModifierToAll(subItems, mk, p);
-            }
+                // Ensure a runner exists to drive IMechanic.Tick for generated mechanics
+                var runner = root.GetComponent<Game.Procederal.Api.MechanicRunner>();
+                if (runner == null)
+                    runner = root.AddComponent<Game.Procederal.Api.MechanicRunner>();
+                runner.debugLogs = debugLogs;
+                runner.RegisterTree(root.transform);
 
-            // Ensure a runner exists to drive IMechanic.Tick for generated mechanics
-            var runner = root.GetComponent<Game.Procederal.Api.MechanicRunner>();
-            if (runner == null)
-                runner = root.AddComponent<Game.Procederal.Api.MechanicRunner>();
-            runner.debugLogs = debugLogs;
-            runner.RegisterTree(root.transform);
+                TryWriteMechanicDump(root, instruction, baseName);
+            }
+            finally
+            {
+                _activeDumpContext = previousContext;
+            }
 
             return root;
         }
@@ -637,7 +661,9 @@ namespace Game.Procederal
                 return null;
             }
 
-            return MechanicReflection.AddMechanicWithSettings(go, type, finalSettings);
+            var component = MechanicReflection.AddMechanicWithSettings(go, type, finalSettings);
+            RegisterMechanicDumpEntry(go, mechanicName, type, finalSettings);
+            return component;
         }
 
         public bool SetExistingMechanicSetting(
@@ -714,12 +740,894 @@ namespace Game.Procederal
             t.localPosition = pos;
         }
 
+        private void RegisterMechanicDumpEntry(
+            GameObject go,
+            string mechanicName,
+            Type mechanicType,
+            (string key, object value)[] settings
+        )
+        {
+            if (_activeDumpContext == null)
+                return;
+
+            var entry = BuildMechanicDumpEntry(
+                mechanicName,
+                go,
+                mechanicType,
+                settings,
+                fromInstruction: false
+            );
+            if (entry == null)
+                return;
+
+            _activeDumpContext.AddOrMerge(entry);
+        }
+
+        private MechanicDumpEntry BuildMechanicDumpEntry(
+            string mechanicName,
+            GameObject go,
+            Type mechanicType,
+            (string key, object value)[] settings,
+            bool fromInstruction
+        )
+        {
+            string resolvedName = !string.IsNullOrWhiteSpace(mechanicName)
+                ? mechanicName.Trim()
+                : (mechanicType != null ? mechanicType.Name : string.Empty);
+            if (string.IsNullOrWhiteSpace(resolvedName) && mechanicType == null)
+                return null;
+
+            var entry = new MechanicDumpEntry
+            {
+                mechanicName = resolvedName,
+                mechanicType = mechanicType != null ? mechanicType.FullName : string.Empty,
+                componentShortName = mechanicType != null ? mechanicType.Name : string.Empty,
+                componentAssemblyQualifiedName =
+                    mechanicType != null ? mechanicType.AssemblyQualifiedName : string.Empty,
+                gameObject = GetHierarchyPath(go),
+                appliedSettings = ConvertSettingsForDump(settings),
+                fromInstruction = fromInstruction,
+            };
+
+            PopulateCatalogDetails(entry);
+            return entry;
+        }
+
+        private void PopulateCatalogDetails(MechanicDumpEntry entry)
+        {
+            if (entry == null || string.IsNullOrWhiteSpace(entry.mechanicName))
+                return;
+
+            var registry = MechanicsRegistry.Instance;
+            registry.EnsureInitialized(primaryMechanicListJson, modifierMechanicListJson);
+
+            if (registry.TryGetManifestEntry(entry.mechanicName, out var manifestEntry))
+            {
+                if (!string.IsNullOrWhiteSpace(manifestEntry.category))
+                    entry.mechanicCategory = manifestEntry.category;
+                if (!string.IsNullOrWhiteSpace(manifestEntry.attribute))
+                    entry.mechanicAttribute = manifestEntry.attribute;
+            }
+
+            if (
+                registry.TryGetPath(entry.mechanicName, out var path)
+                && !string.IsNullOrWhiteSpace(path)
+            )
+            {
+                entry.mechanicPath = path;
+            }
+
+            entry.generator = ConvertCatalogMapToList(
+                registry.GetKvpArray(entry.mechanicName, "Generator")
+            );
+            entry.properties = ConvertCatalogMapToList(
+                registry.GetKvpArray(entry.mechanicName, "Properties")
+            );
+            entry.overrides = ConvertCatalogMapToList(
+                registry.GetKvpArray(entry.mechanicName, "Overrides")
+            );
+            entry.mechanicOverrides = ConvertCatalogMapToList(
+                registry.GetKvpArray(entry.mechanicName, "MechanicOverrides")
+            );
+            entry.incompatibleWith = registry.GetIncompatibleWith(entry.mechanicName);
+        }
+
+        private static List<Dictionary<string, object>> ConvertCatalogMapToList(
+            Dictionary<string, object> map
+        )
+        {
+            if (map == null || map.Count == 0)
+                return null;
+
+            var list = new List<Dictionary<string, object>>(map.Count);
+            foreach (var kv in map)
+            {
+                var entry = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [kv.Key] = kv.Value,
+                };
+                list.Add(entry);
+            }
+            return list;
+        }
+
+        private static string GetHierarchyPath(GameObject go)
+        {
+            if (go == null)
+                return string.Empty;
+
+            var stack = new Stack<string>();
+            var current = go.transform;
+            int guard = 0;
+            while (current != null && guard < 64)
+            {
+                stack.Push(current.name ?? string.Empty);
+                current = current.parent;
+                guard++;
+            }
+
+            return string.Join("/", stack.ToArray());
+        }
+
+        private static Dictionary<string, object> ConvertSettingsForDump(
+            (string key, object value)[] settings
+        )
+        {
+            if (settings == null || settings.Length == 0)
+                return null;
+
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < settings.Length; i++)
+            {
+                var (key, value) = settings[i];
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+                dict[key] = ConvertValueForDump(value);
+            }
+
+            return dict.Count > 0 ? dict : null;
+        }
+
+        private static object ConvertValueForDump(object value)
+        {
+            if (value == null)
+                return null;
+
+            switch (value)
+            {
+                case string s:
+                    return s;
+                case bool b:
+                    return b;
+                case char ch:
+                    return ch.ToString();
+                case Enum e:
+                    return e.ToString();
+                case Color color:
+                    return new Dictionary<string, object>
+                    {
+                        ["r"] = color.r,
+                        ["g"] = color.g,
+                        ["b"] = color.b,
+                        ["a"] = color.a,
+                    };
+                case Vector2 v2:
+                    return new Dictionary<string, object> { ["x"] = v2.x, ["y"] = v2.y };
+                case Vector3 v3:
+                    return new Dictionary<string, object>
+                    {
+                        ["x"] = v3.x,
+                        ["y"] = v3.y,
+                        ["z"] = v3.z,
+                    };
+                case Vector4 v4:
+                    return new Dictionary<string, object>
+                    {
+                        ["x"] = v4.x,
+                        ["y"] = v4.y,
+                        ["z"] = v4.z,
+                        ["w"] = v4.w,
+                    };
+                case Vector2Int v2i:
+                    return new Dictionary<string, object> { ["x"] = v2i.x, ["y"] = v2i.y };
+                case Vector3Int v3i:
+                    return new Dictionary<string, object>
+                    {
+                        ["x"] = v3i.x,
+                        ["y"] = v3i.y,
+                        ["z"] = v3i.z,
+                    };
+                case Quaternion q:
+                    return new Dictionary<string, object>
+                    {
+                        ["x"] = q.x,
+                        ["y"] = q.y,
+                        ["z"] = q.z,
+                        ["w"] = q.w,
+                    };
+                case Rect rect:
+                    return new Dictionary<string, object>
+                    {
+                        ["x"] = rect.x,
+                        ["y"] = rect.y,
+                        ["width"] = rect.width,
+                        ["height"] = rect.height,
+                    };
+                case IDictionary dictionary:
+                    var map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (DictionaryEntry entry in dictionary)
+                    {
+                        string key = entry.Key?.ToString();
+                        if (string.IsNullOrWhiteSpace(key))
+                            continue;
+                        map[key] = ConvertValueForDump(entry.Value);
+                    }
+                    return map;
+                case IEnumerable enumerable when value is not string:
+                    var list = new List<object>();
+                    foreach (var item in enumerable)
+                        list.Add(ConvertValueForDump(item));
+                    return list;
+                case UnityEngine.Object unityObject:
+                    return unityObject != null ? unityObject.name : null;
+            }
+
+            if (
+                value is sbyte
+                || value is byte
+                || value is short
+                || value is ushort
+                || value is int
+                || value is uint
+                || value is long
+                || value is ulong
+                || value is float
+                || value is double
+                || value is decimal
+            )
+            {
+                return value;
+            }
+
+            if (value is IFormattable formattable)
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+            return value.ToString();
+        }
+
+        private void TryWriteMechanicDump(
+            GameObject root,
+            ItemInstruction instruction,
+            string baseName
+        )
+        {
+            if (root == null)
+                return;
+
+            List<MechanicDumpEntry> entries;
+            if (_activeDumpContext != null)
+                entries = new List<MechanicDumpEntry>(_activeDumpContext.Entries);
+            else
+                entries = new List<MechanicDumpEntry>();
+
+            EnsureInstructionMechanics(entries, instruction, root);
+
+            if (entries.Count == 0 && instruction != null)
+            {
+                Debug.LogWarning(
+                    "[ProcederalItemGenerator] No mechanics registered during generation; dumping instruction-only payload.",
+                    this
+                );
+                var fallback = BuildMechanicDumpEntry(
+                    instruction.primary,
+                    root,
+                    null,
+                    Array.Empty<(string key, object value)>(),
+                    fromInstruction: true
+                );
+                if (fallback != null)
+                {
+                    fallback.mechanicType = "InstructionOnly";
+                    fallback.componentShortName = string.Empty;
+                    fallback.componentAssemblyQualifiedName = string.Empty;
+                    fallback.appliedSettings ??= new Dictionary<string, object>(
+                        StringComparer.OrdinalIgnoreCase
+                    );
+                    fallback.appliedSettings["source"] = "instruction";
+                    entries.Add(fallback);
+                }
+            }
+
+            string fileName = baseName + ".json";
+            string tempRoot = Application.isEditor
+                ? Path.GetFullPath(Path.Combine(Application.dataPath, "_TemporaryFiles"))
+                : Application.temporaryCachePath;
+            if (string.IsNullOrWhiteSpace(tempRoot))
+                tempRoot = Path.GetTempPath();
+
+            try
+            {
+                Directory.CreateDirectory(tempRoot);
+                string path = Path.Combine(tempRoot, fileName);
+                string json = BuildMechanicDumpJson(root, instruction, entries);
+                File.WriteAllText(path, json);
+                Debug.Log(
+                    $"[ProcederalItemGenerator] Wrote mechanic dump '{path}' (base={baseName}).",
+                    this
+                );
+
+                if (deleteMechanicDumpOnShutdown)
+                    TrackMechanicDumpForCleanup(path);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(
+                    $"[ProcederalItemGenerator] Failed to write mechanic dump: {ex.Message}",
+                    this
+                );
+            }
+        }
+
+        private void EnsureInstructionMechanics(
+            List<MechanicDumpEntry> entries,
+            ItemInstruction instruction,
+            GameObject root
+        )
+        {
+            if (entries == null || instruction == null)
+                return;
+
+            EnsureInstructionMechanic(entries, instruction.primary, root, true);
+
+            if (instruction.secondary == null || instruction.secondary.Count == 0)
+                return;
+
+            for (int i = 0; i < instruction.secondary.Count; i++)
+            {
+                EnsureInstructionMechanic(entries, instruction.secondary[i], root, true);
+            }
+        }
+
+        private void EnsureInstructionMechanic(
+            List<MechanicDumpEntry> entries,
+            string mechanicName,
+            GameObject root,
+            bool fromInstruction
+        )
+        {
+            if (string.IsNullOrWhiteSpace(mechanicName))
+                return;
+
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (
+                    string.Equals(
+                        entries[i].mechanicName,
+                        mechanicName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    return;
+                }
+            }
+
+            var entry = BuildMechanicDumpEntry(
+                mechanicName,
+                root,
+                null,
+                Array.Empty<(string key, object value)>(),
+                fromInstruction
+            );
+            if (entry != null)
+                entries.Add(entry);
+        }
+
+        private string BuildMechanicDumpJson(
+            GameObject root,
+            ItemInstruction instruction,
+            List<MechanicDumpEntry> entries
+        )
+        {
+            var payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["generatedAtUtc"] = DateTime.UtcNow.ToString("o"),
+                ["generatorName"] = name,
+                ["rootName"] = root != null ? root.name : string.Empty,
+                ["primary"] =
+                    instruction != null ? instruction.primary ?? string.Empty : string.Empty,
+                ["secondary"] =
+                    instruction != null
+                    && instruction.secondary != null
+                    && instruction.secondary.Count > 0
+                        ? instruction.secondary.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray()
+                        : Array.Empty<string>(),
+                ["mechanics"] = entries.Select(ConvertEntryForDump).ToList(),
+            };
+
+            return SerializeJson(payload);
+        }
+
+        private static List<Dictionary<string, object>> CloneDictionaryList(
+            List<Dictionary<string, object>> source
+        )
+        {
+            if (source == null || source.Count == 0)
+                return new List<Dictionary<string, object>>();
+
+            var list = new List<Dictionary<string, object>>(source.Count);
+            for (int i = 0; i < source.Count; i++)
+            {
+                var item = source[i];
+                if (item == null || item.Count == 0)
+                {
+                    list.Add(new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+                    continue;
+                }
+
+                var copy = new Dictionary<string, object>(
+                    item.Count,
+                    StringComparer.OrdinalIgnoreCase
+                );
+                foreach (var kv in item)
+                    copy[kv.Key] = kv.Value;
+                list.Add(copy);
+            }
+            return list;
+        }
+
+        private static List<string> CloneStringList(List<string> source)
+        {
+            return source != null && source.Count > 0
+                ? new List<string>(source)
+                : new List<string>();
+        }
+
+        private static Dictionary<string, object> ConvertEntryForDump(MechanicDumpEntry entry)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MechanicName"] = entry.mechanicName ?? string.Empty,
+            };
+
+            if (!string.IsNullOrWhiteSpace(entry.mechanicCategory))
+                result["MechanicCategory"] = entry.mechanicCategory;
+            if (!string.IsNullOrWhiteSpace(entry.mechanicPath))
+                result["MechanicPath"] = entry.mechanicPath;
+            if (!string.IsNullOrWhiteSpace(entry.mechanicAttribute))
+                result["MechanicAttribute"] = entry.mechanicAttribute;
+            if (!string.IsNullOrWhiteSpace(entry.mechanicType))
+                result["ComponentType"] = entry.mechanicType;
+            if (!string.IsNullOrWhiteSpace(entry.componentShortName))
+                result["ComponentShortName"] = entry.componentShortName;
+            if (!string.IsNullOrWhiteSpace(entry.componentAssemblyQualifiedName))
+                result["ComponentAssemblyQualifiedName"] = entry.componentAssemblyQualifiedName;
+            if (!string.IsNullOrWhiteSpace(entry.gameObject))
+                result["GameObject"] = entry.gameObject;
+
+            result["Generator"] = CloneDictionaryList(entry.generator);
+            result["Properties"] = CloneDictionaryList(entry.properties);
+            result["Overrides"] = CloneDictionaryList(entry.overrides);
+            result["MechanicOverrides"] = CloneDictionaryList(entry.mechanicOverrides);
+            result["IncompatibleWith"] = CloneStringList(entry.incompatibleWith);
+            if (entry.appliedSettings != null && entry.appliedSettings.Count > 0)
+                result["AppliedSettings"] = entry.appliedSettings;
+            if (entry.fromInstruction)
+                result["Source"] = "Instruction";
+
+            return result;
+        }
+
+        private static string SerializeJson(object value)
+        {
+            var sb = new StringBuilder(4096);
+            WriteValue(sb, value, 0);
+            sb.Append('\n');
+            return sb.ToString();
+        }
+
+        private static void WriteValue(StringBuilder sb, object value, int indentLevel)
+        {
+            if (value == null)
+            {
+                sb.Append("null");
+                return;
+            }
+
+            switch (value)
+            {
+                case string s:
+                    AppendQuotedString(sb, s);
+                    return;
+                case bool b:
+                    sb.Append(b ? "true" : "false");
+                    return;
+                case IDictionary dictionary:
+                    WriteObject(sb, GetDictionaryEntries(dictionary), indentLevel);
+                    return;
+                case IEnumerable<KeyValuePair<string, object>> kvps:
+                    WriteObject(sb, kvps, indentLevel);
+                    return;
+                case IEnumerable enumerable when value is not string:
+                    WriteArray(sb, enumerable, indentLevel);
+                    return;
+                case IFormattable formattable:
+                    sb.Append(formattable.ToString(null, CultureInfo.InvariantCulture));
+                    return;
+            }
+
+            AppendQuotedString(sb, value.ToString());
+        }
+
+        private static void WriteObject(
+            StringBuilder sb,
+            IEnumerable<KeyValuePair<string, object>> entries,
+            int indentLevel
+        )
+        {
+            sb.Append("{\n");
+            var list = entries.Where(kv => !string.IsNullOrWhiteSpace(kv.Key)).ToList();
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var entry = list[i];
+                WriteIndent(sb, indentLevel + 1);
+                AppendQuotedString(sb, entry.Key);
+                sb.Append(": ");
+                WriteValue(sb, entry.Value, indentLevel + 1);
+                if (i < list.Count - 1)
+                    sb.Append(',');
+                sb.Append('\n');
+            }
+
+            WriteIndent(sb, indentLevel);
+            sb.Append('}');
+        }
+
+        private static IEnumerable<KeyValuePair<string, object>> GetDictionaryEntries(
+            IDictionary dictionary
+        )
+        {
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                string key = entry.Key?.ToString();
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+                yield return new KeyValuePair<string, object>(key, entry.Value);
+            }
+        }
+
+        private static void WriteArray(StringBuilder sb, IEnumerable enumerable, int indentLevel)
+        {
+            sb.Append("[\n");
+            var items = new List<object>();
+            foreach (var item in enumerable)
+                items.Add(item);
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                WriteIndent(sb, indentLevel + 1);
+                WriteValue(sb, items[i], indentLevel + 1);
+                if (i < items.Count - 1)
+                    sb.Append(',');
+                sb.Append('\n');
+            }
+
+            WriteIndent(sb, indentLevel);
+            sb.Append(']');
+        }
+
+        private static void WriteIndent(StringBuilder sb, int indentLevel)
+        {
+            for (int i = 0; i < indentLevel; i++)
+                sb.Append("    ");
+        }
+
+        private static void AppendQuotedString(StringBuilder sb, string value)
+        {
+            sb.Append('"');
+            if (!string.IsNullOrEmpty(value))
+            {
+                for (int i = 0; i < value.Length; i++)
+                {
+                    char c = value[i];
+                    switch (c)
+                    {
+                        case '\\':
+                        case '"':
+                            sb.Append('\\');
+                            sb.Append(c);
+                            break;
+                        case '\b':
+                            sb.Append("\\b");
+                            break;
+                        case '\f':
+                            sb.Append("\\f");
+                            break;
+                        case '\n':
+                            sb.Append("\\n");
+                            break;
+                        case '\r':
+                            sb.Append("\\r");
+                            break;
+                        case '\t':
+                            sb.Append("\\t");
+                            break;
+                        default:
+                            if (char.IsControl(c))
+                            {
+                                sb.Append("\\u");
+                                sb.Append(((int)c).ToString("x4"));
+                            }
+                            else
+                            {
+                                sb.Append(c);
+                            }
+
+                            break;
+                    }
+                }
+            }
+
+            sb.Append('"');
+        }
+
+        private string BuildMechanicDumpBaseName(ItemInstruction instruction)
+        {
+            var parts = new List<string>();
+            if (instruction != null)
+            {
+                if (!string.IsNullOrWhiteSpace(instruction.primary))
+                    parts.Add(instruction.primary);
+                if (instruction.secondary != null && instruction.secondary.Count > 0)
+                {
+                    for (int i = 0; i < instruction.secondary.Count; i++)
+                    {
+                        string sec = instruction.secondary[i];
+                        if (!string.IsNullOrWhiteSpace(sec))
+                            parts.Add(sec);
+                    }
+                }
+            }
+
+            var sanitized = parts
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(SanitizeForFileName)
+                .ToList();
+            if (sanitized.Count == 0)
+                sanitized.Add("GeneratedItem");
+
+            string unique = Guid.NewGuid().ToString("N").Substring(0, 8);
+            sanitized.Add(unique);
+            return string.Join("_", sanitized);
+        }
+
+        private static string SanitizeForFileName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "item";
+
+            var sb = new StringBuilder(value.Length);
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+                else if (c == '-' || c == '_')
+                {
+                    sb.Append(c);
+                }
+                else if (char.IsWhiteSpace(c))
+                {
+                    sb.Append('_');
+                }
+            }
+
+            if (sb.Length == 0)
+                sb.Append("item");
+            return sb.ToString();
+        }
+
+        private void TrackMechanicDumpForCleanup(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            lock (_mechanicDumpLock)
+            {
+                if (!_mechanicDumpFiles.Contains(path))
+                    _mechanicDumpFiles.Add(path);
+
+                if (!_mechanicDumpCleanupRegistered)
+                {
+                    Application.quitting += CleanupMechanicDumpFiles;
+                    GameOverController.OnCountdownFinished += CleanupMechanicDumpFiles;
+                    _mechanicDumpCleanupRegistered = true;
+                }
+            }
+        }
+
+        private static void CleanupMechanicDumpFiles()
+        {
+            lock (_mechanicDumpLock)
+            {
+                if (_mechanicDumpFiles.Count == 0)
+                    return;
+
+                for (int i = _mechanicDumpFiles.Count - 1; i >= 0; i--)
+                {
+                    string path = _mechanicDumpFiles[i];
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+                            File.Delete(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning(
+                            $"[ProcederalItemGenerator] Failed to delete mechanic dump '{path}': {ex.Message}"
+                        );
+                    }
+                }
+
+                _mechanicDumpFiles.Clear();
+            }
+        }
+
         // TrySet no longer needed here; reflection handled centrally via MechanicReflection
 
         public void Log(string msg)
         {
             if (debugLogs)
                 Debug.Log($"[ProcederalItemGenerator] {msg}", this);
+        }
+
+        private sealed class MechanicDumpContext
+        {
+            public readonly List<MechanicDumpEntry> Entries = new List<MechanicDumpEntry>();
+
+            public void AddOrMerge(MechanicDumpEntry incoming)
+            {
+                if (incoming == null)
+                    return;
+
+                var existing = Find(incoming.mechanicName, incoming.gameObject);
+                if (existing == null)
+                {
+                    Entries.Add(incoming);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(existing.mechanicType))
+                    existing.mechanicType = incoming.mechanicType;
+                if (string.IsNullOrWhiteSpace(existing.componentShortName))
+                    existing.componentShortName = incoming.componentShortName;
+                if (string.IsNullOrWhiteSpace(existing.componentAssemblyQualifiedName))
+                {
+                    existing.componentAssemblyQualifiedName =
+                        incoming.componentAssemblyQualifiedName;
+                }
+                if (string.IsNullOrWhiteSpace(existing.mechanicCategory))
+                    existing.mechanicCategory = incoming.mechanicCategory;
+                if (string.IsNullOrWhiteSpace(existing.mechanicAttribute))
+                    existing.mechanicAttribute = incoming.mechanicAttribute;
+                if (string.IsNullOrWhiteSpace(existing.mechanicPath))
+                    existing.mechanicPath = incoming.mechanicPath;
+
+                existing.generator = MergeList(existing.generator, incoming.generator);
+                existing.properties = MergeList(existing.properties, incoming.properties);
+                existing.overrides = MergeList(existing.overrides, incoming.overrides);
+                existing.mechanicOverrides = MergeList(
+                    existing.mechanicOverrides,
+                    incoming.mechanicOverrides
+                );
+                existing.incompatibleWith = MergeStringList(
+                    existing.incompatibleWith,
+                    incoming.incompatibleWith
+                );
+                existing.appliedSettings = MergeDictionary(
+                    existing.appliedSettings,
+                    incoming.appliedSettings
+                );
+                existing.fromInstruction |= incoming.fromInstruction;
+            }
+
+            private MechanicDumpEntry Find(string mechanicName, string gameObjectPath)
+            {
+                for (int i = 0; i < Entries.Count; i++)
+                {
+                    var entry = Entries[i];
+                    if (
+                        string.Equals(
+                            entry.mechanicName,
+                            mechanicName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && string.Equals(entry.gameObject, gameObjectPath, StringComparison.Ordinal)
+                    )
+                    {
+                        return entry;
+                    }
+                }
+
+                return null;
+            }
+
+            private static Dictionary<string, object> MergeDictionary(
+                Dictionary<string, object> existing,
+                Dictionary<string, object> incoming
+            )
+            {
+                if (incoming == null || incoming.Count == 0)
+                    return existing;
+                if (existing == null)
+                {
+                    return new Dictionary<string, object>(
+                        incoming,
+                        StringComparer.OrdinalIgnoreCase
+                    );
+                }
+                foreach (var kv in incoming)
+                    existing[kv.Key] = kv.Value;
+                return existing;
+            }
+
+            private static List<Dictionary<string, object>> MergeList(
+                List<Dictionary<string, object>> existing,
+                List<Dictionary<string, object>> incoming
+            )
+            {
+                if (incoming == null || incoming.Count == 0)
+                    return existing;
+                if (existing == null)
+                {
+                    return incoming != null
+                        ? new List<Dictionary<string, object>>(incoming)
+                        : new List<Dictionary<string, object>>();
+                }
+                existing.AddRange(incoming);
+                return existing;
+            }
+
+            private static List<string> MergeStringList(
+                List<string> existing,
+                List<string> incoming
+            )
+            {
+                if (incoming == null || incoming.Count == 0)
+                    return existing;
+                if (existing == null)
+                {
+                    return new List<string>(incoming);
+                }
+                foreach (var item in incoming)
+                {
+                    if (!existing.Contains(item))
+                        existing.Add(item);
+                }
+                return existing;
+            }
+        }
+
+        private sealed class MechanicDumpEntry
+        {
+            public string mechanicName;
+            public string mechanicType;
+            public string componentShortName;
+            public string componentAssemblyQualifiedName;
+            public string mechanicCategory;
+            public string mechanicAttribute;
+            public string mechanicPath;
+            public string gameObject;
+            public List<Dictionary<string, object>> generator;
+            public List<Dictionary<string, object>> properties;
+            public List<Dictionary<string, object>> overrides;
+            public List<Dictionary<string, object>> mechanicOverrides;
+            public List<string> incompatibleWith;
+            public Dictionary<string, object> appliedSettings;
+            public bool fromInstruction;
         }
 
         // Generic: forward all compatible modifiers to a spawner object that exposes AddModifierSpec(string, params (string,object)[])
