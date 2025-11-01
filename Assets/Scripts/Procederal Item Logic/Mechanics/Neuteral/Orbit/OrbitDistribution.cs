@@ -4,8 +4,7 @@ using UnityEngine;
 namespace Game.Procederal.Api
 {
     /// <summary>
-    /// Central helper to evenly distribute OrbitMechanic angles among sibling children sharing the same parent.
-    /// Call after adding or removing an orbiting projectile. Uses each OrbitMechanic's current radius/ angular speed.
+    /// Helper to evenly distribute orbiting children around their parent. Retained while OrbitCircular refactor is in progress.
     /// </summary>
     public static class OrbitDistribution
     {
@@ -13,23 +12,25 @@ namespace Game.Procederal.Api
         {
             if (parent == null)
                 return;
+
             var orbits = new List<Mechanics.Neuteral.OrbitMechanic>();
             foreach (Transform child in parent)
             {
                 if (child == null)
                     continue;
-                var om = child.GetComponent<Mechanics.Neuteral.OrbitMechanic>();
-                if (om != null)
-                    orbits.Add(om);
+
+                var mechanic = child.GetComponent<Mechanics.Neuteral.OrbitMechanic>();
+                if (mechanic != null)
+                    orbits.Add(mechanic);
             }
-            int n = orbits.Count;
-            if (n <= 1)
-                return; // nothing to space or only one
-            // Optionally preserve the first one's current angle as base; simpler: start at 0
-            float baseAngle = 0f;
-            for (int i = 0; i < n; i++)
+
+            int count = orbits.Count;
+            if (count <= 1)
+                return;
+
+            for (int i = 0; i < count; i++)
             {
-                float angle = baseAngle + (360f * i / n);
+                float angle = (360f * i) / count;
                 orbits[i].SetAngleDeg(angle, repositionNow: true);
             }
         }

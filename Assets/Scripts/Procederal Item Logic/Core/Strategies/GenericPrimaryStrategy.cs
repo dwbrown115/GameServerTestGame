@@ -250,35 +250,34 @@ namespace Game.Procederal.Core.Builders.Strategies
             );
             // Attach secondary modifiers (e.g., Lock, Orbit, Bounce, etc.) to each child so their effects (stun, orbit spacing) are active.
             ApplySecondaryModifiers(created, gen, instruction, primaryName);
-            // Now that OrbitMechanics (if any) may have been added, distribute angles evenly.
-            DistributeOrbitIfPresent(created, gen);
+            DistributeOrbitIfPresent(created);
             subItems.AddRange(created);
         }
 
-        private void DistributeOrbitIfPresent(
-            List<GameObject> children,
-            Game.Procederal.ProcederalItemGenerator gen
-        )
+        private void DistributeOrbitIfPresent(List<GameObject> children)
         {
             if (children == null || children.Count <= 1)
                 return;
-            // Collect orbit mechanics present
+
             var orbits = new List<Mechanics.Neuteral.OrbitMechanic>();
-            foreach (var c in children)
+            for (int i = 0; i < children.Count; i++)
             {
-                if (c == null)
+                var child = children[i];
+                if (child == null)
                     continue;
-                var om = c.GetComponent<Mechanics.Neuteral.OrbitMechanic>();
-                if (om != null)
-                    orbits.Add(om);
+
+                var orbit = child.GetComponent<Mechanics.Neuteral.OrbitMechanic>();
+                if (orbit != null)
+                    orbits.Add(orbit);
             }
-            int n = orbits.Count;
-            if (n <= 1)
+
+            int count = orbits.Count;
+            if (count <= 1)
                 return;
-            // Use each component's radius (assume they are identical; take first)
-            for (int i = 0; i < n; i++)
+
+            for (int i = 0; i < count; i++)
             {
-                float angle = (360f * i) / n;
+                float angle = (360f * i) / count;
                 orbits[i].SetAngleDeg(angle, repositionNow: true);
             }
         }

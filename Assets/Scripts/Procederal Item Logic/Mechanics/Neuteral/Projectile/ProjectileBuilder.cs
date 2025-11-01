@@ -77,14 +77,15 @@ namespace Game.Procederal.Core.Builders
                 }
             }
 
-            int defaultCount = Mathf.Max(1, p != null ? p.subItemCount : 1);
+            int fallbackCount = BuilderChildCountHelper.ResolveFallbackCount(p, gen, 1);
             int count = MechanicSettingNormalizer.Count(
                 projectileJson,
-                defaultCount,
+                fallbackCount,
                 "childrenToSpawn",
                 "numberOfItemsToSpawn",
                 "NumberOfItemsToSpawn"
             );
+            count = BuilderChildCountHelper.ResolveFinalCount(count, p, gen);
 
             void DebugLog(string message)
             {
@@ -127,12 +128,36 @@ namespace Game.Procederal.Core.Builders
                     );
             }
 
+            bool hasExplicitDirection = false;
+            bool hasDirectionResolver = false;
+            if (projectileJson != null)
+            {
+                foreach (var key in projectileJson.Keys)
+                {
+                    if (
+                        !hasExplicitDirection
+                        && string.Equals(key, "direction", StringComparison.OrdinalIgnoreCase)
+                    )
+                        hasExplicitDirection = true;
+                    else if (
+                        !hasDirectionResolver
+                        && string.Equals(
+                            key,
+                            "directionFromResolver",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                        hasDirectionResolver = true;
+
+                    if (hasExplicitDirection && hasDirectionResolver)
+                        break;
+                }
+            }
+
             bool useChildMovement =
                 !wantOrbit
                 && movementMode
-                    != Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Drop
-                && movementMode
-                    != Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
+                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.None;
             bool movementRequiresDetachment =
                 Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
                     movementMode
@@ -147,6 +172,27 @@ namespace Game.Procederal.Core.Builders
                     == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
 
             Vector2 baseDirection = ResolveProjectileDirection(projectileJson, root.transform);
+
+            bool shouldInjectDirection =
+                !hasDirectionResolver
+                && (
+                    hasExplicitDirection
+                    || useChildMovement
+                    || movementMode
+                        == Game.Procederal
+                            .Core
+                            .Builders
+                            .BuilderMovementHelper
+                            .MovementSelection
+                            .Drop
+                    || movementMode
+                        == Game.Procederal
+                            .Core
+                            .Builders
+                            .BuilderMovementHelper
+                            .MovementSelection
+                            .Throw
+                );
 
             DebugLog(
                 $"movementMode={movementMode} detachesAfterInit={detachAfterInitialization} wantOrbit={wantOrbit}"
@@ -178,6 +224,11 @@ namespace Game.Procederal.Core.Builders
                 "numberOfItemsToSpawn",
                 "NumberOfItemsToSpawn",
                 "childrenToSpawn"
+            );
+            numberPerInterval = BuilderChildCountHelper.ResolveFinalCount(
+                numberPerInterval,
+                p,
+                gen
             );
             float spawnInterval = MechanicSettingNormalizer.Interval(
                 projectileJson,
@@ -319,7 +370,6 @@ namespace Game.Procederal.Core.Builders
             {
                 var projectileSettings = new List<(string key, object val)>
                 {
-                    ("direction", baseDirection),
                     ("damage", p != null ? p.projectileDamage : 1),
                     ("destroyOnHit", destroyOnHit),
                     ("excludeOwner", excludeOwner),
@@ -327,6 +377,8 @@ namespace Game.Procederal.Core.Builders
                     ("debugLogs", wantDebugLogs),
                     ("disableSelfSpeed", disableProjectileSelfMovement),
                 };
+                if (shouldInjectDirection)
+                    projectileSettings.Insert(0, ("direction", baseDirection));
                 if (projSpeed > 0f)
                     projectileSettings.Add(("speed", projSpeed));
                 if (!string.IsNullOrEmpty(spriteType))

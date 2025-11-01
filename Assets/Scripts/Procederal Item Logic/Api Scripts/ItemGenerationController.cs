@@ -3,6 +3,21 @@ using Game.Procederal;
 using Game.Procederal.Api;
 using UnityEngine;
 
+[Serializable]
+public class ChildBehaviorConfig
+{
+    [Header("Movement")]
+    [Tooltip(
+        "Movement override applied to generated children. Defaults to Shoot (standard behavior)."
+    )]
+    public ChildBehaviorSelection movement = ChildBehaviorSelection.Shoot;
+
+    [Tooltip(
+        "Optional orbit path identifier (e.g., 'Circular'); used when movement engages orbit mechanics."
+    )]
+    public string orbitPath = "Circular";
+}
+
 /// Central entry-point for starting item generation.
 /// - If offline = true: uses OfflineItemGeneratorApi to select a random compatible primary+modifier.
 /// - If offline = false: asks a provided IItemSelectionProvider (server integration) for the selection.
@@ -55,9 +70,12 @@ public class ItemGenerationController : MonoBehaviour
 
     [Header("Child Behavior")]
     [Tooltip(
-        "Ordered child behavior overrides (enter enum names; first valid non-Unspecified wins). Leave empty to keep defaults."
+        "If > 0, force number of children to spawn per primary (overrides ItemParams.subItemCount)."
     )]
-    public string[] childBehavior = Array.Empty<string>();
+    public int overrideChildrenCount = 0;
+
+    [Tooltip("Overrides for generated children (movement is required; defaults to Shoot).")]
+    public ChildBehaviorConfig childBehavior = new ChildBehaviorConfig();
 
     private IItemSelectionProvider _selectionProvider;
 
@@ -151,35 +169,25 @@ public class ItemGenerationController : MonoBehaviour
         if (parms == null)
             parms = new ItemParams();
 
-        ChildBehaviorSelection resolvedBehavior = ChildBehaviorSelection.Unspecified;
+        var behaviorOverrides = ChildBehaviorOverrides.Default;
         if (childBehavior != null)
         {
-            for (int i = 0; i < childBehavior.Length; i++)
-            {
-                var entry = childBehavior[i];
-                if (string.IsNullOrWhiteSpace(entry))
-                    continue;
+            var movement = childBehavior.movement;
+            if (movement == ChildBehaviorSelection.Unspecified)
+                movement = ChildBehaviorOverrides.Default.movement;
+            behaviorOverrides.movement = movement;
 
-                var trimmed = entry.Trim();
-                if (!Enum.TryParse(trimmed, true, out ChildBehaviorSelection candidate))
-                {
-                    if (debugLogs)
-                        Debug.LogWarning(
-                            $"[ItemGenerationController] Unknown child behavior override '{trimmed}'."
-                        );
-                    continue;
-                }
-
-                if (candidate == ChildBehaviorSelection.Unspecified)
-                    continue;
-
-                resolvedBehavior = candidate;
-                break;
-            }
+            if (!string.IsNullOrWhiteSpace(childBehavior.orbitPath))
+                behaviorOverrides.orbitPath = childBehavior.orbitPath.Trim();
+            else
+                behaviorOverrides.orbitPath = ChildBehaviorOverrides.Default.orbitPath;
         }
 
-        if (resolvedBehavior != ChildBehaviorSelection.Unspecified)
-            parms.childBehavior = resolvedBehavior;
+        parms.childBehavior = behaviorOverrides;
+
+        // Apply inspector override for per-primary children count when present
+        if (parms != null && overrideChildrenCount > 0)
+            parms.subItemCount = Mathf.Max(1, overrideChildrenCount);
 
         var root = generator.Create(instr, parms, outputParent);
         if (debugLogs)

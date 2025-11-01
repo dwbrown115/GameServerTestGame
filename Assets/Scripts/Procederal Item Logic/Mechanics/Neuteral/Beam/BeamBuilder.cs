@@ -73,13 +73,15 @@ namespace Game.Procederal.Core.Builders
                 "spawnOnInterval",
                 false
             );
+            int fallbackCount = BuilderChildCountHelper.ResolveFallbackCount(p, gen, 1);
             int numberToSpawn = MechanicSettingNormalizer.Count(
                 beamJson,
-                1,
+                fallbackCount,
                 "numberOfItemsToSpawn",
                 "NumberOfItemsToSpawn",
                 "childrenToSpawn"
             );
+            numberToSpawn = BuilderChildCountHelper.ResolveFinalCount(numberToSpawn, p, gen);
             float spawnInterval = MechanicSettingNormalizer.Interval(
                 beamJson,
                 0.5f,

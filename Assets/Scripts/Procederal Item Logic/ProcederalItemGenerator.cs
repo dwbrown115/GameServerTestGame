@@ -41,7 +41,36 @@ namespace Game.Procederal
         Shoot,
         Drop,
         Throw,
-        None,
+        BoundToOrigin,
+    }
+
+    [Serializable]
+    public struct ChildBehaviorOverrides
+    {
+        [Tooltip("Movement override to apply to generated children.")]
+        public ChildBehaviorSelection movement;
+
+        [Tooltip("Orbit path identifier for orbit-style movement (e.g., 'Circular').")]
+        public string orbitPath;
+
+        public static ChildBehaviorOverrides Default =>
+            new ChildBehaviorOverrides
+            {
+                movement = ChildBehaviorSelection.Shoot,
+                orbitPath = "Circular",
+            };
+
+        public ChildBehaviorSelection ResolveMovementOrDefault()
+        {
+            return movement == ChildBehaviorSelection.Unspecified
+                ? ChildBehaviorSelection.Shoot
+                : movement;
+        }
+
+        public string ResolveOrbitPathOrDefault()
+        {
+            return string.IsNullOrWhiteSpace(orbitPath) ? "Circular" : orbitPath.Trim();
+        }
     }
 
     [Serializable]
@@ -122,7 +151,7 @@ namespace Game.Procederal
         // Common
         public int subItemCount = 1;
         public bool debugLogs = false;
-        public ChildBehaviorSelection childBehavior = ChildBehaviorSelection.Unspecified;
+        public ChildBehaviorOverrides childBehavior = ChildBehaviorOverrides.Default;
 
         // Orbit params (modifier for sub-items like projectiles)
         public float orbitRadius = 2f;

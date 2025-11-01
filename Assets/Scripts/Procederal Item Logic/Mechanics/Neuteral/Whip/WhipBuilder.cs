@@ -39,14 +39,16 @@ namespace Game.Procederal.Core.Builders
                 Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
                     movementMode
                 );
+            int fallbackCount = BuilderChildCountHelper.ResolveFallbackCount(p, gen, 1);
             int desired = MechanicSettingNormalizer.Count(
                 whipJson,
-                1,
+                fallbackCount,
                 "childrenToSpawn",
                 "numberOfItemsToSpawn",
                 "NumberOfItemsToSpawn"
             );
-            int count = Mathf.Clamp(Mathf.Max(1, desired), 1, 4);
+            desired = BuilderChildCountHelper.ResolveFinalCount(desired, p, gen);
+            int count = Mathf.Clamp(desired, 1, 4);
             string[] dirs = { "right", "up", "left", "down" };
 
             var set = root.AddComponent<WhipArcSet>();

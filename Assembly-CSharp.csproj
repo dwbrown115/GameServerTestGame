@@ -241,6 +241,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_PhoneNumberValidator.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerWebSocketClient.cs" />
     <Compile Include="Assets/Scripts/Mob/StunController.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitPathBehaviour.cs" />
     <Compile Include="Assets/Scripts/Managers/SkinsCacheCleaner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SpawnHelpers.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SwordSlash/SwordSlashIntervalSpawner.cs" />
@@ -254,11 +255,13 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TeleType.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/ObjectFactory.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventCheck.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitCircularPath.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Auth/LoginScript.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/CryptoUtils.cs" />
     <Compile Include="Assets/Scripts/Mob/MobSpawner.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/BuilderChildCountHelper.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Projectile/ProjectileStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/IPrimaryHitModifier.cs" />

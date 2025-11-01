@@ -2,18 +2,29 @@ using UnityEngine;
 
 namespace Mechanics.Neuteral
 {
-    /// Rotates the payload around the target (or owner) at a given radius and angular speed.
+    /// Rotates the payload around the target (or owner) at a given angular speed using a pluggable path definition.
     public class OrbitMechanic : MonoBehaviour, IMechanic
     {
         [Header("Orbit Settings")]
         [Tooltip("Angular speed in degrees per second")]
         public float angularSpeedDeg = 90f;
 
-        [Tooltip("Orbit radius in world units")]
-        public float radius = 2f;
+        [
+            Tooltip(
+                "Optional fallback start angle in degrees when the path cannot resolve one from the payload position."
+            ),
+            SerializeField
+        ]
+        private float fallbackStartAngleDeg = 0f;
 
-        [Tooltip("Start angle in degrees")]
-        public float startAngleDeg = 0f;
+        [Header("Path")]
+        [
+            Tooltip(
+                "Behaviour that determines the orbit path shape. Defaults to OrbitCircularPath if absent."
+            ),
+            SerializeField
+        ]
+        private OrbitPathBehaviour pathBehaviour;
 
         [Header("Debug")]
         public bool debugLogs = false;
@@ -24,18 +35,49 @@ namespace Mechanics.Neuteral
         private bool _useRb;
         private bool _stopped;
 
+        public float radius
+        {
+            get => EnsurePath() != null ? Mathf.Max(0f, pathBehaviour.Size) : 0f;
+            set
+            {
+                var path = EnsurePath();
+                if (path != null)
+                    path.Size = Mathf.Max(0f, value);
+            }
+        }
+
+        public float startAngleDeg
+        {
+            get => EnsurePath() != null ? pathBehaviour.StartAngleDeg : fallbackStartAngleDeg;
+            set
+            {
+                fallbackStartAngleDeg = value;
+                var path = EnsurePath();
+                if (path != null)
+                    path.StartAngleDeg = value;
+            }
+        }
+
         public void Initialize(MechanicContext ctx)
         {
             _ctx = ctx;
-            var centerInit = (_ctx.Target != null ? _ctx.Target.position : _ctx.Owner.position);
-            var payloadPos = (
-                _ctx.Payload != null ? (Vector2)_ctx.Payload.position : (Vector2)transform.position
+            var path = EnsurePath();
+            if (path == null)
+            {
+                Debug.LogWarning(
+                    "[OrbitMechanic] Missing orbit path behaviour; unable to continue.",
+                    this
+                );
+                return;
+            }
+            Vector2 centerInit = _ctx.Target != null ? _ctx.Target.position : _ctx.Owner.position;
+            Vector2 payloadPos =
+                _ctx.Payload != null ? (Vector2)_ctx.Payload.position : (Vector2)transform.position;
+            _angle = path.ResolveInitialAngle(
+                centerInit,
+                payloadPos,
+                fallbackStartAngleDeg * Mathf.Deg2Rad
             );
-            Vector2 dir = (payloadPos - (Vector2)centerInit);
-            if (dir.sqrMagnitude > 0.0001f)
-                _angle = Mathf.Atan2(dir.y, dir.x);
-            else
-                _angle = startAngleDeg * Mathf.Deg2Rad;
             _rb = _ctx != null ? _ctx.PayloadRb2D : null;
             _useRb = _rb != null;
             Vector3 pos = ComputeOrbitPosition();
@@ -51,7 +93,6 @@ namespace Mechanics.Neuteral
                     this
                 );
             GameOverController.OnCountdownFinished += StopOrbit;
-            // After initial placement, redistribute among siblings so spacing reflects total count
             if (transform.parent != null)
                 Game.Procederal.Api.OrbitDistribution.Redistribute(transform.parent);
         }
@@ -107,7 +148,6 @@ namespace Mechanics.Neuteral
         private void OnDestroy()
         {
             GameOverController.OnCountdownFinished -= StopOrbit;
-            // When one orbiting child disappears, re-space remaining siblings
             if (transform != null && transform.parent != null)
                 Game.Procederal.Api.OrbitDistribution.Redistribute(transform.parent);
         }
@@ -123,10 +163,11 @@ namespace Mechanics.Neuteral
         {
             if (_ctx == null)
                 return transform.position;
-            var center = (_ctx.Target != null ? _ctx.Target.position : _ctx.Owner.position);
-            float r = Mathf.Max(0f, radius);
-            var offset = new Vector2(Mathf.Cos(_angle), Mathf.Sin(_angle)) * r;
-            return center + (Vector3)offset;
+            Vector2 center = _ctx.Target != null ? _ctx.Target.position : _ctx.Owner.position;
+            var path = EnsurePath();
+            if (path == null)
+                return center;
+            return path.EvaluatePosition(center, _angle);
         }
 
         /// Allow external systems (like OrbitSpawnBehavior) to set the orbit angle.
@@ -153,12 +194,26 @@ namespace Mechanics.Neuteral
         {
             Transform owner = _ctx != null ? _ctx.Owner : transform;
             Transform tgt = _ctx != null ? _ctx.Target : null;
-            Vector3 center = (
-                tgt != null ? tgt.position : (owner != null ? owner.position : transform.position)
-            );
+            Vector3 center =
+                tgt != null ? tgt.position : (owner != null ? owner.position : transform.position);
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(center, Mathf.Max(0f, radius));
+            var path = pathBehaviour != null ? pathBehaviour : GetComponent<OrbitPathBehaviour>();
+            if (path is OrbitCircularPath circular)
+            {
+                Gizmos.DrawWireSphere(center, Mathf.Max(0f, circular.radius));
+            }
         }
 #endif
+
+        private OrbitPathBehaviour EnsurePath()
+        {
+            if (pathBehaviour == null)
+            {
+                pathBehaviour = GetComponent<OrbitPathBehaviour>();
+                if (pathBehaviour == null)
+                    pathBehaviour = gameObject.AddComponent<OrbitCircularPath>();
+            }
+            return pathBehaviour;
+        }
     }
 }

@@ -2260,14 +2260,15 @@ MonoBehaviour:
   generator: {fileID: 1499619163}
   selectionProviderBehaviour: {fileID: 0}
   spawnOnStart: 1
-  childBehavior: 0
   outputParent: {fileID: 0}
   debugLogs: 1
   rngSeed: 0
   debugUseFixedSelection: 1
-  debugPrimary: Projectile
+  debugPrimary: Ripple
   debugSecondary:
   - Explosion
+  childBehavior:
+    movement: 4
 --- !u!1 &1761067107
 GameObject:
   m_ObjectHideFlags: 0

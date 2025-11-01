@@ -47,14 +47,15 @@ namespace Game.Procederal.Core.Builders
         public static MovementSelection OverrideWithChildBehavior(
             Dictionary<string, object> merged,
             MovementSelection current,
-            ChildBehaviorSelection childBehavior
+            ChildBehaviorOverrides childBehavior
         )
         {
-            if (childBehavior == ChildBehaviorSelection.Unspecified)
+            var movement = childBehavior.ResolveMovementOrDefault();
+            if (movement == ChildBehaviorSelection.Unspecified)
                 return current;
 
             MovementSelection forced = current;
-            switch (childBehavior)
+            switch (movement)
             {
                 case ChildBehaviorSelection.Drop:
                     forced = MovementSelection.Drop;
@@ -65,7 +66,7 @@ namespace Game.Procederal.Core.Builders
                 case ChildBehaviorSelection.Shoot:
                     forced = MovementSelection.Default;
                     break;
-                case ChildBehaviorSelection.None:
+                case ChildBehaviorSelection.BoundToOrigin:
                     forced = MovementSelection.None;
                     break;
             }
