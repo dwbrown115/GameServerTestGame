@@ -5,7 +5,7 @@
     "resourcePath": "Primary/Aura",
     "file": "Primary/Aura.json",
     "sourcePath": "Neuteral/Aura/Aura.json",
-    "hash": "b99917830af0f2449cadbedd154cc045c72d45886fa57c6b0d3447dc3b6fcf0d"
+    "hash": "c53b5c8f085ba8e27b5b6437a76e06422754d49b246a036a0c0b92d83b4e1f1d"
   },
   {
     "mechanicName": "DamageZone",
@@ -29,7 +29,7 @@
     "resourcePath": "Primary/Beam",
     "file": "Primary/Beam.json",
     "sourcePath": "Neuteral/Beam/Beam.json",
-    "hash": "161cfb6a24519dbb697a79dc2ed768547ee514c2e9b0df0192f0253221fb8355"
+    "hash": "f0c4c47d51f093e9b23c252030877b7694d7c42d684b0ff5ef90c92889f52736"
   },
   {
     "mechanicName": "Bounce",
@@ -115,7 +115,7 @@
     "resourcePath": "Primary/Projectile",
     "file": "Primary/Projectile.json",
     "sourcePath": "Neuteral/Projectile/Projectile.json",
-    "hash": "dc833bd4cd20fd02bf25d6513e354f363e891bc297c198cb298ecc7c83576005"
+    "hash": "f25e09455974a76c063372b8262a66851c7aa083c37181727317f70847d63a45"
   },
   {
     "mechanicName": "Ripple",
@@ -123,7 +123,7 @@
     "resourcePath": "Primary/Ripple",
     "file": "Primary/Ripple.json",
     "sourcePath": "Neuteral/Ripple/Ripple.json",
-    "hash": "f536ade96b90cb7cffa5eb57d0e7c68a42cfb006eecbccf2c676de19ba0ecdde"
+    "hash": "6c4cda51057848ef9606b9603c71ef3bc81702cce16877d9b30a94a158fac365"
   },
   {
     "mechanicName": "RippleOnHit",
@@ -140,7 +140,7 @@
     "resourcePath": "Primary/Strike",
     "file": "Primary/Strike.json",
     "sourcePath": "Neuteral/Strike/Strike.json",
-    "hash": "f8845b861047e6d56a4536c1edcbc3edef7bef44fb971e96a62634c57657036e"
+    "hash": "50b5d383ff69b430ff6bf1ca4d6f97d764f55b47dcbc9dd16b332e88d0bde673"
   },
   {
     "mechanicName": "SwordSlash",
@@ -148,7 +148,7 @@
     "resourcePath": "Primary/SwordSlash",
     "file": "Primary/SwordSlash.json",
     "sourcePath": "Neuteral/SwordSlash/SwordSlash.json",
-    "hash": "3ca42904232eb07c648bfe3e3dfaef7861cf992d5a8f7a2ea29433e878e964a6"
+    "hash": "bebba904cdd785cb5dca6290fd1cfe22ce81dd196fbdb5c0835d20c0e1fd004c"
   },
   {
     "mechanicName": "Track",
@@ -165,6 +165,6 @@
     "resourcePath": "Primary/Whip",
     "file": "Primary/Whip.json",
     "sourcePath": "Neuteral/Whip/Whip.json",
-    "hash": "b876aa3171546f33d07995632fd61426db7ae90297e39ee0fad20ce47aaaeafa"
+    "hash": "284ee645c416e95b17da855e748975e36d6a08209ae6bb7c4ccf9d01da8630ed"
   }
 ]

@@ -117,16 +117,36 @@ namespace Game.Procederal.Core.Builders
             var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
                 projectileJson
             );
+            if (p != null)
+            {
+                movementMode =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.OverrideWithChildBehavior(
+                        projectileJson,
+                        movementMode,
+                        p.childBehavior
+                    );
+            }
+
+            bool useChildMovement =
+                !wantOrbit
+                && movementMode
+                    != Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Drop
+                && movementMode
+                    != Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
             bool movementRequiresDetachment =
                 Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
                     movementMode
                 );
             bool detachAfterInitialization = movementRequiresDetachment;
-            bool movementOverridesProjectileMotion =
-                movementMode
+            bool disableProjectileSelfMovement =
+                wantOrbit
+                || useChildMovement
+                || movementMode
                     == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Drop
                 || movementMode
                     == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
+
+            Vector2 baseDirection = ResolveProjectileDirection(projectileJson, root.transform);
 
             DebugLog(
                 $"movementMode={movementMode} detachesAfterInit={detachAfterInitialization} wantOrbit={wantOrbit}"
@@ -213,7 +233,8 @@ namespace Game.Procederal.Core.Builders
                 spawner.debugLogs = wantDebugLogs;
                 spawner.parentSpawnedToSpawner = !movementRequiresDetachment;
                 spawner.debugMovementLabel = movementMode.ToString();
-                spawner.disableProjectileSelfSpeed = movementOverridesProjectileMotion;
+                spawner.disableProjectileSelfSpeed = disableProjectileSelfMovement;
+                spawner.addChildMovementController = useChildMovement;
 
                 // Reset any lingering modifier specs from previous builds before reapplying
                 spawner.ClearModifierSpecs();
@@ -298,12 +319,13 @@ namespace Game.Procederal.Core.Builders
             {
                 var projectileSettings = new List<(string key, object val)>
                 {
+                    ("direction", baseDirection),
                     ("damage", p != null ? p.projectileDamage : 1),
                     ("destroyOnHit", destroyOnHit),
                     ("excludeOwner", excludeOwner),
                     ("requireMobTag", requireMobTag),
                     ("debugLogs", wantDebugLogs),
-                    ("disableSelfSpeed", wantOrbit || movementOverridesProjectileMotion),
+                    ("disableSelfSpeed", disableProjectileSelfMovement),
                 };
                 if (projSpeed > 0f)
                     projectileSettings.Add(("speed", projSpeed));
@@ -321,6 +343,23 @@ namespace Game.Procederal.Core.Builders
                         Settings = projectileSettings.ToArray(),
                     },
                 };
+
+                if (useChildMovement)
+                {
+                    var childMovementSettings = BuildChildMovementSettings(
+                        baseDirection,
+                        projSpeed,
+                        wantDebugLogs
+                    );
+                    mechanics.Add(
+                        new UnifiedChildBuilder.MechanicSpec
+                        {
+                            Name = "ChildMovementMechanic",
+                            Settings = childMovementSettings.ToArray(),
+                            SkipIfPresent = true,
+                        }
+                    );
+                }
 
                 // Allow movementMode to append Drop/Throw movement mechanics when requested.
                 Game.Procederal.Core.Builders.BuilderMovementHelper.AttachMovementIfRequested(
@@ -418,6 +457,45 @@ namespace Game.Procederal.Core.Builders
                 gen.SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", destroyOnHit);
                 subItems.Add(go);
             }
+        }
+
+        private static Vector2 ResolveProjectileDirection(
+            Dictionary<string, object> data,
+            Transform root
+        )
+        {
+            if (data != null && data.TryGetValue("direction", out var raw))
+            {
+                switch (raw)
+                {
+                    case Vector2 v when v.sqrMagnitude > 0.0001f:
+                        return v.normalized;
+                    case Vector3 v3 when v3.sqrMagnitude > 0.0001f:
+                        return ((Vector2)v3).normalized;
+                }
+            }
+
+            return root != null ? (Vector2)root.right : Vector2.right;
+        }
+
+        private static List<(string key, object val)> BuildChildMovementSettings(
+            Vector2 direction,
+            float speed,
+            bool debugLogs
+        )
+        {
+            Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+            var list = new List<(string key, object val)>
+            {
+                ("direction", dir),
+                ("disableSelfSpeed", false),
+                ("debugLogs", debugLogs),
+            };
+
+            if (speed > 0f)
+                list.Add(("speed", speed));
+
+            return list;
         }
     }
 }

@@ -43,6 +43,9 @@ namespace Game.Procederal.Api
         [Tooltip("When true, disables the ProjectileMechanic's self-driven movement.")]
         public bool disableProjectileSelfSpeed = false;
 
+        [Tooltip("When true, also attach ChildMovementMechanic using resolver direction.")]
+        public bool addChildMovementController = false;
+
         [Tooltip("Parent spawned objects to this spawner. Disable to detach into world space.")]
         public bool parentSpawnedToSpawner = true;
 
@@ -244,6 +247,23 @@ namespace Game.Procederal.Api
                     settings.Add(("speed", projectileSpeed));
 
                 generator.AddMechanicByName(go, "Projectile", settings.ToArray());
+
+                if (addChildMovementController)
+                {
+                    var moveSettings = new List<(string key, object val)>
+                    {
+                        ("direction", (Vector2)dir),
+                        ("disableSelfSpeed", false),
+                        ("debugLogs", debugLogs),
+                    };
+                    if (projectileSpeed > 0f)
+                        moveSettings.Add(("speed", projectileSpeed));
+                    generator.AddMechanicByName(
+                        go,
+                        "ChildMovementMechanic",
+                        moveSettings.ToArray()
+                    );
+                }
 
                 // Apply modifier specs to each child (skip Drain here; it's owner-level)
                 if (_modifierSpecs.Count > 0)

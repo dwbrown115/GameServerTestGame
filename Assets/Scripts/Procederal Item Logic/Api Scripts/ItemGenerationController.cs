@@ -1,3 +1,4 @@
+using System;
 using Game.Procederal;
 using Game.Procederal.Api;
 using UnityEngine;
@@ -52,6 +53,12 @@ public class ItemGenerationController : MonoBehaviour
     [Tooltip("Optional modifier mechanic names to add (must match JSON entries).")]
     public string[] debugSecondary;
 
+    [Header("Child Behavior")]
+    [Tooltip(
+        "Ordered child behavior overrides (enter enum names; first valid non-Unspecified wins). Leave empty to keep defaults."
+    )]
+    public string[] childBehavior = Array.Empty<string>();
+
     private IItemSelectionProvider _selectionProvider;
 
     private void Awake()
@@ -93,15 +100,6 @@ public class ItemGenerationController : MonoBehaviour
                     primary = debugPrimary,
                     secondary = new System.Collections.Generic.List<string>(),
                 };
-                if (debugSecondary != null)
-                {
-                    for (int i = 0; i < debugSecondary.Length; i++)
-                    {
-                        var s = debugSecondary[i];
-                        if (!string.IsNullOrWhiteSpace(s))
-                            instr.secondary.Add(s.Trim());
-                    }
-                }
                 parms = new ItemParams();
                 if (debugLogs)
                 {
@@ -148,13 +146,65 @@ public class ItemGenerationController : MonoBehaviour
                 );
         }
 
+        AppendDebugSecondary(instr);
+
         if (parms == null)
             parms = new ItemParams();
+
+        ChildBehaviorSelection resolvedBehavior = ChildBehaviorSelection.Unspecified;
+        if (childBehavior != null)
+        {
+            for (int i = 0; i < childBehavior.Length; i++)
+            {
+                var entry = childBehavior[i];
+                if (string.IsNullOrWhiteSpace(entry))
+                    continue;
+
+                var trimmed = entry.Trim();
+                if (!Enum.TryParse(trimmed, true, out ChildBehaviorSelection candidate))
+                {
+                    if (debugLogs)
+                        Debug.LogWarning(
+                            $"[ItemGenerationController] Unknown child behavior override '{trimmed}'."
+                        );
+                    continue;
+                }
+
+                if (candidate == ChildBehaviorSelection.Unspecified)
+                    continue;
+
+                resolvedBehavior = candidate;
+                break;
+            }
+        }
+
+        if (resolvedBehavior != ChildBehaviorSelection.Unspecified)
+            parms.childBehavior = resolvedBehavior;
 
         var root = generator.Create(instr, parms, outputParent);
         if (debugLogs)
             Debug.Log(
                 $"[ItemGenerationController] Generated root: {(root ? root.name : "<null>")}"
             );
+    }
+
+    private void AppendDebugSecondary(ItemInstruction instr)
+    {
+        if (instr == null || debugSecondary == null || debugSecondary.Length == 0)
+            return;
+
+        if (instr.secondary == null)
+            instr.secondary = new System.Collections.Generic.List<string>();
+
+        for (int i = 0; i < debugSecondary.Length; i++)
+        {
+            var entry = debugSecondary[i];
+            if (string.IsNullOrWhiteSpace(entry))
+                continue;
+
+            var trimmed = entry.Trim();
+            if (!instr.secondary.Contains(trimmed))
+                instr.secondary.Add(trimmed);
+        }
     }
 }

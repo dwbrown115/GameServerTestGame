@@ -121,6 +121,15 @@ namespace Game.Procederal.Core.Builders
             var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
                 merged
             );
+            if (p != null)
+            {
+                movementMode =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.OverrideWithChildBehavior(
+                        merged,
+                        movementMode,
+                        p.childBehavior
+                    );
+            }
             bool shouldDetachChildren =
                 Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
                     movementMode

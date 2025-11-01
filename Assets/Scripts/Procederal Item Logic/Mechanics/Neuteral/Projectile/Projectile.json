@@ -11,10 +11,8 @@
   ],
   "Properties": [
     { "DestroyOnHit": true },
-    { "movementMode": "throw" },
     { "damage": 10 },
     { "speed": 10 },
-    { "disableSelfSpeed": true },
     { "direction": "right" },
     { "spriteType": "circle" },
     { "spriteColor": "#FFFFFF" },

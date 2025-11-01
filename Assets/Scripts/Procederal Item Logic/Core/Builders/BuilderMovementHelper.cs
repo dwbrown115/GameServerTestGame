@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal;
 using Game.Procederal.Core;
 using UnityEngine;
 
@@ -41,6 +42,48 @@ namespace Game.Procederal.Core.Builders
                 default:
                     return MovementSelection.Default;
             }
+        }
+
+        public static MovementSelection OverrideWithChildBehavior(
+            Dictionary<string, object> merged,
+            MovementSelection current,
+            ChildBehaviorSelection childBehavior
+        )
+        {
+            if (childBehavior == ChildBehaviorSelection.Unspecified)
+                return current;
+
+            MovementSelection forced = current;
+            switch (childBehavior)
+            {
+                case ChildBehaviorSelection.Drop:
+                    forced = MovementSelection.Drop;
+                    break;
+                case ChildBehaviorSelection.Throw:
+                    forced = MovementSelection.Throw;
+                    break;
+                case ChildBehaviorSelection.Shoot:
+                    forced = MovementSelection.Default;
+                    break;
+                case ChildBehaviorSelection.None:
+                    forced = MovementSelection.None;
+                    break;
+            }
+
+            if (merged != null)
+            {
+                if (forced == MovementSelection.None)
+                {
+                    if (merged.ContainsKey("movementMode"))
+                        merged.Remove("movementMode");
+                }
+                else
+                {
+                    merged["movementMode"] = forced.ToString();
+                }
+            }
+
+            return forced;
         }
 
         public static void AttachMovementIfRequested(

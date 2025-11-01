@@ -13,7 +13,6 @@
   ],
   "Properties": [
     { "seriesCount": 3 },
-    { "movementMode": "default" },
     { "intervalBetween": 0.08 },
     { "outerRadius": 1.6 },
     { "width": 0.6 },

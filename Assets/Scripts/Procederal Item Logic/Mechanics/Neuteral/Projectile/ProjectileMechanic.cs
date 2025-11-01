@@ -39,6 +39,9 @@ namespace Mechanics.Neuteral
 
         private MechanicContext _ctx;
         private bool _stopped;
+        private Mechanics.Neuteral.ChildMovementMechanic _childMovement;
+        private Mechanics.Neuteral.ThrowMovementMechanic _throwMovement;
+        private Mechanics.Neuteral.DropMovementMechanic _dropMovement;
 
         // Reusable list for generic modifier dispatch (no concrete modifier references)
         private static System.Collections.Generic.List<Mechanics.IPrimaryHitModifier> _hitMods =
@@ -51,6 +54,13 @@ namespace Mechanics.Neuteral
                 direction = Vector2.right;
             direction.Normalize();
             EnsureVisualAndPhysics();
+            CacheMovementControllers();
+            SyncMovementFromControllers();
+            ApplyDirectionToControllers(
+                direction,
+                alignPayload: true,
+                refreshSpeedFromChild: false
+            );
             GameOverController.OnCountdownFinished += StopMovement;
         }
 
@@ -98,18 +108,102 @@ namespace Mechanics.Neuteral
             }
         }
 
+        private void CacheMovementControllers()
+        {
+            _childMovement = GetComponent<Mechanics.Neuteral.ChildMovementMechanic>();
+            _throwMovement = GetComponent<Mechanics.Neuteral.ThrowMovementMechanic>();
+            _dropMovement = GetComponent<Mechanics.Neuteral.DropMovementMechanic>();
+        }
+
+        private bool HasExternalMovementController()
+        {
+            return _childMovement != null || _throwMovement != null || _dropMovement != null;
+        }
+
+        private void SyncMovementFromControllers()
+        {
+            // If a child movement controller exists, prefer its configured direction/speed
+            if (_childMovement != null)
+            {
+                try
+                {
+                    var dir = _childMovement.direction;
+                    if (dir.sqrMagnitude > 0.0001f)
+                        direction = dir.normalized;
+                    speed = Mathf.Max(0f, _childMovement.speed);
+                }
+                catch { }
+                return;
+            }
+
+            if (_throwMovement != null)
+            {
+                try
+                {
+                    var dir = _throwMovement.direction;
+                    if (dir.sqrMagnitude > 0.0001f)
+                        direction = dir.normalized;
+                    speed = Mathf.Max(0f, _throwMovement.initialSpeed);
+                }
+                catch { }
+                return;
+            }
+
+            if (_dropMovement != null)
+            {
+                try
+                {
+                    var dir = _dropMovement.direction;
+                    if (dir.sqrMagnitude > 0.0001f)
+                        direction = dir.normalized;
+                    speed = Mathf.Max(0f, _dropMovement.initialSpeed);
+                }
+                catch { }
+            }
+        }
+
+        private void ApplyDirectionToControllers(
+            Vector2 dir,
+            bool alignPayload,
+            bool refreshSpeedFromChild
+        )
+        {
+            if (dir.sqrMagnitude < 0.0001f)
+                dir = Vector2.right;
+            dir.Normalize();
+
+            if (alignPayload && _ctx != null && _ctx.Payload != null)
+            {
+                _ctx.Payload.right = dir;
+            }
+
+            if (_childMovement != null)
+            {
+                _childMovement.direction = dir;
+                if (refreshSpeedFromChild)
+                    speed = Mathf.Max(0f, _childMovement.speed);
+            }
+            if (_throwMovement != null)
+            {
+                _throwMovement.direction = dir;
+                if (refreshSpeedFromChild)
+                    speed = Mathf.Max(0f, _throwMovement.initialSpeed);
+            }
+            if (_dropMovement != null)
+            {
+                _dropMovement.direction = dir;
+                if (refreshSpeedFromChild)
+                    speed = Mathf.Max(0f, _dropMovement.initialSpeed);
+            }
+        }
+
         public void Tick(float dt)
         {
             if (_ctx == null || _ctx.Payload == null)
                 return;
             if (_stopped)
                 return;
-            // If another mechanic (e.g., Orbit) controls movement, do not modify velocity/position here.
-            // Defer to an external movement controller (e.g., ChildMovementMechanic) or explicit disable flag
-            if (
-                disableSelfSpeed
-                || GetComponent<Mechanics.Neuteral.ChildMovementMechanic>() != null
-            )
+            if (disableSelfSpeed || HasExternalMovementController())
                 return;
             if (_ctx.PayloadRb2D != null)
             {

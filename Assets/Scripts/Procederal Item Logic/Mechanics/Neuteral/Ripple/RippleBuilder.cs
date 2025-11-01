@@ -25,6 +25,15 @@ namespace Game.Procederal.Core.Builders
             var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
                 rippleJson
             );
+            if (p != null)
+            {
+                movementMode =
+                    Game.Procederal.Core.Builders.BuilderMovementHelper.OverrideWithChildBehavior(
+                        rippleJson,
+                        movementMode,
+                        p.childBehavior
+                    );
+            }
             bool shouldDetachChildren =
                 Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
                     movementMode

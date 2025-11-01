@@ -35,6 +35,15 @@ namespace Game.Procederal
         SwordSlash,
     }
 
+    public enum ChildBehaviorSelection
+    {
+        Unspecified = 0,
+        Shoot,
+        Drop,
+        Throw,
+        None,
+    }
+
     [Serializable]
     public class ItemInstruction
     {
@@ -113,6 +122,7 @@ namespace Game.Procederal
         // Common
         public int subItemCount = 1;
         public bool debugLogs = false;
+        public ChildBehaviorSelection childBehavior = ChildBehaviorSelection.Unspecified;
 
         // Orbit params (modifier for sub-items like projectiles)
         public float orbitRadius = 2f;
