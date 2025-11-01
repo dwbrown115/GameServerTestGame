@@ -56,6 +56,18 @@ namespace Mechanics.Chaos
         [Tooltip("Detailed lifecycle & chain debugging")]
         public bool traceLifecycle = false;
 
+        [Header("Cooldowns")]
+        [Tooltip(
+            "Minimum seconds a target must be out of contact before it can trigger another ripple. Set to 0 to allow continuous retriggers."
+        )]
+        [Min(0f)]
+        public float perTargetRetriggerDelay = 0.2f;
+
+        private readonly Dictionary<Transform, float> _lastPrimaryTriggerTimes =
+            new Dictionary<Transform, float>();
+        private readonly List<Transform> _primaryPruneScratch = new List<Transform>();
+        private float _lastNullPrimaryTriggerTime;
+
         [Header("Parenting")]
         [Tooltip(
             "If true, the first ripple (and chained ripples) will be parented to the hit target or chained target instead of this mechanic so ripples organize under mobs. World position is preserved."
@@ -90,6 +102,16 @@ namespace Mechanics.Chaos
         {
             if (_ctx == null)
                 return;
+            if (!CanTriggerPrimaryHit(initialTarget))
+            {
+                if (debugLogs || traceLifecycle)
+                    Debug.Log(
+                        "[RippleOnHit] Suppressed ripple trigger; target still within retrigger delay.",
+                        this
+                    );
+                return;
+            }
+            RegisterPrimaryTrigger(initialTarget);
             if (debugLogs || traceLifecycle)
                 Debug.Log(
                     $"[RippleOnHit] Trigger at {hitPoint} initial={initialTarget?.name} maxChains={maxChains}",
@@ -194,6 +216,78 @@ namespace Mechanics.Chaos
                     this
                 );
             }
+        }
+
+        private bool CanTriggerPrimaryHit(Transform target)
+        {
+            float delay = Mathf.Max(0f, perTargetRetriggerDelay);
+            if (delay <= 0f)
+                return true;
+
+            float now = Time.time;
+            if (target == null)
+                return now - _lastNullPrimaryTriggerTime >= delay;
+
+            Transform key = ResolveCooldownKey(target);
+            if (key == null)
+                return now - _lastNullPrimaryTriggerTime >= delay;
+
+            if (_lastPrimaryTriggerTimes.TryGetValue(key, out float lastTime))
+                return now - lastTime >= delay;
+
+            return true;
+        }
+
+        private void RegisterPrimaryTrigger(Transform target)
+        {
+            if (perTargetRetriggerDelay <= 0f)
+                return;
+            float now = Time.time;
+            Transform key = ResolveCooldownKey(target);
+            if (key == null)
+            {
+                _lastNullPrimaryTriggerTime = now;
+            }
+            else
+            {
+                _lastPrimaryTriggerTimes[key] = now;
+            }
+            PrunePrimaryTriggerCache(now);
+        }
+
+        private Transform ResolveCooldownKey(Transform target)
+        {
+            if (target == null)
+                return null;
+            Transform root = target.root != null ? target.root : target;
+            return root;
+        }
+
+        private void PrunePrimaryTriggerCache(float now)
+        {
+            if (perTargetRetriggerDelay <= 0f)
+                return;
+            if (_lastPrimaryTriggerTimes.Count == 0)
+                return;
+
+            _primaryPruneScratch.Clear();
+            float delay = Mathf.Max(0.5f, perTargetRetriggerDelay * 2f + 0.25f);
+            foreach (var kv in _lastPrimaryTriggerTimes)
+            {
+                if (kv.Key == null || now - kv.Value >= delay)
+                    _primaryPruneScratch.Add(kv.Key);
+            }
+
+            if (_primaryPruneScratch.Count == 0)
+                return;
+
+            for (int i = 0; i < _primaryPruneScratch.Count; i++)
+            {
+                var key = _primaryPruneScratch[i];
+                if (key != null)
+                    _lastPrimaryTriggerTimes.Remove(key);
+            }
+            _primaryPruneScratch.Clear();
         }
 
         // Lightweight inner worker that behaves similarly to RippleMechanic but also calls back to parent
