@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -25,6 +26,12 @@ namespace Mechanics.Neuteral
             SerializeField
         ]
         private OrbitPathBehaviour pathBehaviour;
+
+        [Tooltip("Orbit path identifier (e.g., Circular, FigureEight)."), SerializeField]
+        private string _pathId = "Circular";
+
+        [Tooltip("Rotates the orbit path around the center in degrees."), SerializeField]
+        private float pathRotationDeg = 0f;
 
         [Header("Debug")]
         public bool debugLogs = false;
@@ -58,6 +65,22 @@ namespace Mechanics.Neuteral
             }
         }
 
+        public string pathId
+        {
+            get => _pathId;
+            set
+            {
+                _pathId = value;
+                pathBehaviour = null;
+            }
+        }
+
+        public float PathRotationDeg
+        {
+            get => pathRotationDeg;
+            set => pathRotationDeg = value;
+        }
+
         public void Initialize(MechanicContext ctx)
         {
             _ctx = ctx;
@@ -73,9 +96,13 @@ namespace Mechanics.Neuteral
             Vector2 centerInit = _ctx.Target != null ? _ctx.Target.position : _ctx.Owner.position;
             Vector2 payloadPos =
                 _ctx.Payload != null ? (Vector2)_ctx.Payload.position : (Vector2)transform.position;
+            float orientationRad = GetOrientationRad();
+            Vector2 resolvePos = Mathf.Approximately(orientationRad, 0f)
+                ? payloadPos
+                : RotateAround2D(payloadPos, centerInit, -orientationRad);
             _angle = path.ResolveInitialAngle(
                 centerInit,
-                payloadPos,
+                resolvePos,
                 fallbackStartAngleDeg * Mathf.Deg2Rad
             );
             _rb = _ctx != null ? _ctx.PayloadRb2D : null;
@@ -167,7 +194,12 @@ namespace Mechanics.Neuteral
             var path = EnsurePath();
             if (path == null)
                 return center;
-            return path.EvaluatePosition(center, _angle);
+            Vector3 basePos = path.EvaluatePosition(center, _angle);
+            float orientationRad = GetOrientationRad();
+            if (Mathf.Approximately(orientationRad, 0f))
+                return basePos;
+            Vector2 rotated = RotateAround2D(basePos, center, orientationRad);
+            return new Vector3(rotated.x, rotated.y, basePos.z);
         }
 
         /// Allow external systems (like OrbitSpawnBehavior) to set the orbit angle.
@@ -192,28 +224,139 @@ namespace Mechanics.Neuteral
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
+            if (!Application.isPlaying)
+                return;
+
             Transform owner = _ctx != null ? _ctx.Owner : transform;
             Transform tgt = _ctx != null ? _ctx.Target : null;
             Vector3 center =
                 tgt != null ? tgt.position : (owner != null ? owner.position : transform.position);
-            Gizmos.color = Color.green;
             var path = pathBehaviour != null ? pathBehaviour : GetComponent<OrbitPathBehaviour>();
+            if (path == null)
+                return;
+
+            float orientationRad = GetOrientationRad();
+
             if (path is OrbitCircularPath circular)
             {
+                Gizmos.color = Color.green;
                 Gizmos.DrawWireSphere(center, Mathf.Max(0f, circular.radius));
+                return;
+            }
+
+            const int sampleCount = 96;
+            Vector3? previous = null;
+            Gizmos.color = Color.cyan;
+            for (int i = 0; i <= sampleCount; i++)
+            {
+                float t = (Mathf.PI * 2f) * i / sampleCount;
+                Vector3 pos = path.EvaluatePosition(center, t);
+                if (!Mathf.Approximately(orientationRad, 0f))
+                {
+                    Vector2 rotated = RotateAround2D(pos, center, orientationRad);
+                    pos = new Vector3(rotated.x, rotated.y, pos.z);
+                }
+
+                if (previous.HasValue)
+                    Gizmos.DrawLine(previous.Value, pos);
+
+                previous = pos;
             }
         }
 #endif
 
         private OrbitPathBehaviour EnsurePath()
         {
+            string normalized = NormalizePathId(_pathId);
+            Type desiredType = ResolvePathType(normalized);
+
+            if (pathBehaviour != null && pathBehaviour.GetType() != desiredType)
+            {
+                DestroyPathBehaviour(pathBehaviour);
+                pathBehaviour = null;
+            }
+
             if (pathBehaviour == null)
             {
-                pathBehaviour = GetComponent<OrbitPathBehaviour>();
-                if (pathBehaviour == null)
-                    pathBehaviour = gameObject.AddComponent<OrbitCircularPath>();
+                var existing = GetComponent(desiredType) as OrbitPathBehaviour;
+                if (existing != null)
+                {
+                    pathBehaviour = existing;
+                }
+                else
+                {
+                    var created = gameObject.AddComponent(desiredType) as OrbitPathBehaviour;
+                    pathBehaviour = created;
+                }
             }
+
+            if (pathBehaviour != null)
+                pathBehaviour.StartAngleDeg = fallbackStartAngleDeg;
+
             return pathBehaviour;
+        }
+
+        private static void DestroyPathBehaviour(OrbitPathBehaviour behaviour)
+        {
+            if (behaviour == null)
+                return;
+            if (Application.isPlaying)
+                Destroy(behaviour);
+            else
+                DestroyImmediate(behaviour);
+        }
+
+        private static string NormalizePathId(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return "circular";
+            string trimmed = raw.Trim();
+            string collapsed = trimmed
+                .Replace(" ", string.Empty)
+                .Replace("-", string.Empty)
+                .Replace("_", string.Empty);
+            string lower = collapsed.ToLowerInvariant();
+            string withoutKeywords = lower
+                .Replace("orbit", string.Empty)
+                .Replace("path", string.Empty);
+            return withoutKeywords;
+        }
+
+        private static Type ResolvePathType(string normalized)
+        {
+            switch (normalized)
+            {
+                case "figure8":
+                case "figureeight":
+                case "lemniscate":
+                case "orbitfigureeight":
+                case "orbitfigureeightpath":
+                    return typeof(OrbitFigureEightPath);
+                default:
+                    return typeof(OrbitCircularPath);
+            }
+        }
+
+        private float GetOrientationRad()
+        {
+            return pathRotationDeg * Mathf.Deg2Rad;
+        }
+
+        private static Vector2 RotateAround2D(Vector2 point, Vector2 pivot, float angleRad)
+        {
+            float sin = Mathf.Sin(angleRad);
+            float cos = Mathf.Cos(angleRad);
+            Vector2 translated = point - pivot;
+            return pivot
+                + new Vector2(
+                    translated.x * cos - translated.y * sin,
+                    translated.x * sin + translated.y * cos
+                );
+        }
+
+        private static Vector2 RotateAround2D(Vector3 point, Vector2 pivot, float angleRad)
+        {
+            return RotateAround2D((Vector2)point, pivot, angleRad);
         }
     }
 }

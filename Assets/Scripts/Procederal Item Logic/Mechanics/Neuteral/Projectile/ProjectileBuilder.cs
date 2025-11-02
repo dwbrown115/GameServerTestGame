@@ -423,10 +423,44 @@ namespace Game.Procederal.Core.Builders
                 );
 
                 List<Action<GameObject>> mutators = null;
+                string rawPathId =
+                    p != null
+                        ? p.childBehavior.ResolveOrbitPathOrDefault()
+                        : ChildBehaviorOverrides.Default.ResolveOrbitPathOrDefault();
+                string finalPathId = string.IsNullOrWhiteSpace(rawPathId) ? "Circular" : rawPathId;
+                string jsonPathId = MechanicSettingNormalizer.String(
+                    projectileJson,
+                    "orbitPath",
+                    null
+                );
+                if (string.IsNullOrWhiteSpace(jsonPathId))
+                {
+                    jsonPathId = MechanicSettingNormalizer.String(projectileJson, "pathId", null);
+                }
+                if (!string.IsNullOrWhiteSpace(jsonPathId))
+                    finalPathId = jsonPathId;
+
                 if (wantOrbit)
                 {
                     float orbitRadius = p != null ? p.orbitRadius : 0f;
                     float orbitSpeed = p != null && p.orbitSpeedDeg > 0f ? p.orbitSpeedDeg : 90f;
+                    float angleOffset = p != null ? p.startAngleDeg : 0f;
+                    float angle = angleOffset + (360f * i / count);
+                    float pathRotationBase = p != null ? p.orbitPathRotationBaseDeg : 0f;
+                    pathRotationBase = MechanicSettingNormalizer.Float(
+                        projectileJson,
+                        pathRotationBase,
+                        "OrbitPathRotationBaseDeg",
+                        "orbitPathRotationBaseDeg"
+                    );
+                    float pathRotationStep = p != null ? p.orbitPathRotationStepDeg : 0f;
+                    pathRotationStep = MechanicSettingNormalizer.Float(
+                        projectileJson,
+                        pathRotationStep,
+                        "OrbitPathRotationStepDeg",
+                        "orbitPathRotationStepDeg"
+                    );
+                    float pathRotation = pathRotationBase + pathRotationStep * i;
                     mechanics.Add(
                         new UnifiedChildBuilder.MechanicSpec
                         {
@@ -435,23 +469,13 @@ namespace Game.Procederal.Core.Builders
                             {
                                 ("radius", orbitRadius),
                                 ("angularSpeedDeg", orbitSpeed),
+                                ("startAngleDeg", angle),
+                                ("pathId", finalPathId),
+                                ("PathRotationDeg", pathRotation),
                                 ("debugLogs", wantDebugLogs),
                             },
                         }
                     );
-
-                    float angleOffset = p != null ? p.startAngleDeg : 0f;
-                    float angle = angleOffset + (360f * i / count);
-                    float radians = angle * Mathf.Deg2Rad;
-                    var pos = new Vector3(
-                        Mathf.Cos(radians) * orbitRadius,
-                        Mathf.Sin(radians) * orbitRadius,
-                        0f
-                    );
-                    mutators = new List<Action<GameObject>>
-                    {
-                        go => go.transform.localPosition = pos,
-                    };
                 }
 
                 var spec = new UnifiedChildBuilder.ChildSpec

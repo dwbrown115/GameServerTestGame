@@ -22,6 +22,16 @@ namespace Mechanics.Neuteral
                 comp.startAngleDeg
             );
             comp.debugLogs = MechanicSettingNormalizer.Bool(s, "debugLogs", comp.debugLogs);
+            string desiredPath = MechanicSettingNormalizer.String(s, "pathId", comp.pathId);
+            if (!string.IsNullOrWhiteSpace(desiredPath))
+                comp.pathId = desiredPath;
+            float rotation = MechanicSettingNormalizer.Float(
+                s,
+                comp.PathRotationDeg,
+                "PathRotationDeg",
+                "pathRotationDeg"
+            );
+            comp.PathRotationDeg = rotation;
         }
     }
 }

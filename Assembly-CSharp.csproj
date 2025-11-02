@@ -215,6 +215,7 @@
     <Compile Include="Assets/Scripts/Navigation/AuthNavigation.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark03.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/ProcederalItemGenerator.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitFigureEightPath.cs" />
     <Compile Include="Assets/Scripts/Mob/SimpleMobAI.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/Collectible.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/IPrimaryBuilder.cs" />

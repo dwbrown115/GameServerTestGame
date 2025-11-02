@@ -42,6 +42,9 @@ namespace Game.Procederal.Api
             public bool DestroyOnHitOverride = false;
             public float OrbitRadius = 0f;
             public float OrbitSpeedDeg = 0f;
+            public string OrbitPath = string.Empty;
+            public float OrbitPathRotationBaseDeg = 0f;
+            public float OrbitPathRotationStepDeg = 0f;
             public float DrainRadius = 0f;
             public float DrainInterval = 0f;
             public int DrainDamage = 0;
@@ -246,6 +249,22 @@ namespace Game.Procederal.Api
                     case "OrbitSpeedDeg":
                         p.orbitSpeedDeg = ParseFloat(kv.Value, p.orbitSpeedDeg);
                         break;
+                    case "OrbitPath":
+                        if (!string.IsNullOrWhiteSpace(kv.Value))
+                            p.childBehavior.orbitPath = kv.Value.Trim();
+                        break;
+                    case "OrbitPathRotationBaseDeg":
+                        p.orbitPathRotationBaseDeg = ParseFloat(
+                            kv.Value,
+                            p.orbitPathRotationBaseDeg
+                        );
+                        break;
+                    case "OrbitPathRotationStepDeg":
+                        p.orbitPathRotationStepDeg = ParseFloat(
+                            kv.Value,
+                            p.orbitPathRotationStepDeg
+                        );
+                        break;
 
                     // Drain overrides
                     case "DrainRadius":
@@ -294,6 +313,12 @@ namespace Game.Procederal.Api
                 p.orbitRadius = mod.OrbitRadius;
             if (mod.OrbitSpeedDeg > 0f)
                 p.orbitSpeedDeg = mod.OrbitSpeedDeg;
+            if (!string.IsNullOrWhiteSpace(mod.OrbitPath))
+                p.childBehavior.orbitPath = mod.OrbitPath.Trim();
+            if (!Mathf.Approximately(mod.OrbitPathRotationBaseDeg, 0f))
+                p.orbitPathRotationBaseDeg = mod.OrbitPathRotationBaseDeg;
+            if (!Mathf.Approximately(mod.OrbitPathRotationStepDeg, 0f))
+                p.orbitPathRotationStepDeg = mod.OrbitPathRotationStepDeg;
             if (mod.DrainRadius > 0f)
                 p.drainRadius = mod.DrainRadius;
             if (mod.DrainInterval > 0f)

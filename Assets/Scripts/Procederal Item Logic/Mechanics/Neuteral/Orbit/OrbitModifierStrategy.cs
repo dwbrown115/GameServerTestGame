@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Core.Builders.Modifiers
@@ -65,6 +66,31 @@ namespace Game.Procederal.Core.Builders.Modifiers
                     "Projectile",
                     "destroyOnHit",
                     destroyOnHit
+                );
+            }
+
+            if (orbitJson != null)
+            {
+                string desiredPath = MechanicSettingNormalizer.String(
+                    orbitJson,
+                    "orbitPath",
+                    parameters.childBehavior.orbitPath
+                );
+                if (!string.IsNullOrWhiteSpace(desiredPath))
+                    parameters.childBehavior.orbitPath = desiredPath;
+
+                parameters.orbitPathRotationBaseDeg = MechanicSettingNormalizer.Float(
+                    orbitJson,
+                    parameters.orbitPathRotationBaseDeg,
+                    "OrbitPathRotationBaseDeg",
+                    "orbitPathRotationBaseDeg"
+                );
+
+                parameters.orbitPathRotationStepDeg = MechanicSettingNormalizer.Float(
+                    orbitJson,
+                    parameters.orbitPathRotationStepDeg,
+                    "OrbitPathRotationStepDeg",
+                    "orbitPathRotationStepDeg"
                 );
             }
         }

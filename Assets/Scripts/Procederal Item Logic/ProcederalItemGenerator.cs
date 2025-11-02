@@ -157,6 +157,8 @@ namespace Game.Procederal
         public float orbitRadius = 2f;
         public float orbitSpeedDeg = 90f;
         public float startAngleDeg = 0f; // applied as base; items spaced equally beyond this
+        public float orbitPathRotationBaseDeg = 0f;
+        public float orbitPathRotationStepDeg = 0f;
 
         // Projectile params
         public float projectileSize = 1f; // applied via transform scale
