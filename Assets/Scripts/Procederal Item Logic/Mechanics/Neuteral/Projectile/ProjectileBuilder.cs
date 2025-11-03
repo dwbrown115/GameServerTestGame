@@ -26,8 +26,6 @@ namespace Game.Procederal.Core.Builders
                 secondarySettings
             );
 
-            bool wantOrbit =
-                instruction != null && instruction.HasSecondary(Game.Procederal.MechanicKind.Orbit);
             bool wantDebugLogs = (p != null && p.debugLogs) || gen.debugLogs;
 
             var destroyPolicy = DestroyOnHitHelper.Resolve(
@@ -128,6 +126,13 @@ namespace Game.Procederal.Core.Builders
                     );
             }
 
+            var movementContext =
+                Game.Procederal.Core.Builders.BuilderMovementHelper.BuildMovementContext(
+                    projectileJson,
+                    instruction
+                );
+            movementMode = movementContext.Mode;
+
             bool hasExplicitDirection = false;
             bool hasDirectionResolver = false;
             if (projectileJson != null)
@@ -154,22 +159,10 @@ namespace Game.Procederal.Core.Builders
                 }
             }
 
-            bool useChildMovement =
-                !wantOrbit
-                && movementMode
-                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.None;
-            bool movementRequiresDetachment =
-                Game.Procederal.Core.Builders.BuilderMovementHelper.ShouldDetachFromParent(
-                    movementMode
-                );
+            bool useChildMovement = movementContext.UseChildMovement;
+            bool movementRequiresDetachment = movementContext.DetachAfterInitialization;
             bool detachAfterInitialization = movementRequiresDetachment;
-            bool disableProjectileSelfMovement =
-                wantOrbit
-                || useChildMovement
-                || movementMode
-                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Drop
-                || movementMode
-                    == Game.Procederal.Core.Builders.BuilderMovementHelper.MovementSelection.Throw;
+            bool disableProjectileSelfMovement = movementContext.DisableSelfMovement;
 
             Vector2 baseDirection = ResolveProjectileDirection(projectileJson, root.transform);
 
@@ -195,7 +188,7 @@ namespace Game.Procederal.Core.Builders
                 );
 
             DebugLog(
-                $"movementMode={movementMode} detachesAfterInit={detachAfterInitialization} wantOrbit={wantOrbit}"
+                $"movementMode={movementMode} detachesAfterInit={detachAfterInitialization} pendingOrbit={movementContext.HasOrbitModifier}"
             );
 
             string spawnBehaviorRaw = MechanicSettingNormalizer.String(
@@ -423,60 +416,6 @@ namespace Game.Procederal.Core.Builders
                 );
 
                 List<Action<GameObject>> mutators = null;
-                string rawPathId =
-                    p != null
-                        ? p.childBehavior.ResolveOrbitPathOrDefault()
-                        : ChildBehaviorOverrides.Default.ResolveOrbitPathOrDefault();
-                string finalPathId = string.IsNullOrWhiteSpace(rawPathId) ? "Circular" : rawPathId;
-                string jsonPathId = MechanicSettingNormalizer.String(
-                    projectileJson,
-                    "orbitPath",
-                    null
-                );
-                if (string.IsNullOrWhiteSpace(jsonPathId))
-                {
-                    jsonPathId = MechanicSettingNormalizer.String(projectileJson, "pathId", null);
-                }
-                if (!string.IsNullOrWhiteSpace(jsonPathId))
-                    finalPathId = jsonPathId;
-
-                if (wantOrbit)
-                {
-                    float orbitRadius = p != null ? p.orbitRadius : 0f;
-                    float orbitSpeed = p != null && p.orbitSpeedDeg > 0f ? p.orbitSpeedDeg : 90f;
-                    float angleOffset = p != null ? p.startAngleDeg : 0f;
-                    float angle = angleOffset + (360f * i / count);
-                    float pathRotationBase = p != null ? p.orbitPathRotationBaseDeg : 0f;
-                    pathRotationBase = MechanicSettingNormalizer.Float(
-                        projectileJson,
-                        pathRotationBase,
-                        "OrbitPathRotationBaseDeg",
-                        "orbitPathRotationBaseDeg"
-                    );
-                    float pathRotationStep = p != null ? p.orbitPathRotationStepDeg : 0f;
-                    pathRotationStep = MechanicSettingNormalizer.Float(
-                        projectileJson,
-                        pathRotationStep,
-                        "OrbitPathRotationStepDeg",
-                        "orbitPathRotationStepDeg"
-                    );
-                    float pathRotation = pathRotationBase + pathRotationStep * i;
-                    mechanics.Add(
-                        new UnifiedChildBuilder.MechanicSpec
-                        {
-                            Name = "Orbit",
-                            Settings = new (string key, object val)[]
-                            {
-                                ("radius", orbitRadius),
-                                ("angularSpeedDeg", orbitSpeed),
-                                ("startAngleDeg", angle),
-                                ("pathId", finalPathId),
-                                ("PathRotationDeg", pathRotation),
-                                ("debugLogs", wantDebugLogs),
-                            },
-                        }
-                    );
-                }
 
                 var spec = new UnifiedChildBuilder.ChildSpec
                 {
@@ -532,6 +471,12 @@ namespace Game.Procederal.Core.Builders
                 }
                 gen.SetExistingMechanicSetting(go, "Projectile", "destroyOnHit", destroyOnHit);
                 subItems.Add(go);
+            }
+
+            if (gen.autoApplyCompatibleModifiers && subItems.Count > 0)
+            {
+                foreach (var mk in gen.GetModifiersToApply(instruction))
+                    gen.AddModifierToAll(subItems, mk, p);
             }
         }
 

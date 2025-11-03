@@ -170,6 +170,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/DropMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/Explosion/ExplosionMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IntervalProjectileSpawner.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/IBatchModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicsRegistry.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceIntervalRepeater.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/Bounce/BounceModifierStrategy.cs" />

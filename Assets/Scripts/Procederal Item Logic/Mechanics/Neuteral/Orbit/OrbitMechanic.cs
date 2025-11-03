@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Mechanics.Neuteral
 {
@@ -8,7 +9,24 @@ namespace Mechanics.Neuteral
     {
         [Header("Orbit Settings")]
         [Tooltip("Angular speed in degrees per second")]
-        public float angularSpeedDeg = 90f;
+        [FormerlySerializedAs("angularSpeedDeg")]
+        [SerializeField]
+        private float speedDeg = 90f;
+
+        public float angularSpeedDeg
+        {
+            get => speedDeg;
+            set => speedDeg = value;
+        }
+
+        /// <summary>
+        /// Alias for angular speed so JSON/content can reference "speed" instead of "angularSpeedDeg".
+        /// </summary>
+        public float speed
+        {
+            get => speedDeg;
+            set => speedDeg = value;
+        }
 
         [
             Tooltip(

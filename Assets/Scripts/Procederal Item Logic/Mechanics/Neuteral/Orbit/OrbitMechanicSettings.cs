@@ -12,8 +12,9 @@ namespace Mechanics.Neuteral
                 return;
             comp.angularSpeedDeg = MechanicSettingNormalizer.Float(
                 s,
-                "angularSpeedDeg",
-                comp.angularSpeedDeg
+                comp.angularSpeedDeg,
+                "speed",
+                "angularSpeedDeg"
             );
             comp.radius = MechanicSettingNormalizer.Radius(s, "radius", comp.radius);
             comp.startAngleDeg = MechanicSettingNormalizer.Float(
@@ -23,6 +24,8 @@ namespace Mechanics.Neuteral
             );
             comp.debugLogs = MechanicSettingNormalizer.Bool(s, "debugLogs", comp.debugLogs);
             string desiredPath = MechanicSettingNormalizer.String(s, "pathId", comp.pathId);
+            desiredPath = MechanicSettingNormalizer.String(s, "orbitPath", desiredPath);
+            desiredPath = MechanicSettingNormalizer.String(s, "OrbitPath", desiredPath);
             if (!string.IsNullOrWhiteSpace(desiredPath))
                 comp.pathId = desiredPath;
             float rotation = MechanicSettingNormalizer.Float(

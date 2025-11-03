@@ -28,10 +28,23 @@ namespace Game.Procederal.Api
             if (count <= 1)
                 return;
 
+            float baseWorldAngle = 0f;
+            bool baseInitialized = false;
             for (int i = 0; i < count; i++)
             {
-                float angle = (360f * i) / count;
-                orbits[i].SetAngleDeg(angle, repositionNow: true);
+                var orbit = orbits[i];
+                if (orbit == null)
+                    continue;
+
+                if (!baseInitialized)
+                {
+                    baseWorldAngle = orbit.startAngleDeg + orbit.PathRotationDeg;
+                    baseInitialized = true;
+                }
+
+                float worldAngle = baseWorldAngle + (360f * i) / count;
+                float internalAngle = worldAngle - orbit.PathRotationDeg;
+                orbit.SetAngleDeg(internalAngle, repositionNow: true);
             }
         }
     }

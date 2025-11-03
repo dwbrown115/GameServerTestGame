@@ -105,7 +105,7 @@ namespace Game.Procederal
 
         public void AddModifierToAll(List<GameObject> subItems, MechanicKind kind, ItemParams p)
         {
-            if (subItems == null)
+            if (subItems == null || subItems.Count == 0)
                 return;
 
             var strategy = ModifierStrategies.Get(kind);
@@ -115,6 +115,7 @@ namespace Game.Procederal
                 return;
             }
 
+            var targets = new List<GameObject>(subItems.Count);
             foreach (var go in subItems)
             {
                 if (go == null)
@@ -126,6 +127,22 @@ namespace Game.Procederal
                     continue;
                 }
 
+                targets.Add(go);
+            }
+
+            if (targets.Count == 0)
+                return;
+
+            if (strategy is IBatchModifierStrategy batchStrategy)
+            {
+                batchStrategy.ApplyToGroup(this, targets, p);
+                foreach (var go in targets)
+                    InitializeMechanics(go, owner, target);
+                return;
+            }
+
+            foreach (var go in targets)
+            {
                 strategy.Apply(this, go, p);
                 InitializeMechanics(go, owner, target);
             }

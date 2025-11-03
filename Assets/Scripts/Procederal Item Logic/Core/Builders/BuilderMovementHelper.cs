@@ -9,12 +9,61 @@ namespace Game.Procederal.Core.Builders
     // when the merged settings specify a "movementMode".
     public static class BuilderMovementHelper
     {
+        public readonly struct MovementContext
+        {
+            public MovementSelection Mode { get; }
+            public bool UseChildMovement { get; }
+            public bool DetachAfterInitialization { get; }
+            public bool DisableSelfMovement { get; }
+            public bool HasOrbitModifier { get; }
+
+            public MovementContext(
+                MovementSelection mode,
+                bool useChildMovement,
+                bool detachAfterInitialization,
+                bool disableSelfMovement,
+                bool hasOrbitModifier
+            )
+            {
+                Mode = mode;
+                UseChildMovement = useChildMovement;
+                DetachAfterInitialization = detachAfterInitialization;
+                DisableSelfMovement = disableSelfMovement;
+                HasOrbitModifier = hasOrbitModifier;
+            }
+        }
+
         public enum MovementSelection
         {
             None = 0,
             Default,
             Drop,
             Throw,
+        }
+
+        public static MovementContext BuildMovementContext(
+            Dictionary<string, object> merged,
+            Game.Procederal.ItemInstruction instruction
+        )
+        {
+            var mode = GetMovementMode(merged);
+            bool hasOrbitModifier =
+                instruction != null && instruction.HasSecondary(Game.Procederal.MechanicKind.Orbit);
+            bool useChildMovement = !hasOrbitModifier && mode == MovementSelection.None;
+            bool detachAfterInitialization = ShouldDetachFromParent(mode);
+            bool disableSelfMovement =
+                useChildMovement
+                || hasOrbitModifier
+                || mode == MovementSelection.Drop
+                || mode == MovementSelection.Throw;
+
+            return new MovementContext(
+                mode,
+                useChildMovement,
+                detachAfterInitialization,
+                disableSelfMovement,
+                hasOrbitModifier
+            );
         }
 
         public static MovementSelection GetMovementMode(Dictionary<string, object> merged)

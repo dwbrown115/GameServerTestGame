@@ -741,13 +741,23 @@ namespace Game.Procederal
                 )
             )
             {
-                if (resolvedType != null && go.GetComponent(resolvedType) != null)
+                if (
+                    resolvedType != null
+                    && (
+                        typeof(Component).IsAssignableFrom(resolvedType) || resolvedType.IsInterface
+                    )
+                    && go.GetComponent(resolvedType) != null
+                )
                     return true;
             }
 
             // Fallback: treat identifier as a type or asset path
             var directType = MechanicReflection.ResolveTypeFromMechanicPath(mechanicNameOrPath);
-            if (directType != null && go.GetComponent(directType) != null)
+            if (
+                directType != null
+                && (typeof(Component).IsAssignableFrom(directType) || directType.IsInterface)
+                && go.GetComponent(directType) != null
+            )
                 return true;
 
             return false;
@@ -2028,22 +2038,37 @@ namespace Game.Procederal
             {
                 if (dict.TryGetValue("direction", out var dval) && dval is string ds)
                 {
-                    float current = 90f;
-                    if (dict.TryGetValue("angularSpeedDeg", out var ang))
+                    float ResolveFloat(object raw, float fallback)
                     {
-                        if (ang is float f)
-                            current = f;
-                        else if (ang is int i)
-                            current = i;
-                        else if (ang is string s && float.TryParse(s, out var pf))
-                            current = pf;
+                        switch (raw)
+                        {
+                            case float f:
+                                return f;
+                            case int i:
+                                return i;
+                            case long l:
+                                return l;
+                            case double d:
+                                return (float)d;
+                            case string s when float.TryParse(s, out var parsed):
+                                return parsed;
+                            default:
+                                return fallback;
+                        }
                     }
+
+                    float current = 90f;
+                    if (dict.TryGetValue("speed", out var speedVal))
+                        current = ResolveFloat(speedVal, current);
+                    if (dict.TryGetValue("angularSpeedDeg", out var ang))
+                        current = ResolveFloat(ang, current);
                     string tok = ds.Trim().ToLowerInvariant();
                     if (tok == "clockwise")
                         current = -Mathf.Abs(current);
                     else
                         current = Mathf.Abs(current);
                     dict["angularSpeedDeg"] = current;
+                    dict["speed"] = current;
                     dict.Remove("direction");
                 }
             }

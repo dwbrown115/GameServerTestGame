@@ -5,17 +5,16 @@
   "MechanicAttribute": "Neuteral",
   "Generator": [],
   "Properties": [
-    { "radius": 4 },
-    { "angularSpeedDeg": 20 },
+    { "speed": 40 },
     { "startAngleDeg": 0 },
     { "childrenToSpawn": 1 },
-    { "pathId": "FigureEight" }
+    { "pathId": "Circular" }
   ],
   "MechanicOverrides": [
     { "DestroyOnHit": false },
     { "disableSelfSpeed": true },
     { "direction": "clockwise" },
-    { "radius": 1 },
+    { "radius": 3 },
     { "spawnBehavior": "static" },
     { "childrenToSpawn": 1 },
     { "OrbitPath": "FigureEight" },
