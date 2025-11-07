@@ -12,11 +12,12 @@
 [
   {
     "condition": "mobContact",
-    "primary": "DamageZone",
-    "secondary": ["Drain"],
+    "target": "mob",
+    "primary": "Ripple",
+    "secondary": ["RippleOnHit"],
     "spawnCount": 2,
     "spawnOnce": true,
-    "cooldownSeconds": 1.5,
+    "cooldownSeconds": 0.5,
     "debugLogs": false
   }
 ]
@@ -29,11 +30,13 @@
 - `spawnOnce` prevents the rule from firing more than once.
 - `cooldownSeconds` enforces a delay between spawns when greater than zero.
 - `debugLogs` enables verbose logging for that rule.
+- `target` selects which tag the rule listens for (`mob`, `player`, or `any`). Defaults to `mob` when omitted.
 
 ## Supported Conditions
 
 | Condition value | Description |
 | --- | --- |
-| `mobContact` (aliases: `mob`, `contact`) | Fires when the payload's trigger collider touches something tagged `Mob`. |
+| `mobContact` (aliases: `mob`, `contact`) | Fires when the payload's trigger collider touches something whose tag matches the rule's `target` filter. |
+| `onDamage` (aliases: `hit`, `primaryHit`) | Fires after a primary mechanic reports damage through the `IPrimaryHitModifier` pipeline, spawning at the damaged target or hit point. |
 
 Additional condition kinds can be introduced by expanding `SubItemsOnConditionMechanic.ConditionKind` and updating the parser.

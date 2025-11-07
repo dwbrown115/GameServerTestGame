@@ -123,6 +123,7 @@ namespace Game.Procederal
                 case "whip":
                     return MechanicKind.Whip;
                 case "ripple":
+                case "rippleprimary":
                     return MechanicKind.Ripple;
                 case "rippleonhit":
                     return MechanicKind.RippleOnHit;
@@ -164,6 +165,7 @@ namespace Game.Procederal
             public bool spawnOnce = false;
             public float cooldownSeconds = 0f;
             public bool debugLogs = false;
+            public string target = "mob";
         }
 
         // Common
@@ -638,17 +640,23 @@ namespace Game.Procederal
         }
 
         // Entry point: JSON -> build
-        public GameObject CreateFromJson(string json, ItemParams p = null, Transform parent = null)
+        public GameObject CreateFromJson(
+            string json,
+            ItemParams p = null,
+            Transform parent = null,
+            Vector3? spawnPosition = null
+        )
         {
             var instruction = JsonUtility.FromJson<ItemInstruction>(json);
-            return Create(instruction, p, parent);
+            return Create(instruction, p, parent, spawnPosition);
         }
 
         // Entry point: Instruction -> build
         public GameObject Create(
             ItemInstruction instruction,
             ItemParams p = null,
-            Transform parent = null
+            Transform parent = null,
+            Vector3? spawnPosition = null
         )
         {
             if (instruction == null)
@@ -796,6 +804,9 @@ namespace Game.Procederal
                 Log("Failed to acquire root GameObject for generated item.");
                 return null;
             }
+
+            if (spawnPosition.HasValue)
+                root.transform.position = spawnPosition.Value;
 
             var subItems = new List<GameObject>();
             var previousContext = _activeDumpContext;
@@ -1417,9 +1428,29 @@ namespace Game.Procederal
             }
 
             string fileName = baseName + ".json";
-            string tempRoot = Application.isEditor
-                ? Path.GetFullPath(Path.Combine(Application.dataPath, "_TemporaryFiles"))
-                : Application.temporaryCachePath;
+            string tempRoot;
+            if (Application.isEditor)
+            {
+                string projectTemp = Path.Combine(Application.dataPath, "_TemporaryFiles");
+                try
+                {
+                    if (!Directory.Exists(projectTemp))
+                        Directory.CreateDirectory(projectTemp);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning(
+                        $"[ProcederalItemGenerator] Failed to ensure _TemporaryFiles directory: {ex.Message}",
+                        this
+                    );
+                }
+
+                tempRoot = Path.GetFullPath(projectTemp);
+            }
+            else
+            {
+                tempRoot = Application.temporaryCachePath;
+            }
             if (string.IsNullOrWhiteSpace(tempRoot))
                 tempRoot = Path.GetTempPath();
 

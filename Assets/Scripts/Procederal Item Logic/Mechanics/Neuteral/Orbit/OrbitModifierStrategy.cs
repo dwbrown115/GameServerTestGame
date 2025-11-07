@@ -187,9 +187,9 @@ namespace Game.Procederal.Core.Builders.Modifiers
                     generator.Log("Skipping incompatible modifier 'Orbit' on Whip.");
                     continue;
                 }
-                if (generator.HasMechanic(go, "Ripple"))
+                if (generator.HasMechanic(go, "RipplePrimary"))
                 {
-                    generator.Log("Skipping incompatible modifier 'Orbit' on Ripple.");
+                    generator.Log("Skipping incompatible modifier 'Orbit' on RipplePrimary.");
                     continue;
                 }
                 if (generator.HasMechanic(go, "Strike"))

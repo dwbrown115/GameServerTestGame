@@ -20,9 +20,9 @@ namespace Game.Procederal.Core.Builders.Modifiers
                 generator.Log("Skipping incompatible modifier 'Track' on Strike.");
                 return;
             }
-            if (generator.HasMechanic(target, "Ripple"))
+            if (generator.HasMechanic(target, "RipplePrimary"))
             {
-                generator.Log("Skipping incompatible modifier 'Track' on Ripple.");
+                generator.Log("Skipping incompatible modifier 'Track' on RipplePrimary.");
                 return;
             }
 

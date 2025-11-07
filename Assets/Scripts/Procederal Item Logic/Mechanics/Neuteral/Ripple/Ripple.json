@@ -1,5 +1,5 @@
 {
-  "MechanicName": "Ripple",
+  "MechanicName": "RipplePrimary",
   "MechanicCategory": "Primary",
   "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleMechanic.cs",
   "Generator": [

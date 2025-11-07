@@ -30,9 +30,9 @@ namespace Game.Procederal.Core.Builders.Modifiers
                 generator.Log("Skipping incompatible modifier 'Bounce' on Whip.");
                 return;
             }
-            if (generator.HasMechanic(target, "Ripple"))
+            if (generator.HasMechanic(target, "RipplePrimary"))
             {
-                generator.Log("Skipping incompatible modifier 'Bounce' on Ripple.");
+                generator.Log("Skipping incompatible modifier 'Bounce' on RipplePrimary.");
                 return;
             }
 

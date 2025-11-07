@@ -122,10 +122,7 @@ namespace Mechanics.Neuteral
 
         private void DoOnTouchDamage()
         {
-            Transform centerT = _ctx.Target != null ? _ctx.Target : _ctx.Owner;
-            if (centerT == null)
-                return;
-            Vector2 center = centerT.position;
+            Vector2 center = ResolveCenter();
             float bandHalf = Mathf.Max(0.005f, edgeThickness * 0.5f);
             float queryR = _radius + bandHalf + 0.25f; // pad to catch AABB corners
             var overlaps = new List<Collider2D>(64);
@@ -182,6 +179,21 @@ namespace Mechanics.Neuteral
                 if (drain != null)
                     drain.ReportDamage(total);
             }
+        }
+
+        private Vector2 ResolveCenter()
+        {
+            if (_ctx != null)
+            {
+                if (_ctx.Payload != null)
+                    return _ctx.Payload.position;
+                if (_ctx.Target != null)
+                    return _ctx.Target.position;
+                if (_ctx.Owner != null)
+                    return _ctx.Owner.position;
+            }
+
+            return transform.position;
         }
 
         private bool HasMobTagInParents(Transform t)

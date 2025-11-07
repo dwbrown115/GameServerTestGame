@@ -118,7 +118,7 @@
     "hash": "f25e09455974a76c063372b8262a66851c7aa083c37181727317f70847d63a45"
   },
   {
-    "mechanicName": "Ripple",
+    "mechanicName": "RipplePrimary",
     "category": "Primary",
     "resourcePath": "Primary/Ripple",
     "file": "Primary/Ripple.json",

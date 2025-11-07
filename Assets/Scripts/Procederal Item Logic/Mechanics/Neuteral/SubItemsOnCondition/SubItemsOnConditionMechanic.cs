@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.Procederal;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
+using Mechanics;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -12,12 +13,20 @@ namespace Mechanics.Neuteral
     /// ProcederalItemGenerator when they occur.
     /// </summary>
     [DisallowMultipleComponent]
-    public class SubItemsOnConditionMechanic : MonoBehaviour, IMechanic
+    public class SubItemsOnConditionMechanic : MonoBehaviour, IMechanic, IPrimaryHitModifier
     {
         public enum ConditionKind
         {
             None = 0,
             MobContact,
+            OnDamage,
+        }
+
+        public enum TargetKind
+        {
+            Mob = 0,
+            Player,
+            Any,
         }
 
         [Serializable]
@@ -30,6 +39,7 @@ namespace Mechanics.Neuteral
             public bool spawnOnce = false;
             public float cooldownSeconds = 0f;
             public bool debugLogs = false;
+            public TargetKind target = TargetKind.Mob;
         }
 
         private struct RuleRuntime
@@ -108,6 +118,7 @@ namespace Mechanics.Neuteral
                 spawnOnce = rule.spawnOnce,
                 cooldownSeconds = Mathf.Max(0f, rule.cooldownSeconds),
                 debugLogs = rule.debugLogs,
+                target = rule.target,
             };
         }
 
@@ -121,8 +132,33 @@ namespace Mechanics.Neuteral
                 case "mobcontact":
                 case "contact":
                     return ConditionKind.MobContact;
+                case "damage":
+                case "ondamage":
+                case "primaryhit":
+                case "hit":
+                    return ConditionKind.OnDamage;
                 default:
                     return ConditionKind.None;
+            }
+        }
+
+        public static TargetKind ParseTarget(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return TargetKind.Mob;
+            switch (value.Trim().ToLowerInvariant())
+            {
+                case "player":
+                case "hero":
+                case "owner":
+                    return TargetKind.Player;
+                case "any":
+                case "all":
+                    return TargetKind.Any;
+                case "mob":
+                case "enemy":
+                default:
+                    return TargetKind.Mob;
             }
         }
 
@@ -140,6 +176,7 @@ namespace Mechanics.Neuteral
                 spawnOnce = spec.spawnOnce,
                 cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds),
                 debugLogs = spec.debugLogs,
+                target = ParseTarget(spec.target),
             };
             if (spec.secondary != null && spec.secondary.Count > 0)
             {
@@ -176,7 +213,7 @@ namespace Mechanics.Neuteral
                 if (_activeMobColliders.Add(other))
                 {
                     Vector3 spawnPos = ResolveSpawnPosition(other);
-                    ExecuteRules(ConditionKind.MobContact, spawnPos);
+                    ExecuteRules(ConditionKind.MobContact, spawnPos, other.transform);
                 }
             }
         }
@@ -196,7 +233,7 @@ namespace Mechanics.Neuteral
             {
                 if (rule != null && rule.condition == ConditionKind.MobContact)
                 {
-                    if (HasMobTag(other.transform))
+                    if (MatchesTarget(rule.target, other.transform))
                         return true;
                     break;
                 }
@@ -204,7 +241,11 @@ namespace Mechanics.Neuteral
             return false;
         }
 
-        private void ExecuteRules(ConditionKind condition, Vector3 spawnPos)
+        private void ExecuteRules(
+            ConditionKind condition,
+            Vector3 spawnPos,
+            Transform spawnTarget = null
+        )
         {
             if (_rules == null || _runtimeStates == null)
                 return;
@@ -225,7 +266,7 @@ namespace Mechanics.Neuteral
                 if (state.nextAllowedTime > 0f && now < state.nextAllowedTime)
                     continue;
 
-                bool spawned = SpawnFromRule(rule, spawnPos);
+                bool spawned = SpawnFromRule(rule, spawnPos, spawnTarget);
                 if (spawned)
                 {
                     state.hasTriggered = state.hasTriggered || rule.spawnOnce;
@@ -236,8 +277,11 @@ namespace Mechanics.Neuteral
             }
         }
 
-        private bool SpawnFromRule(Rule rule, Vector3 spawnPos)
+        private bool SpawnFromRule(Rule rule, Vector3 spawnPos, Transform spawnTarget)
         {
+            if (!MatchesTarget(rule.target, spawnTarget))
+                return false;
+
             var generator = ResolveGenerator();
             if (generator == null)
             {
@@ -253,6 +297,12 @@ namespace Mechanics.Neuteral
                 return false;
 
             Vector3 spawnAnchor = spawnPos;
+            if (spawnTarget != null)
+            {
+                var targetPos = spawnTarget.position;
+                spawnAnchor.x = targetPos.x;
+                spawnAnchor.y = targetPos.y;
+            }
 
             int count = Mathf.Max(1, rule.spawnCount);
             bool anySpawned = false;
@@ -269,15 +319,14 @@ namespace Mechanics.Neuteral
                 };
                 var parms = new ItemParams { debugLogs = rule.debugLogs || _debugLogs };
 
-                var spawned = generator.Create(instruction, parms, transform);
+                var spawned = generator.Create(instruction, parms, transform, spawnAnchor);
                 if (spawned == null)
                     continue;
 
                 if (spawned.transform.parent == transform)
-                    spawned.transform.localPosition = Vector3.zero;
-                spawned.transform.position = spawnAnchor;
-                if (spawned.transform.parent == transform)
                     spawned.transform.SetParent(null, worldPositionStays: true);
+
+                spawned.transform.position = spawnAnchor;
                 var intervalSpawner =
                     spawned.GetComponent<Game.Procederal.Api.GenericIntervalSpawner>();
                 if (intervalSpawner != null)
@@ -318,6 +367,44 @@ namespace Mechanics.Neuteral
             return new Vector3(boundsPoint.x, boundsPoint.y, fallback.z);
         }
 
+        public void OnPrimaryHit(in PrimaryHitInfo info)
+        {
+            if (!HasRuleFor(ConditionKind.OnDamage))
+                return;
+
+            Vector3 spawnPos = transform.position;
+            Transform target = info.target;
+            bool hasTarget = target != null;
+
+            if (hasTarget)
+            {
+                spawnPos = target.position;
+            }
+            else
+            {
+                var hitPoint = info.hitPoint;
+                if (!float.IsNaN(hitPoint.x) && !float.IsNaN(hitPoint.y))
+                {
+                    spawnPos = new Vector3(hitPoint.x, hitPoint.y, spawnPos.z);
+                }
+            }
+
+            ExecuteRules(ConditionKind.OnDamage, spawnPos, target);
+        }
+
+        private bool HasRuleFor(ConditionKind kind)
+        {
+            if (_rules == null || _rules.Count == 0)
+                return false;
+            for (int i = 0; i < _rules.Count; i++)
+            {
+                var rule = _rules[i];
+                if (rule != null && rule.condition == kind)
+                    return true;
+            }
+            return false;
+        }
+
         private static bool HasMobTag(Transform t)
         {
             while (t != null)
@@ -327,6 +414,31 @@ namespace Mechanics.Neuteral
                 t = t.parent;
             }
             return false;
+        }
+
+        private static bool HasPlayerTag(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.CompareTag("Player"))
+                    return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        private static bool MatchesTarget(TargetKind kind, Transform candidate)
+        {
+            switch (kind)
+            {
+                case TargetKind.Any:
+                    return true;
+                case TargetKind.Player:
+                    return candidate != null && HasPlayerTag(candidate);
+                case TargetKind.Mob:
+                default:
+                    return candidate != null && HasMobTag(candidate);
+            }
         }
 
         private ProcederalItemGenerator ResolveGenerator()

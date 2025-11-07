@@ -88,26 +88,39 @@ namespace Game.Procederal.Api
                 return;
             }
             int spawnCount = Mathf.Max(1, countPerInterval);
-            Transform center = owner != null ? owner : transform;
+            Vector3 spawnPos = transform.position;
+            var layerSource = owner != null ? owner : transform;
             var runner = GetComponent<MechanicRunner>();
             for (int i = 0; i < spawnCount; i++)
             {
-                var go = new GameObject("Ripple_Spawned");
+                var go = new GameObject("RipplePrimary_Spawned");
                 if (parentSpawnedToSpawner)
                 {
-                    go.transform.SetParent(transform, worldPositionStays: true);
+                    go.transform.SetParent(transform, worldPositionStays: false);
+                    go.transform.localPosition = Vector3.zero;
+                    go.transform.localRotation = Quaternion.identity;
+                    go.transform.localScale = Vector3.one;
                 }
                 else
                 {
-                    go.transform.SetParent(null, worldPositionStays: true);
+                    go.transform.SetParent(null, worldPositionStays: false);
+                    go.transform.position = spawnPos;
+                    go.transform.localScale = Vector3.one;
                 }
-                go.transform.position = center.position;
-                go.transform.localScale = Vector3.one;
-                go.layer = (owner != null ? owner.gameObject.layer : go.layer);
+
+                if (parentSpawnedToSpawner)
+                    go.transform.position = transform.position;
+                else
+                    go.transform.rotation = transform.rotation;
+
+                if (layerSource != null)
+                    go.layer = layerSource.gameObject.layer;
+                else
+                    go.layer = gameObject.layer;
 
                 generator.AddMechanicByName(
                     go,
-                    "Ripple",
+                    "RipplePrimary",
                     new (string key, object val)[]
                     {
                         ("startRadius", startRadius),

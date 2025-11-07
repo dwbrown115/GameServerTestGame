@@ -2264,11 +2264,15 @@ MonoBehaviour:
   debugLogs: 1
   rngSeed: 0
   debugUseFixedSelection: 1
-  debugPrimary: Ripple
+  debugPrimary: Strike
   debugSecondary:
-  - Explosion
+  - 'subItemsOnCondition [   {     "condition": "mobContact",     "primary": "Ripple",    
+    "secondary": ["RippleOnHit"],     "spawnCount": 2,     "spawnOnce": true,    
+    "cooldownSeconds": 0.5,     "debugLogs": false   } ]'
+  overrideChildrenCount: 2
   childBehavior:
     movement: 4
+    orbitPath: Circular
 --- !u!1 &1761067107
 GameObject:
   m_ObjectHideFlags: 0

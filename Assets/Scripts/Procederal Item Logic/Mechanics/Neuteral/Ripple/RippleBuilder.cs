@@ -19,7 +19,7 @@ namespace Game.Procederal.Core.Builders
         {
             var secondarySettings = gen.CollectSecondarySettings(instruction);
             var rippleJson = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
-                gen.LoadAndMergeJsonSettings("Ripple"),
+                gen.LoadAndMergeJsonSettings("RipplePrimary"),
                 secondarySettings
             );
             var movementMode = Game.Procederal.Core.Builders.BuilderMovementHelper.GetMovementMode(
@@ -125,7 +125,7 @@ namespace Game.Procederal.Core.Builders
                         if (
                             string.Equals(
                                 ms.Name,
-                                "Ripple",
+                                "RipplePrimary",
                                 System.StringComparison.OrdinalIgnoreCase
                             )
                         )
@@ -145,7 +145,7 @@ namespace Game.Procederal.Core.Builders
             {
                 new UnifiedChildBuilder.MechanicSpec
                 {
-                    Name = "Ripple",
+                    Name = "RipplePrimary",
                     Settings = new (string key, object val)[]
                     {
                         ("startRadius", startRadius),
@@ -173,7 +173,7 @@ namespace Game.Procederal.Core.Builders
 
             var spec = new UnifiedChildBuilder.ChildSpec
             {
-                ChildName = "Ripple",
+                ChildName = "RipplePrimary",
                 Parent = root.transform,
                 Layer = root.layer,
                 Mechanics = mechanics,

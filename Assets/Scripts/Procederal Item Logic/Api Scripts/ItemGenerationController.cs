@@ -338,6 +338,10 @@ public class ItemGenerationController : MonoBehaviour
             spec.primary = "Projectile";
         if (string.IsNullOrWhiteSpace(spec.condition))
             spec.condition = "mobContact";
+        if (string.IsNullOrWhiteSpace(spec.target))
+            spec.target = "mob";
+        else
+            spec.target = spec.target.Trim();
         spec.spawnCount = Mathf.Max(1, spec.spawnCount);
         spec.cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds);
 
