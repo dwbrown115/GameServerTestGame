@@ -20,13 +20,20 @@ namespace Game.Procederal.Core.Builders
             if (gen == null || root == null)
                 return;
 
+            bool wantDebugLogs = (p != null && p.debugLogs) || gen.debugLogs;
+
+            void DebugLog(string message)
+            {
+                if (wantDebugLogs)
+                    Debug.Log($"[ProjectileBuilder] {message}", gen);
+            }
+
             var secondarySettings = gen.CollectSecondarySettings(instruction);
+            secondarySettings = SanitizeSecondarySettingsForProjectile(secondarySettings, DebugLog);
             var projectileJson = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
                 gen.LoadAndMergeJsonSettings("Projectile"),
                 secondarySettings
             );
-
-            bool wantDebugLogs = (p != null && p.debugLogs) || gen.debugLogs;
 
             var destroyPolicy = DestroyOnHitHelper.Resolve(
                 projectileJson,
@@ -84,12 +91,6 @@ namespace Game.Procederal.Core.Builders
                 "NumberOfItemsToSpawn"
             );
             count = BuilderChildCountHelper.ResolveFinalCount(count, p, gen);
-
-            void DebugLog(string message)
-            {
-                if (wantDebugLogs)
-                    Debug.Log($"[ProjectileBuilder] {message}", gen);
-            }
 
             DebugLog(
                 destroyExplicit
@@ -233,11 +234,6 @@ namespace Game.Procederal.Core.Builders
             float spawnRadius = MechanicSettingNormalizer.Radius(projectileJson, "spawnRadius", 0f);
             float lifetime = MechanicSettingNormalizer.Float(projectileJson, "lifetime", -1f);
             float projSpeed = MechanicSettingNormalizer.Float(projectileJson, "speed", -1f);
-            float colliderRadius = MechanicSettingNormalizer.Radius(
-                projectileJson,
-                "colliderRadius",
-                MechanicSettingNormalizer.Radius(projectileJson, "radius", 0.5f)
-            );
             float visualScale = MechanicSettingNormalizer.Float(
                 projectileJson,
                 "projectileSize",
@@ -269,7 +265,7 @@ namespace Game.Procederal.Core.Builders
                 spawner.customSpritePath = customPath;
                 spawner.spriteColor = projColor;
                 spawner.spawnScale = Mathf.Max(0.0001f, visualScale);
-                spawner.colliderRadius = Mathf.Max(0.0001f, colliderRadius);
+                spawner.colliderRadius = 0.5f;
                 spawner.excludeOwner = excludeOwner;
                 spawner.requireMobTag = requireMobTag;
                 spawner.projectileSpeed = projSpeed > 0f ? projSpeed : -1f;
@@ -435,7 +431,7 @@ namespace Game.Procederal.Core.Builders
                     {
                         Enabled = true,
                         Shape = UnifiedChildBuilder.ColliderShape2D.Circle,
-                        Radius = Mathf.Max(0.0001f, colliderRadius),
+                        Radius = 0.5f,
                         Offset = Vector2.zero,
                         IsTrigger = true,
                     },
@@ -517,6 +513,114 @@ namespace Game.Procederal.Core.Builders
                 list.Add(("speed", speed));
 
             return list;
+        }
+
+        // Prevent modifier-provided orbit settings from clobbering projectile-specific values (e.g. collider radius).
+        private static List<Game.Procederal.ProcederalItemGenerator.SecondaryMechanicSettings> SanitizeSecondarySettingsForProjectile(
+            List<Game.Procederal.ProcederalItemGenerator.SecondaryMechanicSettings> original,
+            Action<string> log
+        )
+        {
+            if (original == null || original.Count == 0)
+                return original;
+
+            bool needsCleanup = false;
+            foreach (var entry in original)
+            {
+                if (
+                    entry?.Properties == null
+                    || string.IsNullOrWhiteSpace(entry.MechanicName)
+                    || !string.Equals(
+                        entry.MechanicName,
+                        "Orbit",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                    continue;
+
+                foreach (var key in entry.Properties.Keys)
+                {
+                    if (string.Equals(key, "radius", StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsCleanup = true;
+                        break;
+                    }
+                }
+
+                if (needsCleanup)
+                    break;
+            }
+
+            if (!needsCleanup)
+                return original;
+
+            log?.Invoke(
+                "Orbit radius override detected in secondary settings; stripping to protect projectile collider radius."
+            );
+
+            var sanitized =
+                new List<Game.Procederal.ProcederalItemGenerator.SecondaryMechanicSettings>(
+                    original.Count
+                );
+            foreach (var entry in original)
+            {
+                if (entry == null)
+                {
+                    sanitized.Add(null);
+                    continue;
+                }
+
+                if (
+                    entry.Properties == null
+                    || string.IsNullOrWhiteSpace(entry.MechanicName)
+                    || !string.Equals(
+                        entry.MechanicName,
+                        "Orbit",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    sanitized.Add(entry);
+                    continue;
+                }
+
+                var copy = new Dictionary<string, object>(
+                    entry.Properties,
+                    StringComparer.OrdinalIgnoreCase
+                );
+                object removedValue = null;
+                if (entry.Properties.TryGetValue("radius", out var radiusRaw))
+                    removedValue = radiusRaw;
+                else if (entry.Properties.TryGetValue("Radius", out var radiusRawUpper))
+                    removedValue = radiusRawUpper;
+
+                copy.Remove("radius");
+                copy.Remove("Radius");
+
+                if (removedValue != null)
+                {
+                    log?.Invoke(
+                        $"Removed Orbit.radius override (value={removedValue}) from secondary settings before building projectiles."
+                    );
+                }
+                else
+                {
+                    log?.Invoke(
+                        "Removed Orbit radius override with unspecified value from secondary settings before building projectiles."
+                    );
+                }
+
+                sanitized.Add(
+                    new Game.Procederal.ProcederalItemGenerator.SecondaryMechanicSettings
+                    {
+                        MechanicName = entry.MechanicName,
+                        Properties = copy.Count > 0 ? copy : null,
+                        Overrides = entry.Overrides,
+                    }
+                );
+            }
+
+            return sanitized;
         }
     }
 }

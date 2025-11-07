@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
+using Newtonsoft.Json;
 using UnityEngine;
 
 // High-level, data-driven item builder that composes existing Mechanics on sub-items (children)
@@ -33,6 +34,7 @@ namespace Game.Procederal
         Ripple,
         RippleOnHit,
         SwordSlash,
+        SubItemsOnCondition,
     }
 
     public enum ChildBehaviorSelection
@@ -78,6 +80,7 @@ namespace Game.Procederal
     {
         public string primary;
         public List<string> secondary = new List<string>();
+        public bool isolateSecondarySettings = false;
 
         public MechanicKind GetPrimaryKind()
         {
@@ -127,6 +130,10 @@ namespace Game.Procederal
                 case "sword":
                 case "slash":
                     return MechanicKind.SwordSlash;
+                case "subitemsoncondition":
+                case "spawnitemsoncondition":
+                case "subitemcondition":
+                    return MechanicKind.SubItemsOnCondition;
                 default:
                     return MechanicKind.None;
             }
@@ -145,13 +152,26 @@ namespace Game.Procederal
         }
     }
 
-    [Serializable]
     public class ItemParams
     {
+        [Serializable]
+        public class SpawnItemsOnConditionSpec
+        {
+            public string condition = "mobContact";
+            public string primary = "Projectile";
+            public List<string> secondary = new List<string>();
+            public int spawnCount = 1;
+            public bool spawnOnce = false;
+            public float cooldownSeconds = 0f;
+            public bool debugLogs = false;
+        }
+
         // Common
         public int subItemCount = 1;
         public bool debugLogs = false;
         public ChildBehaviorOverrides childBehavior = ChildBehaviorOverrides.Default;
+        public List<SpawnItemsOnConditionSpec> spawnItemsOnConditions =
+            new List<SpawnItemsOnConditionSpec>();
 
         // Orbit params (modifier for sub-items like projectiles)
         public float orbitRadius = 2f;
@@ -188,6 +208,17 @@ namespace Game.Procederal
 
     public partial class ProcederalItemGenerator : MonoBehaviour
     {
+        private static readonly string[] SpawnConditionKeywords =
+        {
+            "spawnItemsOnCondition",
+            "spawnitemsoncondition",
+            "SpawnItemsOnCondition",
+            "conditionSpec",
+            "spec",
+            "Spec",
+            "json",
+        };
+
         // Cached simple sprites
         private static Sprite _unitCircleSprite;
         private static Sprite _unitSquareSprite;
@@ -626,6 +657,134 @@ namespace Game.Procederal
                 return null;
             }
             p ??= new ItemParams();
+            ExtractSpawnConditionSecondary(instruction, p);
+
+            // If any secondary entries include a spawnItemsOnCondition JSON payload, extract
+            // and populate p.spawnItemsOnConditions so they are applied as rules instead of
+            // being treated as modifier names.
+            if (instruction.secondary != null && instruction.secondary.Count > 0)
+            {
+                for (int si = instruction.secondary.Count - 1; si >= 0; si--)
+                {
+                    var mech = instruction.secondary[si];
+                    if (string.IsNullOrWhiteSpace(mech))
+                        continue;
+
+                    string trimmed = mech.Trim();
+                    int arr = trimmed.IndexOf('[');
+                    int obj = trimmed.IndexOf('{');
+                    int tokenIndex;
+                    if (arr >= 0 && obj >= 0)
+                        tokenIndex = Math.Min(arr, obj);
+                    else if (arr >= 0)
+                        tokenIndex = arr;
+                    else
+                        tokenIndex = obj;
+
+                    if (tokenIndex <= 0)
+                        continue;
+
+                    var key = trimmed.Substring(0, tokenIndex).Trim();
+                    if (string.IsNullOrWhiteSpace(key))
+                        continue;
+
+                    // Accept common keys (case-insensitive)
+                    if (
+                        !string.Equals(
+                            key,
+                            "spawnItemsOnCondition",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && !string.Equals(
+                            key,
+                            "spawnitemsoncondition",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && !string.Equals(key, "conditionSpec", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(key, "spec", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(key, "json", StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        continue;
+                    }
+
+                    string payload = trimmed.Substring(tokenIndex).Trim();
+                    if (string.IsNullOrWhiteSpace(payload))
+                        continue;
+
+                    try
+                    {
+                        if (payload.StartsWith("["))
+                        {
+                            var specs = JsonConvert.DeserializeObject<
+                                List<ItemParams.SpawnItemsOnConditionSpec>
+                            >(payload);
+                            if (specs != null && specs.Count > 0)
+                            {
+                                if (p.spawnItemsOnConditions == null)
+                                    p.spawnItemsOnConditions =
+                                        new List<ItemParams.SpawnItemsOnConditionSpec>();
+                                foreach (var s in specs)
+                                {
+                                    if (s == null)
+                                        continue;
+                                    // normalize
+                                    if (string.IsNullOrWhiteSpace(s.primary))
+                                        s.primary = "Projectile";
+                                    if (string.IsNullOrWhiteSpace(s.condition))
+                                        s.condition = "mobContact";
+                                    s.spawnCount = Mathf.Max(1, s.spawnCount);
+                                    s.cooldownSeconds = Mathf.Max(0f, s.cooldownSeconds);
+                                    s.secondary ??= new List<string>();
+                                    for (int k = s.secondary.Count - 1; k >= 0; k--)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(s.secondary[k]))
+                                            s.secondary.RemoveAt(k);
+                                        else
+                                            s.secondary[k] = s.secondary[k].Trim();
+                                    }
+                                    p.spawnItemsOnConditions.Add(s);
+                                }
+                                // remove the secondary entry so it's not treated as a modifier
+                                instruction.secondary.RemoveAt(si);
+                            }
+                        }
+                        else if (payload.StartsWith("{"))
+                        {
+                            var spec =
+                                JsonConvert.DeserializeObject<ItemParams.SpawnItemsOnConditionSpec>(
+                                    payload
+                                );
+                            if (spec != null)
+                            {
+                                if (p.spawnItemsOnConditions == null)
+                                    p.spawnItemsOnConditions =
+                                        new List<ItemParams.SpawnItemsOnConditionSpec>();
+                                if (string.IsNullOrWhiteSpace(spec.primary))
+                                    spec.primary = "Projectile";
+                                if (string.IsNullOrWhiteSpace(spec.condition))
+                                    spec.condition = "mobContact";
+                                spec.spawnCount = Mathf.Max(1, spec.spawnCount);
+                                spec.cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds);
+                                spec.secondary ??= new List<string>();
+                                for (int k = spec.secondary.Count - 1; k >= 0; k--)
+                                {
+                                    if (string.IsNullOrWhiteSpace(spec.secondary[k]))
+                                        spec.secondary.RemoveAt(k);
+                                    else
+                                        spec.secondary[k] = spec.secondary[k].Trim();
+                                }
+                                p.spawnItemsOnConditions.Add(spec);
+                                instruction.secondary.RemoveAt(si);
+                            }
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Log($"Failed to parse spawnItemsOnCondition payload: {ex.Message}");
+                    }
+                }
+            }
 
             var parentTransform =
                 parent != null ? parent : (defaultParent != null ? defaultParent : transform);
@@ -675,6 +834,174 @@ namespace Game.Procederal
             }
 
             return root;
+        }
+
+        private static void ExtractSpawnConditionSecondary(
+            ItemInstruction instruction,
+            ItemParams p
+        )
+        {
+            if (
+                instruction == null
+                || instruction.secondary == null
+                || instruction.secondary.Count == 0
+            )
+                return;
+
+            bool hasSubMechanic = false;
+            for (int i = 0; i < instruction.secondary.Count; i++)
+            {
+                var candidate = instruction.secondary[i];
+                if (
+                    !string.IsNullOrWhiteSpace(candidate)
+                    && string.Equals(
+                        candidate,
+                        "SubItemsOnCondition",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    hasSubMechanic = true;
+                    break;
+                }
+            }
+
+            for (int i = instruction.secondary.Count - 1; i >= 0; i--)
+            {
+                var entry = instruction.secondary[i];
+                if (string.IsNullOrWhiteSpace(entry))
+                    continue;
+
+                string trimmed = entry.Trim();
+                int arrIndex = trimmed.IndexOf('[');
+                int objIndex = trimmed.IndexOf('{');
+                int tokenIndex;
+                if (arrIndex >= 0 && objIndex >= 0)
+                    tokenIndex = Mathf.Min(arrIndex, objIndex);
+                else if (arrIndex >= 0)
+                    tokenIndex = arrIndex;
+                else
+                    tokenIndex = objIndex;
+
+                if (tokenIndex <= 0)
+                    continue;
+
+                string keyword = trimmed.Substring(0, tokenIndex).Trim();
+                if (!MatchesSpawnConditionKeyword(keyword))
+                    continue;
+
+                string payload = trimmed.Substring(tokenIndex).Trim();
+                if (string.IsNullOrWhiteSpace(payload))
+                    continue;
+
+                if (!TryAppendSpecsFromPayload(payload, p))
+                    continue;
+
+                if (hasSubMechanic)
+                {
+                    instruction.secondary.RemoveAt(i);
+                }
+                else
+                {
+                    instruction.secondary[i] = "SubItemsOnCondition";
+                    hasSubMechanic = true;
+                }
+            }
+        }
+
+        private static bool MatchesSpawnConditionKeyword(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+            for (int i = 0; i < SpawnConditionKeywords.Length; i++)
+            {
+                if (
+                    string.Equals(
+                        value,
+                        SpawnConditionKeywords[i],
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool TryAppendSpecsFromPayload(string payload, ItemParams p)
+        {
+            if (string.IsNullOrWhiteSpace(payload) || p == null)
+                return false;
+
+            try
+            {
+                if (payload.StartsWith("["))
+                {
+                    var specs = JsonConvert.DeserializeObject<
+                        List<ItemParams.SpawnItemsOnConditionSpec>
+                    >(payload);
+                    if (specs == null || specs.Count == 0)
+                        return false;
+
+                    if (p.spawnItemsOnConditions == null)
+                        p.spawnItemsOnConditions = new List<ItemParams.SpawnItemsOnConditionSpec>();
+
+                    foreach (var spec in specs)
+                    {
+                        NormalizeSpawnSpec(spec);
+                        if (spec != null)
+                            p.spawnItemsOnConditions.Add(spec);
+                    }
+                    return true;
+                }
+
+                if (payload.StartsWith("{"))
+                {
+                    var spec = JsonConvert.DeserializeObject<ItemParams.SpawnItemsOnConditionSpec>(
+                        payload
+                    );
+                    NormalizeSpawnSpec(spec);
+                    if (spec == null)
+                        return false;
+
+                    if (p.spawnItemsOnConditions == null)
+                        p.spawnItemsOnConditions = new List<ItemParams.SpawnItemsOnConditionSpec>();
+
+                    p.spawnItemsOnConditions.Add(spec);
+                    return true;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Debug.LogWarning(
+                    $"[ProcederalItemGenerator] Failed to parse spawnItemsOnCondition payload: {ex.Message}\nInput: {payload}"
+                );
+            }
+
+            return false;
+        }
+
+        private static void NormalizeSpawnSpec(ItemParams.SpawnItemsOnConditionSpec spec)
+        {
+            if (spec == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(spec.primary))
+                spec.primary = "Projectile";
+            if (string.IsNullOrWhiteSpace(spec.condition))
+                spec.condition = "mobContact";
+            spec.spawnCount = Mathf.Max(1, spec.spawnCount);
+            spec.cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds);
+
+            if (spec.secondary == null)
+                spec.secondary = new List<string>();
+
+            for (int i = spec.secondary.Count - 1; i >= 0; i--)
+            {
+                if (string.IsNullOrWhiteSpace(spec.secondary[i]))
+                    spec.secondary.RemoveAt(i);
+                else
+                    spec.secondary[i] = spec.secondary[i].Trim();
+            }
         }
 
         public Component AddMechanicByName(

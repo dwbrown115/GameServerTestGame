@@ -10,7 +10,7 @@
     { "immediateFirstBurst": true }
   ],
   "Properties": [
-    { "radius": 2.5 },
+    { "radius": 1 },
     { "damageInterval": 0.35 },
     { "damagePerInterval": 6 },
     { "lifetimeSeconds": 4 },

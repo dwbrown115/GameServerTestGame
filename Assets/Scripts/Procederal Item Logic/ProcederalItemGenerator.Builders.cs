@@ -32,13 +32,21 @@ namespace Game.Procederal
             if (instruction == null || instruction.secondary == null)
                 return list;
 
+            bool includeProperties = !instruction.isolateSecondarySettings;
+            bool includeOverrides = !instruction.isolateSecondarySettings;
+
             foreach (var mechanicName in instruction.secondary)
             {
                 if (string.IsNullOrWhiteSpace(mechanicName))
                     continue;
 
-                var props = LoadAndMergeJsonSettings(mechanicName);
-                var overrides = LoadKvpArrayForMechanic(mechanicName, "MechanicOverrides");
+                Dictionary<string, object> props = null;
+                Dictionary<string, object> overrides = null;
+
+                if (includeProperties)
+                    props = LoadAndMergeJsonSettings(mechanicName);
+                if (includeOverrides)
+                    overrides = LoadKvpArrayForMechanic(mechanicName, "MechanicOverrides");
                 list.Add(
                     new SecondaryMechanicSettings
                     {

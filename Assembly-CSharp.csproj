@@ -54,6 +54,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/PayloadTriggerRelay.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/RippleOnHit/RippleOnHitMechanic.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerController2D.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalogInitializer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
@@ -85,6 +86,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanicOld.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicJsonProjectProvider.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Purity/Regeneration/RegenerationMechanic.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/DeviceUtil.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Mob/DamageOverTimeController.cs" />
@@ -203,6 +205,7 @@
     <Compile Include="Assets/Scripts/Game Scripts/PrefabSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Strategies/IPrimaryStrategy.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/ScoreUI.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Managers/JwtManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Builders/DestroyOnHitHelper.cs" />
     <Compile Include="Assets/Scripts/Pickups/PrefabSpawner.cs" />
@@ -230,6 +233,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IItemSelectionProvider.cs" />
     <Compile Include="Assets/Scripts/Auth/LogoutScript.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamMechanicSettings.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionBuilder.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/ModifierReceiverInterfaces.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Spawn Resolvers/ChaosSpawnPosition.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/DropdownSample.cs" />

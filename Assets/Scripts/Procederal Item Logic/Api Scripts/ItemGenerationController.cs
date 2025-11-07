@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Game.Procederal;
 using Game.Procederal.Api;
+using Newtonsoft.Json;
 using UnityEngine;
 
 [Serializable]
@@ -163,8 +165,7 @@ public class ItemGenerationController : MonoBehaviour
                     $"[ItemGenerationController] Online selection => primary={instr.primary} secondary=[{string.Join(",", instr.secondary ?? new System.Collections.Generic.List<string>())}]"
                 );
         }
-
-        AppendDebugSecondary(instr);
+        AppendDebugSecondary(instr, ref parms);
 
         if (parms == null)
             parms = new ItemParams();
@@ -196,13 +197,16 @@ public class ItemGenerationController : MonoBehaviour
             );
     }
 
-    private void AppendDebugSecondary(ItemInstruction instr)
+    private void AppendDebugSecondary(ItemInstruction instr, ref ItemParams parms)
     {
         if (instr == null || debugSecondary == null || debugSecondary.Length == 0)
             return;
 
         if (instr.secondary == null)
             instr.secondary = new System.Collections.Generic.List<string>();
+
+        if (parms == null)
+            parms = new ItemParams();
 
         for (int i = 0; i < debugSecondary.Length; i++)
         {
@@ -211,8 +215,141 @@ public class ItemGenerationController : MonoBehaviour
                 continue;
 
             var trimmed = entry.Trim();
+            if (TryHandleSpawnItemsOnCondition(trimmed, parms))
+            {
+                if (!instr.secondary.Contains("SubItemsOnCondition"))
+                    instr.secondary.Add("SubItemsOnCondition");
+                continue;
+            }
+
             if (!instr.secondary.Contains(trimmed))
                 instr.secondary.Add(trimmed);
+        }
+    }
+
+    private static readonly string[] SpawnConditionKeys =
+    {
+        "spawnItemsOnCondition",
+        "SpawnItemsOnCondition",
+        "conditionSpec",
+        "spec",
+        "Spec",
+        "json",
+    };
+
+    private bool TryHandleSpawnItemsOnCondition(string raw, ItemParams parms)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || parms == null)
+            return false;
+
+        int arrayIndex = raw.IndexOf('[');
+        int objectIndex = raw.IndexOf('{');
+        int tokenIndex;
+        if (arrayIndex >= 0 && objectIndex >= 0)
+            tokenIndex = Math.Min(arrayIndex, objectIndex);
+        else if (arrayIndex >= 0)
+            tokenIndex = arrayIndex;
+        else
+            tokenIndex = objectIndex;
+
+        if (tokenIndex <= 0)
+            return false;
+
+        string keyword = raw.Substring(0, tokenIndex).Trim();
+        if (!MatchesSpawnConditionKeyword(keyword))
+            return false;
+
+        string payload = raw.Substring(tokenIndex).Trim();
+        if (string.IsNullOrWhiteSpace(payload))
+            return false;
+
+        try
+        {
+            if (payload.StartsWith("["))
+            {
+                var specs = JsonConvert.DeserializeObject<
+                    List<ItemParams.SpawnItemsOnConditionSpec>
+                >(payload);
+                AppendSpecs(specs, parms);
+                return specs != null && specs.Count > 0;
+            }
+
+            if (payload.StartsWith("{"))
+            {
+                var spec = JsonConvert.DeserializeObject<ItemParams.SpawnItemsOnConditionSpec>(
+                    payload
+                );
+                AppendSpecs(
+                    spec != null ? new List<ItemParams.SpawnItemsOnConditionSpec> { spec } : null,
+                    parms
+                );
+                return spec != null;
+            }
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogWarning(
+                $"[ItemGenerationController] Failed to parse spawnItemsOnCondition JSON: {ex.Message}\nInput: {payload}"
+            );
+        }
+
+        return false;
+    }
+
+    private static bool MatchesSpawnConditionKeyword(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        foreach (var key in SpawnConditionKeys)
+        {
+            if (string.Equals(value, key, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static void AppendSpecs(
+        List<ItemParams.SpawnItemsOnConditionSpec> specs,
+        ItemParams parms
+    )
+    {
+        if (specs == null || specs.Count == 0 || parms == null)
+            return;
+
+        if (parms.spawnItemsOnConditions == null)
+            parms.spawnItemsOnConditions = new List<ItemParams.SpawnItemsOnConditionSpec>();
+
+        foreach (var spec in specs)
+        {
+            if (spec == null)
+                continue;
+
+            NormalizeSpec(spec);
+            parms.spawnItemsOnConditions.Add(spec);
+        }
+    }
+
+    private static void NormalizeSpec(ItemParams.SpawnItemsOnConditionSpec spec)
+    {
+        if (spec == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(spec.primary))
+            spec.primary = "Projectile";
+        if (string.IsNullOrWhiteSpace(spec.condition))
+            spec.condition = "mobContact";
+        spec.spawnCount = Mathf.Max(1, spec.spawnCount);
+        spec.cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds);
+
+        if (spec.secondary == null)
+            spec.secondary = new List<string>();
+
+        for (int i = spec.secondary.Count - 1; i >= 0; i--)
+        {
+            if (string.IsNullOrWhiteSpace(spec.secondary[i]))
+                spec.secondary.RemoveAt(i);
+            else
+                spec.secondary[i] = spec.secondary[i].Trim();
         }
     }
 }

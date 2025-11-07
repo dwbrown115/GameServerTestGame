@@ -235,13 +235,7 @@ namespace Game.Procederal.Core.Builders
                 Parent = root.transform,
                 Layer = root.layer,
                 LocalScale = Vector3.one,
-                Visual = new UnifiedChildBuilder.SpriteSpec
-                {
-                    Enabled = showViz,
-                    SpriteType = showViz ? spriteType : null,
-                    Color = vizColor,
-                    SortingOrder = sortingOrder,
-                },
+                // DamageZoneMechanic creates its own visualization child so the sprite rides with the detached payload.
                 Collider = new UnifiedChildBuilder.ColliderSpec
                 {
                     Enabled = createCollider,
