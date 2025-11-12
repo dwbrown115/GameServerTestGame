@@ -53,11 +53,28 @@ namespace Game.Procederal.Core
 
     internal sealed class DefaultItemObjectFactory : IItemObjectFactory
     {
+        private readonly Dictionary<string, Stack<GameObject>> _pool = new(
+            StringComparer.OrdinalIgnoreCase
+        );
+
         public GameObject Acquire(string key, Transform parent, bool worldPositionStays = false)
         {
-            var go = new GameObject(string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key);
-            if (parent != null)
-                go.transform.SetParent(parent, worldPositionStays);
+            key = NormalizeKey(key);
+            if (_pool.TryGetValue(key, out var stack))
+            {
+                while (stack.Count > 0)
+                {
+                    var candidate = stack.Pop();
+                    if (candidate == null)
+                        continue;
+
+                    PrepareInstance(candidate, parent, worldPositionStays, key);
+                    return candidate;
+                }
+            }
+
+            var go = new GameObject(key);
+            PrepareInstance(go, parent, worldPositionStays, key);
             return go;
         }
 
@@ -65,8 +82,93 @@ namespace Game.Procederal.Core
         {
             if (instance == null)
                 return;
-            UnityEngine.Object.Destroy(instance);
+
+            var key = NormalizeKey(instance.name);
+            CleanupInstance(instance);
+            instance.transform.SetParent(GetPoolRoot(), worldPositionStays: false);
+            instance.SetActive(false);
+            GetStack(key).Push(instance);
         }
+
+        private static string NormalizeKey(string key)
+        {
+            return string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key;
+        }
+
+        private void PrepareInstance(
+            GameObject instance,
+            Transform parent,
+            bool worldPositionStays,
+            string key
+        )
+        {
+            instance.name = key;
+            if (parent != null)
+                instance.transform.SetParent(parent, worldPositionStays);
+            else
+                instance.transform.SetParent(null, false);
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale = Vector3.one;
+            instance.SetActive(true);
+        }
+
+        private void CleanupInstance(GameObject instance)
+        {
+            var components = instance.GetComponents<Component>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                var comp = components[i];
+                if (comp == null || comp is Transform)
+                    continue;
+
+                if (comp is IPooledPayloadResettable resettable)
+                {
+                    resettable.ResetForPool();
+                    continue;
+                }
+
+                if (Application.isPlaying)
+                    UnityEngine.Object.Destroy(comp);
+                else
+                    UnityEngine.Object.DestroyImmediate(comp);
+            }
+
+            for (int i = instance.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = instance.transform.GetChild(i);
+                if (child == null)
+                    continue;
+                if (Application.isPlaying)
+                    UnityEngine.Object.Destroy(child.gameObject);
+                else
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
+        private Stack<GameObject> GetStack(string key)
+        {
+            if (!_pool.TryGetValue(key, out var stack))
+            {
+                stack = new Stack<GameObject>();
+                _pool[key] = stack;
+            }
+            return stack;
+        }
+
+        private static Transform GetPoolRoot()
+        {
+            if (_poolRoot == null)
+            {
+                var go = new GameObject("_ProcederalGeneratorPool");
+                go.hideFlags = HideFlags.HideAndDontSave;
+                UnityEngine.Object.DontDestroyOnLoad(go);
+                _poolRoot = go.transform;
+            }
+            return _poolRoot;
+        }
+
+        private static Transform _poolRoot;
     }
 
     /// Simple per-name pooling behaviour that can be dropped into a scene and assigned to the generator.

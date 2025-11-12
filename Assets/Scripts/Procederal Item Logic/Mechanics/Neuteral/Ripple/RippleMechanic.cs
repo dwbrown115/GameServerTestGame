@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -80,7 +81,7 @@ namespace Mechanics.Neuteral
             DoOnTouchDamage();
             if (n >= 1f)
             {
-                Destroy(gameObject);
+                MechanicLifecycleUtility.Release(gameObject);
             }
         }
 

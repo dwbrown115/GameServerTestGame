@@ -55,6 +55,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/RippleOnHit/RippleOnHitMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionMechanicSettings.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/GeneratedObjectHandle.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerController2D.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalogInitializer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/EnvMapAnimator.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/Drain/DrainModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Track/TrackModifierStrategy.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/SecondaryMechanicSettingDescriptor.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Projectile/ProjectileMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/IsNumberValid.cs" />
     <Compile Include="Assets/Scripts/Managers/WebsocketManager.cs" />
@@ -254,6 +256,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/MechanicReflection.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Aura/AuraMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Mob/MobHealth.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicLifecycleUtility.cs" />
     <Compile Include="Assets/Scripts/Managers/GlobalCertificateManager.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TextConsoleSimulator.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/Drain/DrainMechanicSettings.cs" />

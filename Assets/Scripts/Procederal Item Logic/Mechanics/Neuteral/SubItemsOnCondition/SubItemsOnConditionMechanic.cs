@@ -56,16 +56,44 @@ namespace Mechanics.Neuteral
         [SerializeField]
         private bool _debugLogs = false;
 
+        [SerializeField]
+        private bool _logRuleEvaluations = false;
+
+        [SerializeField]
+        private bool _logRuleSkips = false;
+
         private readonly List<RuleRuntime> _runtimeStates = new List<RuleRuntime>();
         private readonly HashSet<Collider2D> _activeMobColliders = new HashSet<Collider2D>();
 
         private MechanicContext _ctx;
         private ProcederalItemGenerator _generator;
 
+        private void OnEnable()
+        {
+            ResetRuntimeStates();
+        }
+
+        private void OnDisable()
+        {
+            _activeMobColliders.Clear();
+        }
+
         public bool debugLogs
         {
             get => _debugLogs;
             set => _debugLogs = value;
+        }
+
+        public bool logRuleEvaluations
+        {
+            get => _logRuleEvaluations;
+            set => _logRuleEvaluations = value;
+        }
+
+        public bool logRuleSkips
+        {
+            get => _logRuleSkips;
+            set => _logRuleSkips = value;
         }
 
         public void Initialize(MechanicContext ctx)
@@ -85,7 +113,7 @@ namespace Mechanics.Neuteral
         public void ClearRules()
         {
             _rules.Clear();
-            _runtimeStates.Clear();
+            ResetRuntimeStates();
         }
 
         public void AddRule(Rule rule)
@@ -261,40 +289,88 @@ namespace Mechanics.Neuteral
                     _runtimeStates.Add(new RuleRuntime());
 
                 var state = _runtimeStates[i];
+                LogRuleEvaluation(
+                    i,
+                    rule,
+                    $"Evaluating condition {condition} at time {now:F2} (spawnOnce={rule.spawnOnce}, cooldown={rule.cooldownSeconds:F2}s)."
+                );
                 if (rule.spawnOnce && state.hasTriggered)
+                {
+                    LogRuleSkip(i, rule, "spawnOnce already triggered; skipping.");
                     continue;
+                }
                 if (state.nextAllowedTime > 0f && now < state.nextAllowedTime)
+                {
+                    LogRuleSkip(
+                        i,
+                        rule,
+                        $"cooldown active (nextAllowed={state.nextAllowedTime:F2}, now={now:F2})."
+                    );
                     continue;
+                }
 
-                bool spawned = SpawnFromRule(rule, spawnPos, spawnTarget);
+                bool spawned = SpawnFromRule(rule, spawnPos, spawnTarget, i);
                 if (spawned)
                 {
                     state.hasTriggered = state.hasTriggered || rule.spawnOnce;
                     state.nextAllowedTime =
                         rule.cooldownSeconds > 0f ? now + rule.cooldownSeconds : 0f;
                     _runtimeStates[i] = state;
+                    if (rule.cooldownSeconds > 0f)
+                    {
+                        LogRuleEvaluation(
+                            i,
+                            rule,
+                            $"Cooldown set. nextAllowed={state.nextAllowedTime:F2}."
+                        );
+                    }
+                    if (rule.spawnOnce)
+                    {
+                        LogRuleEvaluation(i, rule, "Marked as triggered (spawnOnce).");
+                    }
                 }
             }
         }
 
-        private bool SpawnFromRule(Rule rule, Vector3 spawnPos, Transform spawnTarget)
+        private bool SpawnFromRule(
+            Rule rule,
+            Vector3 spawnPos,
+            Transform spawnTarget,
+            int ruleIndex
+        )
         {
-            if (!MatchesTarget(rule.target, spawnTarget))
+            if (rule == null)
                 return false;
+
+            if (!MatchesTarget(rule.target, spawnTarget))
+            {
+                LogRuleSkip(
+                    ruleIndex,
+                    rule,
+                    $"target mismatch (expected {rule.target}, actual={FormatTarget(spawnTarget)})."
+                );
+                return false;
+            }
 
             var generator = ResolveGenerator();
             if (generator == null)
             {
-                if (_debugLogs || (rule != null && rule.debugLogs))
+                LogRuleSkip(ruleIndex, rule, "No ProcederalItemGenerator assigned.");
+                if (_debugLogs || rule.debugLogs)
+                {
                     Debug.LogWarning(
                         "[SubItemsOnCondition] No ProcederalItemGenerator assigned; cannot spawn.",
                         this
                     );
+                }
                 return false;
             }
 
-            if (rule == null || string.IsNullOrWhiteSpace(rule.primary))
+            if (string.IsNullOrWhiteSpace(rule.primary))
+            {
+                LogRuleSkip(ruleIndex, rule, "Primary mechanic name missing.");
                 return false;
+            }
 
             Vector3 spawnAnchor = spawnPos;
             if (spawnTarget != null)
@@ -304,9 +380,9 @@ namespace Mechanics.Neuteral
                 spawnAnchor.y = targetPos.y;
             }
 
-            int count = Mathf.Max(1, rule.spawnCount);
-            bool anySpawned = false;
-            for (int i = 0; i < count; i++)
+            int attempts = Mathf.Max(1, rule.spawnCount);
+            int spawnedCount = 0;
+            for (int i = 0; i < attempts; i++)
             {
                 var instruction = new ItemInstruction
                 {
@@ -321,7 +397,10 @@ namespace Mechanics.Neuteral
 
                 var spawned = generator.Create(instruction, parms, transform, spawnAnchor);
                 if (spawned == null)
+                {
+                    LogRuleSkip(ruleIndex, rule, "Generator returned null instance.");
                     continue;
+                }
 
                 if (spawned.transform.parent == transform)
                     spawned.transform.SetParent(null, worldPositionStays: true);
@@ -335,18 +414,21 @@ namespace Mechanics.Neuteral
                     intervalSpawner.parentSpawnedToSpawner = false;
                 }
 
-                anySpawned = true;
+                spawnedCount++;
             }
 
-            if ((_debugLogs || (rule != null && rule.debugLogs)) && anySpawned)
+            if (spawnedCount > 0)
             {
-                Debug.Log(
-                    $"[SubItemsOnCondition] Spawned {count} item(s) via rule (primary={rule.primary}).",
-                    this
+                LogRuleEvaluation(
+                    ruleIndex,
+                    rule,
+                    $"Spawned {spawnedCount} item(s) at {spawnAnchor}."
                 );
+                return true;
             }
 
-            return anySpawned;
+            LogRuleSkip(ruleIndex, rule, "Generator produced no payloads.");
+            return false;
         }
 
         private Vector3 ResolveSpawnPosition(Collider2D other)
@@ -365,6 +447,41 @@ namespace Mechanics.Neuteral
 
             var boundsPoint = other.bounds.ClosestPoint(fallback);
             return new Vector3(boundsPoint.x, boundsPoint.y, fallback.z);
+        }
+
+        private void LogRuleEvaluation(int ruleIndex, Rule rule, string message)
+        {
+            if (!ShouldLogRuleEvaluation(rule))
+                return;
+            Debug.Log(
+                $"[SubItemsOnCondition] Rule#{ruleIndex} ({rule?.primary ?? "<null>"}): {message}",
+                this
+            );
+        }
+
+        private void LogRuleSkip(int ruleIndex, Rule rule, string reason)
+        {
+            if (!ShouldLogRuleSkip(rule))
+                return;
+            Debug.Log(
+                $"[SubItemsOnCondition] Rule#{ruleIndex} ({rule?.primary ?? "<null>"}) skipped: {reason}",
+                this
+            );
+        }
+
+        private bool ShouldLogRuleEvaluation(Rule rule)
+        {
+            return _logRuleEvaluations || _debugLogs || (rule != null && rule.debugLogs);
+        }
+
+        private bool ShouldLogRuleSkip(Rule rule)
+        {
+            return _logRuleSkips || _debugLogs || (rule != null && rule.debugLogs);
+        }
+
+        private static string FormatTarget(Transform t)
+        {
+            return t != null ? t.name : "<null>";
         }
 
         public void OnPrimaryHit(in PrimaryHitInfo info)
@@ -403,6 +520,12 @@ namespace Mechanics.Neuteral
                     return true;
             }
             return false;
+        }
+
+        private void ResetRuntimeStates()
+        {
+            _runtimeStates.Clear();
+            _activeMobColliders.Clear();
         }
 
         private static bool HasMobTag(Transform t)

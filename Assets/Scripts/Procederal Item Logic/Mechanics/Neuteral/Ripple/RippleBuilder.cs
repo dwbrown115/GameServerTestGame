@@ -105,6 +105,64 @@ namespace Game.Procederal.Core.Builders
                 spawner.debugLogs = p.debugLogs || gen.debugLogs;
                 spawner.parentSpawnedToSpawner = !shouldDetachChildren;
 
+                int configuredBursts = MechanicSettingNormalizer.Int(rippleJson, "maxBursts", 0);
+                spawner.maxBursts = configuredBursts < 0 ? 0 : configuredBursts;
+
+                spawner.ignoreMaxBurstLimit = MechanicSettingNormalizer.Bool(
+                    rippleJson,
+                    "ignoreMaxBurstLimit",
+                    false
+                );
+
+                spawner.enableSelfDestruct = MechanicSettingNormalizer.Bool(
+                    rippleJson,
+                    "enableSelfDestruct",
+                    true
+                );
+
+                float defaultFallback = growDuration;
+                int burstsForFallback = spawner.maxBursts > 0 ? spawner.maxBursts : 1;
+                float totalInterval =
+                    Mathf.Max(0f, spawner.interval) * Mathf.Max(0, burstsForFallback - 1);
+                float lingerSeconds = MechanicSettingNormalizer.Duration(
+                    rippleJson,
+                    "lingerSeconds",
+                    0.35f
+                );
+                defaultFallback = Mathf.Max(0.1f, defaultFallback + totalInterval + lingerSeconds);
+
+                float configuredFallback = MechanicSettingNormalizer.Duration(
+                    rippleJson,
+                    "fallbackSelfDestructSeconds",
+                    -1f
+                );
+                spawner.fallbackSelfDestructSeconds =
+                    configuredFallback >= 0f
+                        ? Mathf.Max(0.1f, configuredFallback)
+                        : defaultFallback;
+
+                float configuredSelfDestruct = MechanicSettingNormalizer.Duration(
+                    rippleJson,
+                    "selfDestructAfterSeconds",
+                    -1f
+                );
+                if (spawner.enableSelfDestruct && configuredSelfDestruct >= 0f)
+                {
+                    spawner.selfDestructAfterSeconds = configuredSelfDestruct;
+                }
+                else if (
+                    spawner.enableSelfDestruct
+                    && !spawner.ignoreMaxBurstLimit
+                    && spawner.maxBursts > 0
+                )
+                {
+                    spawner.selfDestructAfterSeconds = spawner.fallbackSelfDestructSeconds;
+                }
+                else
+                {
+                    spawner.selfDestructAfterSeconds = -1f;
+                }
+
                 if (gen.autoApplyCompatibleModifiers)
                     gen.ForwardModifiersToSpawner(spawner, instruction, p);
 

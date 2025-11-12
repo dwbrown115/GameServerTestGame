@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Procederal.Api;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Chaos
@@ -184,7 +185,7 @@ namespace Mechanics.Chaos
                         $"[RippleOnHit] Registering ripple instance with runner={runner.name} parent={(chosenParent != null ? chosenParent.name : "null")}",
                         this
                     );
-                runner.RegisterTree(runner.transform);
+                runner.RegisterTree(go.transform);
             }
             else if (traceLifecycle)
             {
@@ -374,7 +375,7 @@ namespace Mechanics.Chaos
                             "[RippleOnHit:Instance] growDuration too small, auto-destroy",
                             this
                         );
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
                     return;
                 }
                 if (_t <= 0f)
@@ -413,7 +414,7 @@ namespace Mechanics.Chaos
                 {
                     if (debugLogs)
                         Debug.Log("[RippleOnHit:Instance] Completed growth; destroying", this);
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
                 }
             }
 

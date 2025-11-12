@@ -3,11 +3,15 @@
   "MechanicCategory": "Primary",
   "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleMechanic.cs",
   "Generator": [
-    { "AllowMultiple": false },
+    { "AllowMultiple": true },
     { "spawnBehavior": "interval" },
     { "childrenToSpawn": 1 },
     { "spawnInterval": 0.6 },
-    { "immediateFirstBurst": false }
+    { "immediateFirstBurst": false },
+    { "maxBursts": 3 },
+    { "ignoreMaxBurstLimit": false },
+    { "enableSelfDestruct": true },
+    { "fallbackSelfDestructSeconds": 1.2 }
   ],
   "Properties": [
     { "DestroyOnHit": false },

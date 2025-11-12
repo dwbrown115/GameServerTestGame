@@ -566,6 +566,11 @@ namespace Game.Procederal
             t.localScale = Vector3.one;
             go.SetActive(true);
 
+            var handle = go.GetComponent<GeneratedObjectHandle>();
+            if (handle == null)
+                handle = go.AddComponent<GeneratedObjectHandle>();
+            handle.Initialize(this, key);
+
             return go;
         }
 
