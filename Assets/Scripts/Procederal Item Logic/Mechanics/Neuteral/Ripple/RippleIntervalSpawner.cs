@@ -297,7 +297,7 @@ namespace Game.Procederal.Api
             if (generator != null)
                 generator.ReleaseTree(gameObject);
             else
-                Destroy(gameObject);
+                MechanicLifecycleUtility.Release(gameObject);
         }
 
         private void TrackSpawnedInstance(GameObject go)

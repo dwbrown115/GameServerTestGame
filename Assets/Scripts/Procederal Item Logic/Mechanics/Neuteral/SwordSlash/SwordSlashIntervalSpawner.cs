@@ -251,7 +251,7 @@ namespace Game.Procederal.Api
             {
                 _t += Time.deltaTime;
                 if (_t >= seconds)
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using Game.Procederal.Core;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -187,7 +188,7 @@ namespace Mechanics.Neuteral
                 gameObject.SetActive(false);
 
             if (destroyOnDepleted && gameObject != null)
-                Destroy(gameObject);
+                MechanicLifecycleUtility.Release(gameObject);
         }
 
         private void DispatchDepletedMessage(Vector2 hitPoint, Vector2 hitNormal)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Procederal;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -323,7 +324,7 @@ namespace Game.Procederal.Api
                 if (_t >= seconds)
                 {
                     onDestroyed?.Invoke();
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
                 }
             }
         }

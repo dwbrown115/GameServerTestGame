@@ -536,14 +536,16 @@ namespace Game.Procederal
         private GameObject AcquireObject(
             string key,
             Transform parent,
-            bool worldPositionStays = false
+            bool worldPositionStays = false,
+            string displayName = null
         )
         {
+            string effectiveKey = string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key;
             var factory = GetObjectFactory();
-            var go = factory?.Acquire(key, parent, worldPositionStays);
+            var go = factory?.Acquire(effectiveKey, parent, worldPositionStays);
             if (go == null)
             {
-                go = new GameObject(string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key);
+                go = new GameObject(effectiveKey);
                 if (parent != null)
                     go.transform.SetParent(parent, worldPositionStays);
             }
@@ -556,8 +558,17 @@ namespace Game.Procederal
                 go.transform.SetParent(null, false);
             }
 
-            go.name = string.IsNullOrWhiteSpace(key) ? go.name : key;
             ResetReusableObject(go);
+
+            var handle = go.GetComponent<GeneratedObjectHandle>();
+            if (handle == null)
+                handle = go.AddComponent<GeneratedObjectHandle>();
+            handle.Initialize(this, effectiveKey);
+
+            string resolvedName = !string.IsNullOrWhiteSpace(displayName)
+                ? displayName
+                : effectiveKey;
+            go.name = resolvedName;
 
             var t = go.transform;
             if (!worldPositionStays)
@@ -565,11 +576,6 @@ namespace Game.Procederal
             t.localRotation = Quaternion.identity;
             t.localScale = Vector3.one;
             go.SetActive(true);
-
-            var handle = go.GetComponent<GeneratedObjectHandle>();
-            if (handle == null)
-                handle = go.AddComponent<GeneratedObjectHandle>();
-            handle.Initialize(this, key);
 
             return go;
         }
@@ -801,9 +807,14 @@ namespace Game.Procederal
 
             var parentTransform =
                 parent != null ? parent : (defaultParent != null ? defaultParent : transform);
-            string baseName = BuildMechanicDumpBaseName(instruction);
-            var root = AcquireObject("GeneratedItem", parentTransform);
-            root.name = baseName;
+            string poolKey = BuildMechanicPoolKey(instruction);
+            string displayName = BuildMechanicDumpBaseName(instruction);
+            var root = AcquireObject(
+                poolKey,
+                parentTransform,
+                worldPositionStays: false,
+                displayName
+            );
             if (root == null)
             {
                 Log("Failed to acquire root GameObject for generated item.");
@@ -842,7 +853,7 @@ namespace Game.Procederal
                 runner.debugLogs = debugLogs;
                 runner.RegisterTree(root.transform);
 
-                TryWriteMechanicDump(root, instruction, baseName);
+                TryWriteMechanicDump(root, instruction, displayName);
             }
             finally
             {
@@ -1784,6 +1795,31 @@ namespace Game.Procederal
             }
 
             sb.Append('"');
+        }
+
+        private string BuildMechanicPoolKey(ItemInstruction instruction)
+        {
+            if (instruction == null)
+                return "GeneratedItem";
+
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(instruction.primary))
+                parts.Add(instruction.primary);
+
+            if (instruction.secondary != null && instruction.secondary.Count > 0)
+            {
+                for (int i = 0; i < instruction.secondary.Count; i++)
+                {
+                    string secondary = instruction.secondary[i];
+                    if (!string.IsNullOrWhiteSpace(secondary))
+                        parts.Add(secondary);
+                }
+            }
+
+            if (parts.Count == 0)
+                return "GeneratedItem";
+
+            return string.Join("_", parts.Select(SanitizeForFileName));
         }
 
         private string BuildMechanicDumpBaseName(ItemInstruction instruction)

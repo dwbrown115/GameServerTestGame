@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Chaos
@@ -41,9 +42,9 @@ namespace Mechanics.Chaos
                 if (debugLogs)
                     Debug.Log("[Bounce] Auto-destroy by idle lifetime", this);
                 if (_ctx?.Payload != null)
-                    Destroy(_ctx.Payload.gameObject);
+                    MechanicLifecycleUtility.Release(_ctx.Payload.gameObject);
                 else
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
             }
         }
 

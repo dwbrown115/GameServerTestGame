@@ -165,7 +165,7 @@ namespace Mechanics.Neuteral
             {
                 _t += Time.deltaTime;
                 if (_t >= seconds)
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
             }
         }
     }

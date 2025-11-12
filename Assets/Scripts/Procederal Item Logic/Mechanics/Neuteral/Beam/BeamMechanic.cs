@@ -251,10 +251,10 @@ namespace Mechanics.Neuteral
                 // Ensure no stray circle collider on root (Beam_Spawned) or hit root when anchored mode (head collider not needed)
                 var strayRoot = GetComponent<CircleCollider2D>();
                 if (strayRoot != null)
-                    Destroy(strayRoot);
+                    MechanicLifecycleUtility.Release(strayRoot);
                 var strayHit = _hitRoot.GetComponent<CircleCollider2D>();
                 if (strayHit != null)
-                    Destroy(strayHit);
+                    MechanicLifecycleUtility.Release(strayHit);
             }
 
             _filter = new ContactFilter2D
@@ -450,7 +450,7 @@ namespace Mechanics.Neuteral
                                     "[BeamMechanic] External redirect decision -> destroy",
                                     this
                                 );
-                            Destroy(gameObject);
+                            MechanicLifecycleUtility.Release(gameObject);
                             return;
                         }
                         // Apply new direction; optionally spawn a new segment if requested.
@@ -474,7 +474,7 @@ namespace Mechanics.Neuteral
                 {
                     if (debugLogs)
                         Debug.Log("[BeamMechanic] Lifetime expired -> destroy", this);
-                    Destroy(gameObject);
+                    MechanicLifecycleUtility.Release(gameObject);
                     return;
                 }
                 else if (debugLogs && _lifeTimer < dt * 1.5f) // first frame diagnostic
@@ -1205,12 +1205,12 @@ namespace Mechanics.Neuteral
                 _tailLine = null;
                 if (go != null)
                 {
-                    Destroy(go);
+                    MechanicLifecycleUtility.Release(go);
                 }
             }
             if (_tailParent != null)
             {
-                Destroy(_tailParent.gameObject);
+                MechanicLifecycleUtility.Release(_tailParent.gameObject);
                 _tailSegments.Clear();
                 _activeSegment = null;
             }
@@ -1235,7 +1235,7 @@ namespace Mechanics.Neuteral
                 // Clear any existing children
                 for (int i = _tailParent.childCount - 1; i >= 0; i--)
                 {
-                    Destroy(_tailParent.GetChild(i).gameObject);
+                    MechanicLifecycleUtility.Release(_tailParent.GetChild(i).gameObject);
                 }
                 _tailSegments.Clear();
             }

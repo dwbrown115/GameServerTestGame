@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -324,7 +325,10 @@ namespace Mechanics.Neuteral
                             {
                                 if (debugLogs)
                                     Debug.Log("[ProjectileMechanic] Bounce decided destroy", this);
-                                Object.Destroy(_ctx.Payload.gameObject);
+                                MechanicLifecycleUtility.Release(
+                                    _ctx.Payload.gameObject,
+                                    immediate: false
+                                );
                             }
                         }
                         else
@@ -345,7 +349,7 @@ namespace Mechanics.Neuteral
                                 "[ProjectileMechanic] Destroying payload on hit (destroyOnHit=true)",
                                 this
                             );
-                        Object.Destroy(_ctx.Payload.gameObject);
+                        MechanicLifecycleUtility.Release(_ctx.Payload.gameObject, immediate: false);
                     }
                     else if (debugLogs)
                     {

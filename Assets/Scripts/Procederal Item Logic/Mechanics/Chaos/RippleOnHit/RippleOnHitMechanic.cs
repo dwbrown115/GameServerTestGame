@@ -129,8 +129,17 @@ namespace Mechanics.Chaos
 
         private void SpawnRippleChain(Vector2 center, Transform excludeTransform, int remaining)
         {
-            var go = new GameObject("RippleChainInstance");
+            // Determine parent first, then acquire a reusable ripple instance from the item object factory so we can pool it.
             Transform chosenParent = transform;
+            if (parentToTarget && excludeTransform != null)
+            {
+                chosenParent = excludeTransform;
+            }
+            var go = Game.Procederal.Core.ItemObjectFactoryLocator.Factory.Acquire(
+                "RippleChainInstance",
+                chosenParent,
+                worldPositionStays: true
+            );
             if (parentToTarget && excludeTransform != null)
             {
                 chosenParent = excludeTransform;
@@ -144,7 +153,10 @@ namespace Mechanics.Chaos
             }
             go.transform.position = spawnCenter;
             go.layer = gameObject.layer;
-            var inst = go.AddComponent<RippleChainInstance>();
+            // Prefer to reuse existing instance component if present.
+            var inst = go.GetComponent<RippleChainInstance>();
+            if (inst == null)
+                inst = go.AddComponent<RippleChainInstance>();
             // Configure
             inst.parent = this;
             inst.owner = _ctx != null ? _ctx.Owner : null;
@@ -292,7 +304,10 @@ namespace Mechanics.Chaos
         }
 
         // Lightweight inner worker that behaves similarly to RippleMechanic but also calls back to parent
-        private class RippleChainInstance : MonoBehaviour, IMechanic
+        private class RippleChainInstance
+            : MonoBehaviour,
+                IMechanic,
+                Game.Procederal.Core.IPooledPayloadResettable
         {
             [HideInInspector]
             public RippleOnHitMechanic parent;
@@ -365,6 +380,25 @@ namespace Mechanics.Chaos
             ) { /* not required */
             }
 
+            public void ResetForPool()
+            {
+                _t = 0f;
+                _radius = Mathf.Max(0f, startRadius);
+                _hit.Clear();
+                _chained = false;
+                _selfTick = false;
+                // reset visual components
+                if (_line != null)
+                    _line.positionCount = 0;
+                if (_spriteRing != null)
+                    _spriteRing.enabled = false;
+
+                // clear refs
+                parent = null;
+                owner = null;
+                excludeTransform = null;
+            }
+
             public void Tick(float dt)
             {
                 // Manual update via runner's Tick
@@ -375,14 +409,20 @@ namespace Mechanics.Chaos
                             "[RippleOnHit:Instance] growDuration too small, auto-destroy",
                             this
                         );
-                    MechanicLifecycleUtility.Release(gameObject);
+                    Game.Procederal.Core.ItemObjectFactoryLocator.Factory.Release(gameObject);
                     return;
                 }
                 if (_t <= 0f)
                 {
                     _radius = Mathf.Max(0f, startRadius);
                     if (showVisualization)
+                    {
                         EnsureViz();
+                        if (_line != null)
+                            _line.enabled = true;
+                        if (_spriteRing != null)
+                            _spriteRing.enabled = true;
+                    }
                     UpdateViz();
                     if (debugLogs)
                         Debug.Log(
@@ -414,7 +454,7 @@ namespace Mechanics.Chaos
                 {
                     if (debugLogs)
                         Debug.Log("[RippleOnHit:Instance] Completed growth; destroying", this);
-                    MechanicLifecycleUtility.Release(gameObject);
+                    Game.Procederal.Core.ItemObjectFactoryLocator.Factory.Release(gameObject);
                 }
             }
 

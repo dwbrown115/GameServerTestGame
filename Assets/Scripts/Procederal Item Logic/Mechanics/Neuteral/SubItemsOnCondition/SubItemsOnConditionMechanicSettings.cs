@@ -57,10 +57,16 @@ namespace Mechanics.Neuteral
             if (settings == null)
                 return result;
 
+            var processed = new HashSet<object>();
             foreach (var key in SpecKeys)
             {
-                if (settings.TryGetValue(key, out var raw))
-                    AppendSpecsFromRaw(raw, result);
+                if (!settings.TryGetValue(key, out var raw) || raw == null)
+                    continue;
+
+                if (!processed.Add(raw))
+                    continue;
+
+                AppendSpecsFromRaw(raw, result);
             }
 
             if (result.Count == 0)

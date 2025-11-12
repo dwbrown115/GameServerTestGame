@@ -6,7 +6,10 @@ namespace Mechanics.Neuteral
 {
     /// Expanding circular outline (ring) that damages once when it touches a mob.
     [DisallowMultipleComponent]
-    public class RippleMechanic : MonoBehaviour, IMechanic
+    public class RippleMechanic
+        : MonoBehaviour,
+            IMechanic,
+            Game.Procederal.Core.IPooledPayloadResettable
     {
         [Header("Ripple Shape & Motion")]
         [Tooltip("Starting radius of the ring (world units) from the center (owner/target).")]
@@ -64,8 +67,36 @@ namespace Mechanics.Neuteral
             _radius = Mathf.Max(0f, startRadius);
             _endRadius = Mathf.Max(0.0001f, endDiameter * 0.5f);
             if (showVisualization)
+            {
                 EnsureViz();
+                if (_vizRoot != null)
+                    _vizRoot.gameObject.SetActive(true);
+            }
             UpdateViz();
+        }
+
+        /// Called when the GameObject is returned to the pool. Reset runtime state so the instance
+        /// can be reused without stale data.
+        public void ResetForPool()
+        {
+            _t = 0f;
+            _radius = Mathf.Max(0f, startRadius);
+            _endRadius = Mathf.Max(0.0001f, endDiameter * 0.5f);
+            _hit.Clear();
+
+            // Reset visualization if present
+            if (_line != null)
+            {
+                _line.positionCount = 0;
+            }
+            if (_vizRoot != null)
+            {
+                _vizRoot.localPosition = Vector3.zero;
+                _vizRoot.gameObject.SetActive(false);
+            }
+
+            // Clear context reference to avoid accidental captures while pooled
+            _ctx = null;
         }
 
         public void Tick(float dt)

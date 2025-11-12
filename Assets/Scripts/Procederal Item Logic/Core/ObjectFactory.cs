@@ -26,6 +26,45 @@ namespace Game.Procederal.Core
         void ResetForPool();
     }
 
+    public interface IPooledItemDiagnostics
+    {
+        PoolStatisticsSnapshot GetStatistics(string key);
+        IEnumerable<PoolStatisticsSnapshot> GetAllStatistics();
+    }
+
+    public readonly struct PoolStatisticsSnapshot
+    {
+        public string Key { get; }
+        public int Active { get; }
+        public int Available { get; }
+        public int PeakActive { get; }
+        public int TotalCreated { get; }
+        public int TotalReused { get; }
+        public int TotalReturned { get; }
+        public int TotalDiscarded { get; }
+
+        internal PoolStatisticsSnapshot(
+            string key,
+            int active,
+            int available,
+            int peakActive,
+            int totalCreated,
+            int totalReused,
+            int totalReturned,
+            int totalDiscarded
+        )
+        {
+            Key = key;
+            Active = active;
+            Available = available;
+            PeakActive = peakActive;
+            TotalCreated = totalCreated;
+            TotalReused = totalReused;
+            TotalReturned = totalReturned;
+            TotalDiscarded = totalDiscarded;
+        }
+    }
+
     public static class ItemObjectFactoryLocator
     {
         private static IItemObjectFactory _factory;
@@ -51,15 +90,29 @@ namespace Game.Procederal.Core
         }
     }
 
-    internal sealed class DefaultItemObjectFactory : IItemObjectFactory
+    internal sealed class DefaultItemObjectFactory : IItemObjectFactory, IPooledItemDiagnostics
     {
         private readonly Dictionary<string, Stack<GameObject>> _pool = new(
             StringComparer.OrdinalIgnoreCase
         );
+        private readonly Dictionary<string, PoolStats> _stats = new(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        private sealed class PoolStats
+        {
+            public int Active;
+            public int PeakActive;
+            public int Created;
+            public int Reused;
+            public int Returned;
+            public int Discarded;
+        }
 
         public GameObject Acquire(string key, Transform parent, bool worldPositionStays = false)
         {
             key = NormalizeKey(key);
+            var stats = GetStats(key);
             if (_pool.TryGetValue(key, out var stack))
             {
                 while (stack.Count > 0)
@@ -68,13 +121,17 @@ namespace Game.Procederal.Core
                     if (candidate == null)
                         continue;
 
+                    stats.Reused++;
                     PrepareInstance(candidate, parent, worldPositionStays, key);
+                    RegisterBorrow(stats);
                     return candidate;
                 }
             }
 
             var go = new GameObject(key);
+            stats.Created++;
             PrepareInstance(go, parent, worldPositionStays, key);
+            RegisterBorrow(stats);
             return go;
         }
 
@@ -83,7 +140,17 @@ namespace Game.Procederal.Core
             if (instance == null)
                 return;
 
-            var key = NormalizeKey(instance.name);
+            string keySource = null;
+            var handle = instance.GetComponent<GeneratedObjectHandle>();
+            if (handle != null && !string.IsNullOrWhiteSpace(handle.Key))
+                keySource = handle.Key;
+
+            if (string.IsNullOrWhiteSpace(keySource))
+                keySource = instance.name;
+
+            var key = NormalizeKey(keySource);
+            var stats = GetStats(key);
+            RegisterReturn(stats);
             CleanupInstance(instance);
             instance.transform.SetParent(GetPoolRoot(), worldPositionStays: false);
             instance.SetActive(false);
@@ -168,6 +235,78 @@ namespace Game.Procederal.Core
             return _poolRoot;
         }
 
+        private PoolStats GetStats(string key)
+        {
+            if (!_stats.TryGetValue(key, out var stats))
+            {
+                stats = new PoolStats();
+                _stats[key] = stats;
+            }
+            return stats;
+        }
+
+        private static void RegisterBorrow(PoolStats stats)
+        {
+            if (stats == null)
+                return;
+            stats.Active++;
+            if (stats.Active > stats.PeakActive)
+                stats.PeakActive = stats.Active;
+        }
+
+        private static void RegisterReturn(PoolStats stats)
+        {
+            if (stats == null)
+                return;
+            stats.Returned++;
+            stats.Active = Mathf.Max(0, stats.Active - 1);
+        }
+
+        public PoolStatisticsSnapshot GetStatistics(string key)
+        {
+            key = NormalizeKey(key);
+            var stats = GetStats(key);
+            int available = _pool.TryGetValue(key, out var stack) ? stack.Count : 0;
+            return BuildSnapshot(key, stats, available);
+        }
+
+        public IEnumerable<PoolStatisticsSnapshot> GetAllStatistics()
+        {
+            var yielded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in _pool)
+            {
+                yielded.Add(kvp.Key);
+                yield return BuildSnapshot(kvp.Key, GetStats(kvp.Key), kvp.Value.Count);
+            }
+
+            foreach (var kvp in _stats)
+            {
+                if (yielded.Contains(kvp.Key))
+                    continue;
+                int available = _pool.TryGetValue(kvp.Key, out var stack) ? stack.Count : 0;
+                yield return BuildSnapshot(kvp.Key, kvp.Value, available);
+            }
+        }
+
+        private static PoolStatisticsSnapshot BuildSnapshot(
+            string key,
+            PoolStats stats,
+            int available
+        )
+        {
+            stats ??= new PoolStats();
+            return new PoolStatisticsSnapshot(
+                key,
+                stats.Active,
+                available,
+                stats.PeakActive,
+                stats.Created,
+                stats.Reused,
+                stats.Returned,
+                stats.Discarded
+            );
+        }
+
         private static Transform _poolRoot;
     }
 
@@ -228,7 +367,17 @@ namespace Game.Procederal.Core
             if (instance == null)
                 return;
 
-            var key = string.IsNullOrWhiteSpace(instance.name) ? "GeneratorItem" : instance.name;
+            string keySource = null;
+            var handle = instance.GetComponent<GeneratedObjectHandle>();
+            if (handle != null && !string.IsNullOrWhiteSpace(handle.Key))
+                keySource = handle.Key;
+
+            if (string.IsNullOrWhiteSpace(keySource))
+                keySource = string.IsNullOrWhiteSpace(instance.name)
+                    ? "GeneratorItem"
+                    : instance.name;
+
+            var key = keySource;
             var stack = GetStack(key);
             if (maxPerKey > 0 && stack.Count >= maxPerKey)
             {

@@ -1,3 +1,4 @@
+using Game.Procederal.Core;
 using Mechanics.Chaos;
 using Mechanics.Corruption;
 using Mechanics.Order;
@@ -265,7 +266,7 @@ namespace Mechanics.Neuteral
         protected void DestroySelf()
         {
             if (gameObject != null)
-                Destroy(gameObject);
+                MechanicLifecycleUtility.Release(gameObject);
         }
 
         protected void ForceDisableVisualization()
