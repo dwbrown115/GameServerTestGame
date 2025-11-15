@@ -10,7 +10,10 @@ namespace Game.Procederal.Api
     /// Payload mechanic name and settings are provided at runtime via SetPayloadSettings.
     /// Modifiers are forwarded via AddModifierSpec and applied to each spawned child.
     [DisallowMultipleComponent]
-    public class GenericIntervalSpawner : MonoBehaviour, IModifierReceiver, IModifierOwnerProvider
+    public partial class GenericIntervalSpawner
+        : MonoBehaviour,
+            IModifierReceiver,
+            IModifierOwnerProvider
     {
         [Header("Wiring")]
         public ProcederalItemGenerator generator;
@@ -43,6 +46,9 @@ namespace Game.Procederal.Api
         public string customSpritePath = null;
         public Color spriteColor = Color.white;
 
+        [Tooltip("Uniform scale applied to spawned payload shells (1 = original size).")]
+        public float spawnScale = 1f;
+
         [Header("Payload Shell")]
         [Tooltip("If false, skips adding a SpriteRenderer to spawned payload shells.")]
         public bool createSpriteRenderer = true;
@@ -70,6 +76,19 @@ namespace Game.Procederal.Api
         )]
         public bool autoDestroyPayloads = true;
 
+        [Header("Owner Collisions")]
+        [Tooltip("When true, spawned payload colliders will ignore the owner's colliders.")]
+        public bool ignoreCollisionsWithOwner = false;
+
+        [Header("Owner Modifiers")]
+        [Tooltip(
+            "If true, ensure an owner DrainMechanic exists so payloads can report damage drain."
+        )]
+        public bool applyDrain = false;
+
+        [Range(0f, 1f)]
+        public float drainLifeStealRatio = 0.5f;
+
         [Header("Duplicate Avoidance")]
         [Tooltip(
             "If true, skip spawning when an existing payload mechanic is already within duplicateCheckRadius of the owner."
@@ -85,6 +104,18 @@ namespace Game.Procederal.Api
             "Mechanic token checked when avoidDuplicateNearOwner is enabled (ex: DamageZone)."
         )]
         public string duplicateMechanicName = null;
+
+        [Header("Concurrency")]
+        [Tooltip("When true, enforce a maximum number of active payloads for this spawner.")]
+        public bool enforceActiveChildLimit = false;
+
+        [Tooltip("Maximum active payloads when enforcing child limit. 0 uses countPerInterval.")]
+        public int maxActiveChildren = 0;
+
+        [Tooltip(
+            "When true, release the oldest active payload to free a slot once the limit is reached."
+        )]
+        public bool recycleOldestChild = true;
 
         [Header("Debug")]
         public bool debugLogs = false;
@@ -112,13 +143,28 @@ namespace Game.Procederal.Api
         private float _timer;
         private bool _stopped;
         private bool _didFirstBurst;
+        private int _executedBursts;
+        private bool _burstLimitActive;
+        private int _maxBurstLimit = -1;
+        private readonly List<Transform> _trackedChildren = new();
+        private readonly HashSet<Transform> _trackedChildSet = new();
+        private Collider2D[] _ownerCollidersCache = System.Array.Empty<Collider2D>();
+        private Transform _cachedOwnerForColliders;
+        private bool _loggedOwnerCollisionIgnore;
 
         private void OnEnable()
         {
             _timer = 0f;
+            _stopped = false;
+            _didFirstBurst = false;
+            _executedBursts = 0;
+            _burstLimitActive = false;
+            _maxBurstLimit = -1;
+            RebuildTrackedChildren();
             GameOverController.OnCountdownFinished += StopSpawning;
             EnsureResolver();
-            _didFirstBurst = false;
+            EnsureOwnerModifiers();
+            ResetOwnerColliderCache();
             if (immediateFirstBurst && !_stopped)
             {
                 // Perform exactly one immediate burst and mark it done.
@@ -131,6 +177,11 @@ namespace Game.Procederal.Api
         private void OnDisable()
         {
             GameOverController.OnCountdownFinished -= StopSpawning;
+            ClearTrackedChildren();
+            _burstLimitActive = false;
+            _maxBurstLimit = -1;
+            _executedBursts = 0;
+            ResetOwnerColliderCache();
         }
 
         public void SetPayloadSettings(params (string key, object val)[] settings)
@@ -191,6 +242,16 @@ namespace Game.Procederal.Api
 
         private void SpawnBurst()
         {
+            if (_burstLimitActive && _maxBurstLimit >= 0 && _executedBursts >= _maxBurstLimit)
+            {
+                if (debugLogs)
+                {
+                    Debug.Log("[GenericIntervalSpawner] Burst limit reached; disabling.", this);
+                }
+                StopAndDisable();
+                return;
+            }
+
             if (generator == null)
             {
                 if (debugLogs)
@@ -207,8 +268,29 @@ namespace Game.Procederal.Api
             Transform center = owner != null ? owner : transform;
             var runner = GetComponent<MechanicRunner>();
             int spawnCount = Mathf.Max(1, countPerInterval);
+            bool spawnedAny = false;
+
+            if (debugLogs)
+                LogAttachedChildCount("pre-burst child count");
+
+            int maxActiveChildren = spawnCount;
+            int activeChildren = GetActiveChildCount();
+            if (activeChildren >= maxActiveChildren)
+            {
+                if (debugLogs)
+                {
+                    Debug.Log(
+                        $"[GenericIntervalSpawner] Active child limit {maxActiveChildren} already reached; skipping burst.",
+                        this
+                    );
+                }
+                return;
+            }
             for (int i = 0; i < spawnCount; i++)
             {
+                if (!EnsureChildSlotAvailable())
+                    break;
+
                 if (debugLogs && i == 0)
                 {
                     Debug.Log(
@@ -272,6 +354,7 @@ namespace Game.Procederal.Api
                             : null,
                     customSpritePath = customSpritePath,
                     spriteColor = spriteColor,
+                    uniformScale = Mathf.Max(0.0001f, spawnScale),
                     createCollider = createCollider,
                     colliderRadius = colliderRadius,
                     createRigidBody = createRigidBody,
@@ -333,8 +416,44 @@ namespace Game.Procederal.Api
 
                 generator.InitializeMechanics(go, owner, generator.target);
 
+                // Ensure payloads advertise their generator ownership so AutoDespawn and pooling work.
+                var handle = go.GetComponent<GeneratedObjectHandle>();
+                if (handle == null)
+                    handle = go.AddComponent<GeneratedObjectHandle>();
+                handle.Initialize(generator, payloadMechanicName ?? string.Empty);
+
+                if (ignoreCollisionsWithOwner)
+                    IgnoreOwnerCollisions(go);
+
                 if (runner != null)
                     runner.RegisterTree(go.transform);
+
+                TrackSpawnedChild(go);
+                spawnedAny = true;
+
+                if (debugLogs)
+                    LogAttachedChildCount($"post-spawn #{i + 1} child count");
+
+                if (GetActiveChildCount() >= maxActiveChildren)
+                    break;
+            }
+
+            _executedBursts++;
+            if (!spawnedAny && debugLogs)
+            {
+                Debug.Log(
+                    "[GenericIntervalSpawner] Burst completed with no payloads spawned.",
+                    this
+                );
+            }
+
+            if (_burstLimitActive && _maxBurstLimit >= 0 && _executedBursts >= _maxBurstLimit)
+            {
+                if (debugLogs)
+                {
+                    Debug.Log("[GenericIntervalSpawner] Burst budget consumed; disabling.", this);
+                }
+                StopAndDisable();
             }
         }
 
@@ -410,6 +529,100 @@ namespace Game.Procederal.Api
                 _resolver = gameObject.AddComponent<NeutralSpawnPositon>();
                 spawnResolverBehaviour = (MonoBehaviour)_resolver;
             }
+        }
+
+        private void EnsureOwnerModifiers()
+        {
+            if (!applyDrain)
+                return;
+
+            Transform drainOwner = owner != null ? owner : transform;
+            if (drainOwner == null)
+                return;
+
+            var drain = drainOwner.GetComponentInChildren<Mechanics.Corruption.DrainMechanic>();
+            if (drain == null)
+                drain = drainOwner.gameObject.AddComponent<Mechanics.Corruption.DrainMechanic>();
+
+            drain.lifeStealRatio = Mathf.Clamp01(drainLifeStealRatio);
+            drain.debugLogs = drain.debugLogs || debugLogs;
+        }
+
+        private void ResetOwnerColliderCache()
+        {
+            _cachedOwnerForColliders = owner;
+            _loggedOwnerCollisionIgnore = false;
+            _ownerCollidersCache =
+                owner != null
+                    ? owner.GetComponentsInChildren<Collider2D>(includeInactive: true)
+                    : System.Array.Empty<Collider2D>();
+        }
+
+        private void IgnoreOwnerCollisions(GameObject payload)
+        {
+            if (!ignoreCollisionsWithOwner || owner == null || payload == null)
+                return;
+
+            if (owner != _cachedOwnerForColliders)
+                ResetOwnerColliderCache();
+
+            if (_ownerCollidersCache == null || _ownerCollidersCache.Length == 0)
+                return;
+
+            var payloadColliders = payload.GetComponentsInChildren<Collider2D>(true);
+            if (payloadColliders == null || payloadColliders.Length == 0)
+                return;
+
+            for (int i = 0; i < _ownerCollidersCache.Length; i++)
+            {
+                var ownerCollider = _ownerCollidersCache[i];
+                if (ownerCollider == null)
+                    continue;
+                for (int j = 0; j < payloadColliders.Length; j++)
+                {
+                    var payloadCollider = payloadColliders[j];
+                    if (payloadCollider == null)
+                        continue;
+                    Physics2D.IgnoreCollision(payloadCollider, ownerCollider, true);
+                }
+            }
+
+            if (debugLogs && !_loggedOwnerCollisionIgnore)
+            {
+                _loggedOwnerCollisionIgnore = true;
+                Debug.Log(
+                    $"[GenericIntervalSpawner] Ignoring collisions between payload '{payload.name}' and owner '{owner.name}' colliders ({_ownerCollidersCache.Length})",
+                    this
+                );
+            }
+        }
+
+        private void LogAttachedChildCount(string context)
+        {
+            if (!debugLogs)
+                return;
+
+            var target = transform;
+            int childCount = target != null ? target.childCount : 0;
+            Debug.Log(
+                $"[GenericIntervalSpawner] {context}: '{name}' currently has {childCount} attached child(ren) ({GetActiveChildCount()} active).",
+                this
+            );
+        }
+
+        private int GetActiveChildCount()
+        {
+            PruneTrackedChildren();
+            int count = 0;
+            for (int i = 0; i < _trackedChildren.Count; i++)
+            {
+                var child = _trackedChildren[i];
+                if (child == null)
+                    continue;
+                if (child.gameObject.activeInHierarchy)
+                    count++;
+            }
+            return count;
         }
     }
 }

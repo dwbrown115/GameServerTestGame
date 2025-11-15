@@ -254,9 +254,10 @@ namespace Game.Procederal.Core.Builders
 
             if (wantsInterval)
             {
-                var spawner = root.AddComponent<Game.Procederal.Api.IntervalSpawner>();
+                var spawner = root.AddComponent<Game.Procederal.Api.GenericIntervalSpawner>();
                 spawner.generator = gen;
                 spawner.owner = gen.ResolveOwner();
+                spawner.payloadMechanicName = "Projectile";
                 spawner.interval = spawnInterval;
                 spawner.countPerInterval = Mathf.Max(1, numberPerInterval);
                 spawner.spawnRadius = Mathf.Max(0f, spawnRadius);
@@ -265,24 +266,38 @@ namespace Game.Procederal.Core.Builders
                 spawner.customSpritePath = customPath;
                 spawner.spriteColor = projColor;
                 spawner.spawnScale = Mathf.Max(0.0001f, visualScale);
+                spawner.createSpriteRenderer = true;
+                spawner.createCollider = true;
                 spawner.colliderRadius = 0.5f;
-                spawner.excludeOwner = excludeOwner;
-                spawner.requireMobTag = requireMobTag;
-                spawner.projectileSpeed = projSpeed > 0f ? projSpeed : -1f;
-                spawner.damage = p != null ? p.projectileDamage : 1;
-                spawner.debugLogs = wantDebugLogs;
+                spawner.createRigidBody = true;
+                spawner.rigidBodyType = RigidbodyType2D.Kinematic;
+                spawner.freezeRotation = true;
                 spawner.parentSpawnedToSpawner = !movementRequiresDetachment;
-                spawner.debugMovementLabel = movementMode.ToString();
-                spawner.disableProjectileSelfSpeed = disableProjectileSelfMovement;
-                spawner.addChildMovementController = useChildMovement;
-
-                // Reset any lingering modifier specs from previous builds before reapplying
-                spawner.ClearModifierSpecs();
-
+                spawner.ignoreCollisionsWithOwner = excludeOwner;
+                spawner.debugLogs = wantDebugLogs;
                 bool shouldOverrideDestroy =
                     destroyExplicit || (p != null && p.projectileDestroyOnHit != true);
-                spawner.overrideDestroyOnHit = shouldOverrideDestroy;
-                spawner.destroyOnHit = destroyOnHit;
+                spawner.autoDestroyPayloads = !(shouldOverrideDestroy && !destroyOnHit);
+
+                var payloadSettings = new List<(string key, object val)>
+                {
+                    ("directionFromResolver", "vector2"),
+                    ("excludeOwner", excludeOwner),
+                    ("requireMobTag", requireMobTag),
+                    ("debugLogs", wantDebugLogs),
+                    ("disableSelfSpeed", disableProjectileSelfMovement),
+                    ("destroyOnHit", destroyOnHit),
+                    ("damage", p != null ? p.projectileDamage : 1),
+                };
+                if (projSpeed > 0f)
+                    payloadSettings.Add(("speed", projSpeed));
+                if (!string.IsNullOrEmpty(spriteType))
+                    payloadSettings.Add(("spriteType", spriteType));
+                if (!string.IsNullOrEmpty(customPath))
+                    payloadSettings.Add(("customSpritePath", customPath));
+                payloadSettings.Add(("spriteColor", projColor));
+
+                spawner.SetPayloadSettings(payloadSettings.ToArray());
 
                 if (!string.IsNullOrEmpty(spawnBehavior))
                 {
@@ -310,6 +325,21 @@ namespace Game.Procederal.Core.Builders
                         root.GetComponent<Game.Procederal.Api.ChaosSpawnPosition>()
                         ?? root.AddComponent<Game.Procederal.Api.ChaosSpawnPosition>();
                     spawner.spawnResolverBehaviour = chaos;
+                }
+
+                spawner.ClearModifierSpecs();
+
+                if (useChildMovement)
+                {
+                    var moveSettings = new List<(string key, object val)>
+                    {
+                        ("directionFromResolver", "vector2"),
+                        ("disableSelfSpeed", false),
+                        ("debugLogs", wantDebugLogs),
+                    };
+                    if (projSpeed > 0f)
+                        moveSettings.Add(("speed", projSpeed));
+                    spawner.AddModifierSpec("ChildMovementMechanic", moveSettings.ToArray());
                 }
 
                 if (gen.autoApplyCompatibleModifiers)
@@ -349,7 +379,7 @@ namespace Game.Procederal.Core.Builders
                 }
 
                 DebugLog(
-                    $"Configured interval spawner parentSpawnedToSpawner={spawner.parentSpawnedToSpawner} debugMovementLabel={spawner.debugMovementLabel}"
+                    $"Configured interval spawner parentSpawnedToSpawner={spawner.parentSpawnedToSpawner}"
                 );
 
                 return;

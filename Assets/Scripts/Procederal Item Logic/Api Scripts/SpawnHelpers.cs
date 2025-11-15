@@ -20,6 +20,7 @@ namespace Game.Procederal.Api
             public string spriteType;
             public string customSpritePath;
             public Color spriteColor;
+            public float uniformScale;
             public bool createCollider;
             public float colliderRadius;
             public bool createRigidBody;
@@ -38,7 +39,8 @@ namespace Game.Procederal.Api
             if (options.parent != null)
                 go.transform.SetParent(options.parent, worldPositionStays: true);
             go.transform.position = options.position;
-            go.transform.localScale = Vector3.one;
+            float scale = options.uniformScale > 0f ? options.uniformScale : 1f;
+            go.transform.localScale = Vector3.one * scale;
             go.layer = options.layer;
 
             if (!string.IsNullOrWhiteSpace(options.spriteType))

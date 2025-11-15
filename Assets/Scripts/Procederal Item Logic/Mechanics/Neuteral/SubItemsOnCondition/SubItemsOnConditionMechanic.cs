@@ -380,9 +380,12 @@ namespace Mechanics.Neuteral
                 spawnAnchor.y = targetPos.y;
             }
 
-            int attempts = Mathf.Max(1, rule.spawnCount);
+            bool allowIntervals = AllowsIntervalSpawners();
+            int spawnAttempts = allowIntervals ? Mathf.Max(1, rule.spawnCount) : 1;
+            int intervalLoops = allowIntervals ? -1 : Mathf.Max(1, rule.spawnCount);
+
             int spawnedCount = 0;
-            for (int i = 0; i < attempts; i++)
+            for (int i = 0; i < spawnAttempts; i++)
             {
                 var instruction = new ItemInstruction
                 {
@@ -402,6 +405,9 @@ namespace Mechanics.Neuteral
                     continue;
                 }
 
+                if (intervalLoops > -1)
+                    ConfigureIntervalSpawners(spawned, intervalLoops);
+
                 if (spawned.transform.parent == transform)
                     spawned.transform.SetParent(null, worldPositionStays: true);
 
@@ -411,7 +417,7 @@ namespace Mechanics.Neuteral
                 if (intervalSpawner != null)
                 {
                     intervalSpawner.owner = spawned.transform;
-                    intervalSpawner.parentSpawnedToSpawner = false;
+                    intervalSpawner.parentSpawnedToSpawner = true;
                 }
 
                 spawnedCount++;
@@ -429,6 +435,60 @@ namespace Mechanics.Neuteral
 
             LogRuleSkip(ruleIndex, rule, "Generator produced no payloads.");
             return false;
+        }
+
+        private bool AllowsIntervalSpawners()
+        {
+            if (IsPlayerTransform(transform))
+                return true;
+
+            var owner = _ctx?.Owner;
+            if (IsPlayerTransform(owner))
+                return true;
+
+            var root = transform != null ? transform.root : null;
+            if (IsPlayerTransform(root))
+                return true;
+
+            return false;
+        }
+
+        private static bool IsPlayerTransform(Transform candidate)
+        {
+            if (candidate == null)
+                return false;
+
+            if (candidate.CompareTag("Player"))
+                return true;
+
+            return string.Equals(candidate.name, "Player", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ConfigureIntervalSpawners(GameObject root, int loopLimit)
+        {
+            if (root == null)
+                return;
+
+            var behaviours = root.GetComponentsInChildren<Behaviour>(true);
+            for (int i = 0; i < behaviours.Length; i++)
+            {
+                var behaviour = behaviours[i];
+                if (behaviour == null)
+                    continue;
+
+                if (behaviour is GenericIntervalSpawner genericSpawner)
+                {
+                    if (loopLimit <= 0)
+                        genericSpawner.ExecuteSingleBurstAndDisable();
+                    else
+                        genericSpawner.LimitBursts(loopLimit);
+                    continue;
+                }
+
+                var typeName = behaviour.GetType().Name;
+                if (typeName.IndexOf("IntervalSpawner", StringComparison.OrdinalIgnoreCase) >= 0)
+                    behaviour.enabled = false;
+            }
         }
 
         private Vector3 ResolveSpawnPosition(Collider2D other)

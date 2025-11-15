@@ -104,6 +104,7 @@
     <Compile Include="Assets/Scripts/Utilities/PlayerApiCertificateHandler.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Lock/LockMechanic.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/GenericIntervalSpawner.BurstControl.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/IMechanicCatalog.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceIndexTag.cs" />
     <Compile Include="Assets/Scripts/UI/SkinsGridView.cs" />
@@ -127,6 +128,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceSpawnBehavior.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/NeutralSpawnPositon.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Corruption/Drain/DrainModifierStrategy.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/AutoDespawnByDistance.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Track/TrackModifierStrategy.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/SecondaryMechanicSettingDescriptor.cs" />
@@ -173,7 +175,6 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/Spawn Resolvers/NeutralSpawnPositon.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/DropMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/Explosion/ExplosionMechanic.cs" />
-    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IntervalProjectileSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Modifiers/IBatchModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicsRegistry.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceIntervalRepeater.cs" />
@@ -186,13 +187,13 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/Benchmark04.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Chaos/RippleOnHit/RippleOnHitModifierStrategy.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/ChatController.cs" />
-    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/IntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/ScreenScripts/UserScreen.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Strategies/GenericPrimaryStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitSpawnBehavior.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/Config.cs" />
     <Compile Include="Assets/Scripts/Managers/PlayerSkinManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Whip/WhipBuilder.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/ProjectileIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/BeamStrategy.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_DigitValidator.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_FrameRateCounter.cs" />
