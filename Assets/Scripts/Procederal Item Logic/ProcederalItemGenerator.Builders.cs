@@ -19,6 +19,18 @@ namespace Game.Procederal
             return owner != null ? owner : transform;
         }
 
+        public Transform ResolveTargetOrDefault()
+        {
+            try
+            {
+                return target;
+            }
+            catch (UnassignedReferenceException)
+            {
+                return null;
+            }
+        }
+
         internal GameObject CreateChild(string name, Transform parent)
         {
             return AcquireObject(name, parent);
@@ -44,7 +56,7 @@ namespace Game.Procederal
                 Dictionary<string, object> overrides = null;
 
                 if (includeProperties)
-                    props = LoadAndMergeJsonSettings(mechanicName);
+                    props = LoadKvpArrayForMechanic(mechanicName, "Properties");
                 if (includeOverrides)
                     overrides = LoadKvpArrayForMechanic(mechanicName, "MechanicOverrides");
                 list.Add(
@@ -141,18 +153,20 @@ namespace Game.Procederal
             if (targets.Count == 0)
                 return;
 
+            var resolvedTarget = ResolveTargetOrDefault();
+
             if (strategy is IBatchModifierStrategy batchStrategy)
             {
                 batchStrategy.ApplyToGroup(this, targets, p);
                 foreach (var go in targets)
-                    InitializeMechanics(go, owner, target);
+                    InitializeMechanics(go, owner, resolvedTarget);
                 return;
             }
 
             foreach (var go in targets)
             {
                 strategy.Apply(this, go, p);
-                InitializeMechanics(go, owner, target);
+                InitializeMechanics(go, owner, resolvedTarget);
             }
         }
     }

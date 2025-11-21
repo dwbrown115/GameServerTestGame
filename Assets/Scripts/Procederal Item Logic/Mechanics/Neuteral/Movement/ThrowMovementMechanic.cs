@@ -1,3 +1,4 @@
+using Game.Procederal;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -137,7 +138,7 @@ namespace Mechanics.Neuteral
             Transform payload = _ctx != null ? _ctx.Payload : transform;
             if (detachOnStop && payload != null && payload.parent != null)
             {
-                payload.SetParent(null, worldPositionStays: true);
+                ProcederalItemGenerator.DetachToWorld(payload.gameObject, worldPositionStays: true);
                 if (debugLogs)
                 {
                     Debug.Log(
@@ -151,6 +152,7 @@ namespace Mechanics.Neuteral
                 enabled = false;
 
             GameOverController.OnCountdownFinished -= StopMovement;
+            ProcederalItemGenerator.EnsureManifestBeforeDetach(payload.gameObject);
         }
 
         private void OnDestroy()
@@ -164,7 +166,7 @@ namespace Mechanics.Neuteral
             if (payload == null || payload.parent == null)
                 return;
 
-            payload.SetParent(null, worldPositionStays: true);
+            ProcederalItemGenerator.DetachToWorld(payload.gameObject, worldPositionStays: true);
             if (debugLogs)
             {
                 Debug.Log("[ThrowMovementMechanic] Detached payload from parent.", this);

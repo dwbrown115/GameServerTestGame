@@ -480,10 +480,13 @@ namespace Game.Procederal.Core.Builders
                 };
 
                 var go = UnifiedChildBuilder.BuildChild(gen, spec);
-                gen.InitializeMechanics(go, gen.owner, gen.target);
+                gen.InitializeMechanics(go, gen.owner, gen.ResolveTargetOrDefault());
                 if (detachAfterInitialization)
                 {
-                    go.transform.SetParent(null, worldPositionStays: true);
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        go,
+                        worldPositionStays: true
+                    );
                     DebugLog(
                         $"Detached projectile '{go.name}' from '{root.name}' (movementMode={movementMode})"
                     );

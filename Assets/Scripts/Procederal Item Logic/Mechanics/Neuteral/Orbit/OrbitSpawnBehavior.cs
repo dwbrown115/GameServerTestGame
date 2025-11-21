@@ -165,7 +165,7 @@ namespace Game.Procederal.Api
                 generator.InitializeMechanics(
                     go,
                     owner != null ? owner : transform,
-                    generator.target
+                    generator.ResolveTargetOrDefault()
                 );
 
                 // If destroyOnHit is explicitly disabled, do not auto-destroy by lifetime

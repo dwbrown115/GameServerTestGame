@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal.Core;
 using UnityEngine;
 
 namespace Game.Procederal.Api
@@ -164,11 +165,10 @@ namespace Game.Procederal.Api
                 // Copy payload per child to avoid reference issues if later mutated
                 var perChild = new List<(string key, object val)>(payloadList);
                 gen.AddMechanicByName(child, payloadMechanicName, perChild.ToArray());
-                gen.InitializeMechanics(
-                    child,
-                    ownerOverride != null ? ownerOverride : gen.owner,
-                    targetOverride != null ? targetOverride : gen.target
-                );
+                var resolvedOwner = ownerOverride != null ? ownerOverride : gen.owner;
+                var resolvedTarget =
+                    targetOverride != null ? targetOverride : gen.ResolveTargetOrDefault();
+                gen.InitializeMechanics(child, resolvedOwner, resolvedTarget);
 
                 if (tagSequenceIndex)
                 {
@@ -187,7 +187,9 @@ namespace Game.Procederal.Api
     /// <summary>
     /// Shared auto-destroy timer component used by spawners.
     /// </summary>
-    public sealed class AutoDestroyAfterSeconds : MonoBehaviour
+    public sealed class AutoDestroyAfterSeconds
+        : MonoBehaviour,
+            Game.Procederal.Core.IPooledPayloadResettable
     {
         public float seconds = 5f;
         private float _elapsed;
@@ -196,7 +198,14 @@ namespace Game.Procederal.Api
         {
             _elapsed += Time.deltaTime;
             if (_elapsed >= seconds)
-                Destroy(gameObject);
+            {
+                MechanicLifecycleUtility.Release(gameObject);
+            }
+        }
+
+        public void ResetForPool()
+        {
+            _elapsed = 0f;
         }
     }
 }

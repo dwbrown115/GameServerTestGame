@@ -236,9 +236,14 @@ namespace Game.Procederal.Core.Builders
                 slash.transform.position = spawnPos;
                 slash.transform.right = dir;
 
-                gen.InitializeMechanics(slash, gen.owner, gen.target);
+                gen.InitializeMechanics(slash, gen.owner, gen.ResolveTargetOrDefault());
                 if (shouldDetachChildren)
-                    slash.transform.SetParent(null, worldPositionStays: true);
+                {
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        slash,
+                        worldPositionStays: true
+                    );
+                }
 
                 var rb = slash.GetComponent<Rigidbody2D>();
                 if (rb != null)

@@ -1,0 +1,7 @@
+{
+  "MechanicName": "SubItemsOnCondition",
+  "MechanicCategory": "Modifier",
+  "MechanicPath": "Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionMechanic.cs",
+  "MechanicAttribute": "Neuteral",
+  "MechanicOverrides": []
+}

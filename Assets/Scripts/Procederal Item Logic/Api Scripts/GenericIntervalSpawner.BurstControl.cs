@@ -127,16 +127,19 @@ namespace Game.Procederal.Api
             if (_trackedChildSet.Add(child))
                 _trackedChildren.Add(child);
 
+            _pooledChildSet.Remove(go);
+
             var tracker = child.GetComponent<SpawnedChildTracker>();
             if (tracker == null)
                 tracker = child.gameObject.AddComponent<SpawnedChildTracker>();
             tracker.Initialize(this);
         }
 
-        private void HandleChildReturned(Transform child)
+        private void HandleChildReturned(Transform child, bool destroyed)
         {
             if (child == null)
                 return;
+            var go = child.gameObject;
 
             if (_trackedChildSet.Remove(child))
             {
@@ -149,6 +152,18 @@ namespace Game.Procederal.Api
                     }
                 }
             }
+
+            if (go == null)
+                return;
+
+            if (destroyed)
+            {
+                _pooledChildSet.Remove(go);
+                return;
+            }
+
+            if (_pooledChildSet.Add(go))
+                _pooledChildren.Enqueue(go);
         }
 
         private void PruneTrackedChildren()
@@ -214,12 +229,12 @@ namespace Game.Procederal.Api
 
             private void OnDisable()
             {
-                _owner?.HandleChildReturned(transform);
+                _owner?.HandleChildReturned(transform, destroyed: false);
             }
 
             private void OnDestroy()
             {
-                _owner?.HandleChildReturned(transform);
+                _owner?.HandleChildReturned(transform, destroyed: true);
             }
         }
     }

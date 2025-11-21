@@ -89,6 +89,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Purity/Regeneration/RegenerationMechanic.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/SubItemsOnCondition/SubItemsOnConditionMechanic.cs" />
     <Compile Include="Assets/Scripts/Utilities/DeviceUtil.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/IMechanicActivationGuard.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Movement/ChildMovementMechanic.cs" />
     <Compile Include="Assets/Scripts/Mob/DamageOverTimeController.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Projectile/ProjectileMechanicSettings.cs" />
@@ -123,6 +124,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMPro_InstructionOverlay.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexShakeB.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Strike/StrikeBuilder.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Core/PooledPayloadManifest.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Ripple/RippleStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Whip/WhipArcSet.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/SequenceSpawnBehavior.cs" />
@@ -163,11 +165,13 @@
     <Compile Include="Assets/Scripts/Managers/GameStateManager.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/MechanicHost.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Beam/IBeamSegmentModifier.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/PoolDiagnosticsLogger.cs" />
     <Compile Include="Assets/Scripts/Game Scripts/CountdownTimer.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Ota/MechanicOtaManifest.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicApplier.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Core/MechanicSettingNormalizer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexShakeA.cs" />
+    <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/IMechanicInitializeOrder.cs" />
     <Compile Include="Assets/Scripts/Navigation/UserScreenNavigation.cs" />
     <Compile Include="Assets/Scripts/Pickups/Collectible.cs" />
     <Compile Include="Assets/Scripts/Managers/PersistentPlayerData.cs" />

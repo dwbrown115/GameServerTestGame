@@ -206,7 +206,12 @@ namespace Game.Procederal.Core.Builders
 
             var beam = UnifiedChildBuilder.BuildChild(gen, spec);
             if (shouldDetachChildren)
-                beam.transform.SetParent(null, worldPositionStays: true);
+            {
+                Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                    beam,
+                    worldPositionStays: true
+                );
+            }
             subItems.Add(beam);
         }
     }

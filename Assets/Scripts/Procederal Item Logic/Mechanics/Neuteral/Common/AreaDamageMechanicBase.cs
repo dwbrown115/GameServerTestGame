@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using Game.Procederal.Core;
 using Mechanics.Chaos;
 using Mechanics.Corruption;
-using Mechanics.Order;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -49,10 +49,11 @@ namespace Mechanics.Neuteral
         private Sprite _vizSprite;
 
         private DrainMechanic _drain;
-        private LockMechanic _lock;
-        private DamageOverTimeMechanic _dot;
         private ExplosionMechanic _explosion;
         private RippleOnHitMechanic _ripple;
+
+        private static readonly List<Mechanics.IPrimaryHitModifier> _primaryHitModifiers =
+            new List<Mechanics.IPrimaryHitModifier>(8);
 
         protected CircleCollider2D QueryCollider => _queryCollider;
 
@@ -134,11 +135,14 @@ namespace Mechanics.Neuteral
                 if (amount <= 0)
                     continue;
 
+                var hitTransform = collider.transform;
+                Vector2 hitPoint = hitTransform != null ? (Vector2)hitTransform.position : center;
+
                 damageable.TakeDamage(amount, direction, Vector2.zero);
                 totalDamage += amount;
                 anyDamaged = true;
 
-                ApplyOnHitModifiers(collider.transform);
+                ApplyOnHitModifiers(hitTransform, hitPoint, direction, amount);
                 OnDamageApplied(damageable, collider, center);
             }
 
@@ -279,8 +283,6 @@ namespace Mechanics.Neuteral
         private void CacheOptionalMechanics()
         {
             _drain = GetComponent<DrainMechanic>();
-            _lock = GetComponent<LockMechanic>();
-            _dot = GetComponent<DamageOverTimeMechanic>();
             _explosion = GetComponent<ExplosionMechanic>();
             _ripple = GetComponent<RippleOnHitMechanic>();
         }
@@ -416,12 +418,45 @@ namespace Mechanics.Neuteral
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
         }
 
-        private void ApplyOnHitModifiers(Transform target)
+        private void ApplyOnHitModifiers(
+            Transform target,
+            Vector2 hitPoint,
+            Vector2 hitNormal,
+            int damageAmount
+        )
         {
-            if (_lock != null)
-                _lock.TryApplyTo(target);
-            if (_dot != null)
-                _dot.TryApplyTo(target);
+            _primaryHitModifiers.Clear();
+            GetComponents(_primaryHitModifiers);
+            if (_primaryHitModifiers.Count == 0)
+                return;
+
+            var info = new Mechanics.PrimaryHitInfo(
+                target,
+                hitPoint,
+                hitNormal,
+                damageAmount,
+                this
+            );
+            for (int i = 0; i < _primaryHitModifiers.Count; i++)
+            {
+                var modifier = _primaryHitModifiers[i];
+                if (modifier == null)
+                    continue;
+                try
+                {
+                    modifier.OnPrimaryHit(in info);
+                }
+                catch (System.Exception ex)
+                {
+                    if (debugLogs)
+                    {
+                        Debug.LogWarning(
+                            $"[{DebugLabel}] Modifier {modifier.GetType().Name} exception: {ex.Message}",
+                            this
+                        );
+                    }
+                }
+            }
         }
     }
 }

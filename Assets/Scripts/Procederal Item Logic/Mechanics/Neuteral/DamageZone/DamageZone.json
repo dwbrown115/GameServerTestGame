@@ -13,7 +13,7 @@
     { "radius": 1 },
     { "damageInterval": 0.35 },
     { "damagePerInterval": 6 },
-    { "lifetimeSeconds": 4 },
+    { "lifetimeSeconds": 5 },
     { "destroyOnExpire": true },
     { "movementMode": "drop" },
     { "spriteType": "circle" },

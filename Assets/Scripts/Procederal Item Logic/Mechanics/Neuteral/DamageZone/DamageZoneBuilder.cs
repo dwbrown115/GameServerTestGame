@@ -24,6 +24,16 @@ namespace Game.Procederal.Core.Builders
                 gen.CollectSecondarySettings(instruction)
             );
 
+            int fallbackChildren = BuilderChildCountHelper.ResolveFallbackCount(p, gen, 1);
+            int childrenToSpawn = MechanicSettingNormalizer.Count(
+                merged,
+                fallbackChildren,
+                "childrenToSpawn",
+                "numberOfItemsToSpawn",
+                "NumberOfItemsToSpawn"
+            );
+            childrenToSpawn = BuilderChildCountHelper.ResolveFinalCount(childrenToSpawn, p, gen);
+
             float radius = MechanicSettingNormalizer.Radius(merged, "radius", p.damageZoneRadius);
             float interval = MechanicSettingNormalizer.Interval(
                 merged,
@@ -157,10 +167,7 @@ namespace Game.Procederal.Core.Builders
                     "spawnInterval",
                     "interval"
                 );
-                spawner.countPerInterval = Mathf.Max(
-                    1,
-                    MechanicSettingNormalizer.Int(merged, "childrenToSpawn", 1)
-                );
+                spawner.countPerInterval = Mathf.Max(1, childrenToSpawn);
                 spawner.spawnRadius = MechanicSettingNormalizer.Float(merged, "spawnRadius", 0f);
                 spawner.lifetime = MechanicSettingNormalizer.Lifetime(
                     merged,
@@ -256,10 +263,18 @@ namespace Game.Procederal.Core.Builders
                 LifetimeSeconds = destroyOnExpire && lifetime > 0f ? lifetime : (float?)null,
             };
 
-            var zone = UnifiedChildBuilder.BuildChild(gen, spec);
-            if (shouldDetachChildren)
-                zone.transform.SetParent(null, worldPositionStays: true);
-            subItems.Add(zone);
+            for (int i = 0; i < childrenToSpawn; i++)
+            {
+                var zone = UnifiedChildBuilder.BuildChild(gen, spec);
+                if (shouldDetachChildren)
+                {
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        zone,
+                        worldPositionStays: true
+                    );
+                }
+                subItems.Add(zone);
+            }
         }
 
         private static void AttachMovementIfRequested(

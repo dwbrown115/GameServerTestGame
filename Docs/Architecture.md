@@ -246,6 +246,15 @@ At runtime the loader aggregates every file in those folders (sorted by asset na
 - `Game.Procederal.Ota.MechanicOtaManifest` reads `Resources/ProcederalMechanics/index.json` (and any overlays) so the registry can merge OTA-delivered manifests with built-in mechanics before the generator resolves settings.
 - During development (`UNITY_EDITOR` / debug builds) the registry pulls JSON straight from `Assets/Scripts/Procederal Item Logic/Mechanics/*/*.json` so edits beside scripts are always reflected without rebuilding resources.
 
+##### Pooling & lifecycle (hierarchies)
+
+- Every generated root now carries both a `GeneratedObjectHandle` (tracks the owning generator and pool key) and a `PooledPayloadManifest` that snapshots every `IPooledPayloadResettable` component in the hierarchy. When a payload returns to the pool, manifests reset components instead of destroying children so future borrows stay intact.
+- Before detaching a payload from its current parent (e.g., when SubItems spawn something that should live outside the trigger), call `ProcederalItemGenerator.EnsureManifestBeforeDetach(go)`. Many mechanics already do this automatically; the helper guarantees the manifest captures the latest hierarchy/fingerprint before it leaves the player.
+- Use `MechanicLifecycleUtility.Release(go)` (or `Release(component)`) to despawn items. It forwards to `ProcederalItemGenerator.ReleaseTree`, which now releases the entire hierarchy in one call. If a manifest is present, the factory keeps children/components; if not, it tears the tree down before pooling to avoid stale state.
+- The built-in `DefaultItemObjectFactory` and `SimpleItemObjectPoolBehaviour` respect manifests. With one attached they just call `ResetForPool`; without one they destroy extra children/components and keep only the bare root in the pool.
+- `SubItemsOnCondition` rules expose a `"detachFromSpawner"` toggle (default `true`). Leave it enabled to keep pooled payloads parentless; disable it only for effects that must stay attached (for example, orbiting tethers or modifiers that rely on local offsets).
+- Drop `PoolDiagnosticsLogger` on any object (or the generator) to periodically print per-key pool stats. It queries the active object factory (default or custom) via the new `ProcederalItemGenerator.GetActiveObjectFactory` helper and works with any factory implementing `IPooledItemDiagnostics`.
+
 Editor tags, layers, and physics notes:
 - Tags:
   - Enemies that should be damaged by Projectile/Aura/Drain with `requireMobTag = true` must be tagged `Mob` (or have a parent with tag `Mob`).

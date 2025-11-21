@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Procederal;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -107,7 +108,10 @@ namespace Mechanics.Neuteral
             if (parent == null)
                 return;
 
-            transform.SetParent(null, worldPositionStays: true);
+            Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                gameObject,
+                worldPositionStays: true
+            );
             _detached = true;
 
             if (debugLogs)

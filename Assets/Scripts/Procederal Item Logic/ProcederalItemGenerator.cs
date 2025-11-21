@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
+using Mechanics.Neuteral;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -166,6 +167,7 @@ namespace Game.Procederal
             public float cooldownSeconds = 0f;
             public bool debugLogs = false;
             public string target = "mob";
+            public bool detachFromSpawner = true;
         }
 
         // Common
@@ -197,6 +199,13 @@ namespace Game.Procederal
         public float damageZoneInterval = 0.5f;
         public int damageZoneDamage = 2;
         public float damageZoneLifetime = 4f;
+
+        // SubItemsOnCondition params
+        public int subItemsOnConditionListeners = 1;
+        public float subItemsOnConditionTriggerRadius = 0.75f;
+        public bool subItemsOnConditionDebugLogs = false;
+        public bool subItemsOnConditionLogRuleEvaluations = false;
+        public bool subItemsOnConditionLogRuleSkips = false;
 
         // Drain params
         public float drainRadius = 2f;
@@ -312,6 +321,20 @@ namespace Game.Procederal
 
         public bool debugLogs = false;
 
+        [Header("SubItemsOnCondition Debug")]
+        [Tooltip(
+            "Force SubItemsOnCondition mechanics to log lifecycle events even if rule specs omit debug flags."
+        )]
+        public bool subItemsOnConditionDebugLogs = false;
+
+        [Tooltip("When true, SubItemsOnCondition will log every rule evaluation cycle (verbose).")]
+        public bool subItemsOnConditionLogRuleEvaluations = false;
+
+        [Tooltip(
+            "When true, SubItemsOnCondition will log whenever a rule is skipped (cooldowns, target mismatch, etc.)."
+        )]
+        public bool subItemsOnConditionLogRuleSkips = false;
+
         [Header("Spawn Controls")]
         [Tooltip(
             "If > 0, overrides ItemParams.subItemCount and forces this many children per primary that supports multiple (e.g., Projectile, Whip)."
@@ -354,6 +377,9 @@ namespace Game.Procederal
         [SerializeField]
         private UnityEngine.Object objectFactorySource;
 
+        [Tooltip("Maximum pooled instances per key retained by this generator (0 = unlimited).")]
+        public int maxPooledInstancesPerKey = 0;
+
         [Header("Debug Output")]
         [Tooltip(
             "Delete generated mechanic dump files when the game ends or the application quits."
@@ -365,6 +391,10 @@ namespace Game.Procederal
         private bool _catalogFallbackWarned;
         private IItemObjectFactory _objectFactory;
         private bool _objectFactoryFallbackWarned;
+        private readonly Dictionary<string, int> _pooledAvailableByKey = new Dictionary<
+            string,
+            int
+        >(StringComparer.OrdinalIgnoreCase);
 
         private readonly List<ModifierFitResult> _modifierFitResults =
             new List<ModifierFitResult>();
@@ -376,6 +406,7 @@ namespace Game.Procederal
         private static readonly object _mechanicDumpLock = new object();
         private static bool _mechanicDumpCleanupRegistered = false;
         private MechanicDumpContext _activeDumpContext;
+        private static Transform _detachedPayloadRoot;
 
         public void SetMechanicCatalog(IMechanicCatalog catalog)
         {
@@ -533,6 +564,15 @@ namespace Game.Procederal
             _objectFactory = factory ?? ItemObjectFactoryLocator.Factory;
         }
 
+        /// <summary>
+        /// Exposes the currently active object factory (or the shared locator fallback) so tooling
+        /// components can inspect pooling diagnostics without duplicating resolution logic.
+        /// </summary>
+        public IItemObjectFactory GetActiveObjectFactory()
+        {
+            return GetObjectFactory();
+        }
+
         private GameObject AcquireObject(
             string key,
             Transform parent,
@@ -543,6 +583,8 @@ namespace Game.Procederal
             string effectiveKey = string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key;
             var factory = GetObjectFactory();
             var go = factory?.Acquire(effectiveKey, parent, worldPositionStays);
+            if (go != null)
+                NotifyBorrowFromPool(effectiveKey);
             if (go == null)
             {
                 go = new GameObject(effectiveKey);
@@ -584,6 +626,13 @@ namespace Game.Procederal
         {
             if (go == null)
                 return;
+            // If this payload carries a manifest, delegate reset to it so we preserve
+            // the hierarchy (children/components) and avoid destructive teardown.
+            if (go.TryGetComponent<Game.Procederal.Core.PooledPayloadManifest>(out var manifest))
+            {
+                manifest.ResetForPool();
+                return;
+            }
 
             var components = go.GetComponents<Component>();
             for (int i = 0; i < components.Length; i++)
@@ -627,11 +676,82 @@ namespace Game.Procederal
             }
         }
 
+        public static void EnsureManifestBeforeDetach(GameObject go)
+        {
+            if (go == null)
+                return;
+
+            try
+            {
+                var manifest = go.GetComponent<Game.Procederal.Core.PooledPayloadManifest>();
+                if (manifest == null)
+                    manifest = go.AddComponent<Game.Procederal.Core.PooledPayloadManifest>();
+                string fingerprint = ResolvePoolKey(go);
+                manifest.Capture(fingerprint);
+            }
+            catch { }
+        }
+
+        private static Transform GetOrCreateDetachedPayloadRoot()
+        {
+            if (_detachedPayloadRoot != null)
+                return _detachedPayloadRoot;
+
+            var existing = GameObject.Find("_DetachedPayloads");
+            if (existing != null)
+            {
+                _detachedPayloadRoot = existing.transform;
+                return _detachedPayloadRoot;
+            }
+
+            var rootGo = new GameObject("_DetachedPayloads");
+            _detachedPayloadRoot = rootGo.transform;
+            _detachedPayloadRoot.position = Vector3.zero;
+            _detachedPayloadRoot.rotation = Quaternion.identity;
+            _detachedPayloadRoot.localScale = Vector3.one;
+            UnityEngine.Object.DontDestroyOnLoad(rootGo);
+            return _detachedPayloadRoot;
+        }
+
+        public static Transform GetDetachedPayloadRoot() => GetOrCreateDetachedPayloadRoot();
+
+        public static void DetachToWorld(
+            GameObject go,
+            bool worldPositionStays = true,
+            bool tidyHierarchy = true
+        )
+        {
+            if (go == null)
+                return;
+
+            EnsureManifestBeforeDetach(go);
+
+            Transform target = null;
+            if (tidyHierarchy)
+                target = GetOrCreateDetachedPayloadRoot();
+
+            go.transform.SetParent(target, worldPositionStays);
+        }
+
         public void ReleaseObject(GameObject go)
         {
             if (go == null)
                 return;
             go.transform.SetParent(null, false);
+            string poolKey = ResolvePoolKey(go);
+            if (!ShouldReleaseToPool(poolKey))
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    DestroyImmediate(go);
+                    return;
+                }
+#endif
+                Destroy(go);
+                return;
+            }
+
             GetObjectFactory().Release(go);
         }
 
@@ -639,15 +759,58 @@ namespace Game.Procederal
         {
             if (root == null)
                 return;
+            ReleaseObject(root);
+        }
 
-            var transforms = root.GetComponentsInChildren<Transform>(includeInactive: true);
-            for (int i = transforms.Length - 1; i >= 0; --i)
+        private bool ShouldReleaseToPool(string key)
+        {
+            if (maxPooledInstancesPerKey <= 0)
+                return true;
+
+            key = NormalizePoolKey(key);
+            if (_pooledAvailableByKey.TryGetValue(key, out var current))
             {
-                var t = transforms[i];
-                if (t == null)
-                    continue;
-                ReleaseObject(t.gameObject);
+                if (current >= maxPooledInstancesPerKey)
+                    return false;
+                _pooledAvailableByKey[key] = current + 1;
             }
+            else
+            {
+                _pooledAvailableByKey[key] = 1;
+            }
+
+            return true;
+        }
+
+        private void NotifyBorrowFromPool(string key)
+        {
+            if (maxPooledInstancesPerKey <= 0)
+                return;
+            key = NormalizePoolKey(key);
+            if (_pooledAvailableByKey.TryGetValue(key, out var current) && current > 0)
+                _pooledAvailableByKey[key] = current - 1;
+        }
+
+        public void NotifyBorrowedPooledInstance(GameObject go)
+        {
+            if (go == null)
+                return;
+            NotifyBorrowFromPool(ResolvePoolKey(go));
+        }
+
+        private static string NormalizePoolKey(string key)
+        {
+            return string.IsNullOrWhiteSpace(key) ? "GeneratorItem" : key.Trim();
+        }
+
+        private static string ResolvePoolKey(GameObject go)
+        {
+            if (go == null)
+                return "GeneratorItem";
+            var handle = go.GetComponent<GeneratedObjectHandle>();
+            if (handle != null && !string.IsNullOrWhiteSpace(handle.Key))
+                return handle.Key;
+            return string.IsNullOrWhiteSpace(go.name) ? "GeneratorItem" : go.name;
         }
 
         // Entry point: JSON -> build
@@ -676,6 +839,13 @@ namespace Game.Procederal
                 return null;
             }
             p ??= new ItemParams();
+            p.debugLogs = p.debugLogs || debugLogs;
+            if (subItemsOnConditionDebugLogs)
+                p.subItemsOnConditionDebugLogs = true;
+            if (subItemsOnConditionLogRuleEvaluations)
+                p.subItemsOnConditionLogRuleEvaluations = true;
+            if (subItemsOnConditionLogRuleSkips)
+                p.subItemsOnConditionLogRuleSkips = true;
             ExtractSpawnConditionSecondary(instruction, p);
 
             // If any secondary entries include a spawnItemsOnCondition JSON payload, extract
@@ -853,12 +1023,34 @@ namespace Game.Procederal
                 runner.debugLogs = debugLogs;
                 runner.RegisterTree(root.transform);
 
+                if (subItems != null && subItems.Count > 0)
+                {
+                    for (int i = 0; i < subItems.Count; i++)
+                    {
+                        var child = subItems[i];
+                        if (child == null)
+                            continue;
+                        runner.RegisterTree(child.transform);
+                    }
+                }
+
                 TryWriteMechanicDump(root, instruction, displayName);
             }
             finally
             {
                 _activeDumpContext = previousContext;
             }
+
+            // Attach or update a pooled manifest so this full hierarchy can be reused
+            // non-destructively by item factories.
+            try
+            {
+                var manifest = root.GetComponent<Game.Procederal.Core.PooledPayloadManifest>();
+                if (manifest == null)
+                    manifest = root.AddComponent<Game.Procederal.Core.PooledPayloadManifest>();
+                manifest.Capture(poolKey);
+            }
+            catch { }
 
             return root;
         }
@@ -1121,21 +1313,28 @@ namespace Game.Procederal
         {
             if (go == null)
                 return;
+            var resolvedTarget = targetT != null ? targetT : ResolveTargetOrDefault();
             var ctx = new MechanicContext
             {
                 Owner = ownerT != null ? ownerT : transform,
                 Payload = go.transform,
-                Target = targetT,
+                Target = resolvedTarget,
                 OwnerRb2D = ownerT != null ? ownerT.GetComponent<Rigidbody2D>() : null,
                 PayloadRb2D = go.GetComponent<Rigidbody2D>(),
             };
-            foreach (var m in go.GetComponents<MonoBehaviour>())
+            var mechanics = new List<(IMechanic mech, int order)>();
+            foreach (var behaviour in go.GetComponents<MonoBehaviour>())
             {
-                if (m is IMechanic mech)
-                {
-                    mech.Initialize(ctx);
-                }
+                if (behaviour is not IMechanic mech)
+                    continue;
+                int order = 0;
+                if (behaviour is IMechanicInitializeOrder prioritized)
+                    order = prioritized.InitializeOrder;
+                mechanics.Add((mech, order));
             }
+
+            foreach (var entry in mechanics.OrderBy(m => m.order))
+                entry.mech.Initialize(ctx);
         }
 
         private void PlaceAtPolar(Transform t, float angleDeg, float radius)
@@ -1235,6 +1434,58 @@ namespace Game.Procederal
                 registry.GetKvpArray(entry.mechanicName, "MechanicOverrides")
             );
             entry.incompatibleWith = registry.GetIncompatibleWith(entry.mechanicName);
+        }
+
+        /// <summary>
+        /// Apply a mechanic (primary or modifier) to the immediate children of a generated root.
+        /// Useful for adding mechanics after generation. Settings overrides are optional.
+        /// </summary>
+        public void AddMechanicToChildren(
+            GameObject root,
+            string mechanicName,
+            IEnumerable<(string key, object value)> overrides = null
+        )
+        {
+            if (root == null || string.IsNullOrWhiteSpace(mechanicName))
+                return;
+
+            var catalog = GetCatalog();
+            foreach (Transform childT in root.transform)
+            {
+                if (childT == null)
+                    continue;
+                var child = childT.gameObject;
+
+                if (
+                    !Game.Procederal.Core.MechanicApplier.TryPrepare(
+                        catalog,
+                        _settingsCache,
+                        mechanicName,
+                        overrides,
+                        out var mechType,
+                        out var finalSettings,
+                        out var reason
+                    )
+                )
+                {
+                    if (debugLogs)
+                        Log(
+                            $"Failed to prepare mechanic '{mechanicName}' for '{child.name}': {reason}"
+                        );
+                    continue;
+                }
+
+                var comp = Game.Procederal.Api.MechanicReflection.AddMechanicWithSettings(
+                    child,
+                    mechType,
+                    finalSettings
+                );
+                if (comp != null)
+                {
+                    InitializeMechanics(child, ResolveOwner(), ResolveTargetOrDefault());
+                    RegisterMechanicDumpEntry(child, mechanicName, mechType, finalSettings);
+                }
+            }
         }
 
         private static List<Dictionary<string, object>> ConvertCatalogMapToList(
@@ -1847,9 +2098,9 @@ namespace Game.Procederal
             if (sanitized.Count == 0)
                 sanitized.Add("GeneratedItem");
 
+            string baseName = string.Join("_", sanitized);
             string unique = Guid.NewGuid().ToString("N").Substring(0, 8);
-            sanitized.Add(unique);
-            return string.Join("_", sanitized);
+            return string.Concat(baseName, "-", unique);
         }
 
         private static string SanitizeForFileName(string value)
@@ -2140,6 +2391,21 @@ namespace Game.Procederal
                     case MechanicKind.Lock:
                         spawner.AddModifierSpec("Lock");
                         break;
+                    case MechanicKind.SubItemsOnCondition:
+                        var subSettings =
+                            SubItemsOnConditionMechanicSettings.CreateSettingsFromParameters(
+                                p,
+                                includeRules: true,
+                                generatorDebug: debugLogs
+                                    || subItemsOnConditionDebugLogs
+                                    || (p?.debugLogs ?? false)
+                                    || (p?.subItemsOnConditionDebugLogs ?? false)
+                            );
+                        spawner.AddModifierSpec(
+                            "SubItemsOnCondition",
+                            ConvertDictionaryToSettings(subSettings)
+                        );
+                        break;
                     default:
                         // For future modifiers, default to name matching enum
                         spawner.AddModifierSpec(kind.ToString());
@@ -2149,6 +2415,28 @@ namespace Game.Procederal
         }
 
         // Small JSON helpers
+        private static (string key, object val)[] ConvertDictionaryToSettings(
+            Dictionary<string, object> dict
+        )
+        {
+            if (dict == null || dict.Count == 0)
+                return Array.Empty<(string, object)>();
+            var result = new (string key, object val)[dict.Count];
+            int index = 0;
+            foreach (var kv in dict)
+            {
+                if (string.IsNullOrEmpty(kv.Key))
+                    continue;
+                result[index++] = (kv.Key, kv.Value);
+            }
+            if (index == result.Length)
+                return result;
+
+            var trimmed = new (string key, object val)[index];
+            Array.Copy(result, trimmed, index);
+            return trimmed;
+        }
+
         private static void ReadIf(Dictionary<string, object> dict, string key, ref int val)
         {
             if (dict != null && dict.TryGetValue(key, out var v))
@@ -2352,7 +2640,7 @@ namespace Game.Procederal
                         ("debugLogs", p.debugLogs || debugLogs),
                     }
                 );
-                InitializeMechanics(drainOwner.gameObject, drainOwner, target);
+                InitializeMechanics(drainOwner.gameObject, drainOwner, ResolveTargetOrDefault());
             }
         }
 
@@ -2471,6 +2759,12 @@ namespace Game.Procederal
                     dict.Remove("direction");
                 }
             }
+        }
+
+        private void OnValidate()
+        {
+            if (maxPooledInstancesPerKey < 0)
+                maxPooledInstancesPerKey = 0;
         }
     }
 }

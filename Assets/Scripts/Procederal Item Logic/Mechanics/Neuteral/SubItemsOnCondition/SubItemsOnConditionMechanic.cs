@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Game.Procederal;
 using Game.Procederal.Api;
 using Game.Procederal.Core;
@@ -40,6 +41,7 @@ namespace Mechanics.Neuteral
             public float cooldownSeconds = 0f;
             public bool debugLogs = false;
             public TargetKind target = TargetKind.Mob;
+            public bool detachFromSpawner = true;
         }
 
         private struct RuleRuntime
@@ -62,11 +64,32 @@ namespace Mechanics.Neuteral
         [SerializeField]
         private bool _logRuleSkips = false;
 
+        [Header("Pooling Limits")]
+        [Tooltip(
+            "Maximum simultaneous instances allowed per generated base name (0 = fallback to rule spawnCount)."
+        )]
+        [SerializeField]
+        private int _maxActivePerBaseName = 0;
+
         private readonly List<RuleRuntime> _runtimeStates = new List<RuleRuntime>();
         private readonly HashSet<Collider2D> _activeMobColliders = new HashSet<Collider2D>();
+        private readonly List<HashSet<SubItemSpawnHandle>> _activeRulePayloads =
+            new List<HashSet<SubItemSpawnHandle>>();
+
+        private Dictionary<string, LinkedList<SubItemSpawnHandle>> _activeHandlesByBaseName;
+        private Dictionary<string, int> _baseNameLimits;
+        private readonly List<SubItemSpawnHandle> _recycleBuffer = new List<SubItemSpawnHandle>(64);
 
         private MechanicContext _ctx;
         private ProcederalItemGenerator _generator;
+
+        private void Awake()
+        {
+            _activeHandlesByBaseName = new Dictionary<string, LinkedList<SubItemSpawnHandle>>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            _baseNameLimits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        }
 
         private void OnEnable()
         {
@@ -147,6 +170,7 @@ namespace Mechanics.Neuteral
                 cooldownSeconds = Mathf.Max(0f, rule.cooldownSeconds),
                 debugLogs = rule.debugLogs,
                 target = rule.target,
+                detachFromSpawner = rule.detachFromSpawner,
             };
         }
 
@@ -205,6 +229,7 @@ namespace Mechanics.Neuteral
                 cooldownSeconds = Mathf.Max(0f, spec.cooldownSeconds),
                 debugLogs = spec.debugLogs,
                 target = ParseTarget(spec.target),
+                detachFromSpawner = spec.detachFromSpawner,
             };
             if (spec.secondary != null && spec.secondary.Count > 0)
             {
@@ -384,9 +409,14 @@ namespace Mechanics.Neuteral
             int spawnAttempts = allowIntervals ? Mathf.Max(1, rule.spawnCount) : 1;
             int intervalLoops = allowIntervals ? -1 : Mathf.Max(1, rule.spawnCount);
 
+            string ruleBaseName = BuildRuleBaseName(rule);
+            int baseLimit = ResolveBaseNameLimit(ruleBaseName, ruleIndex);
+
             int spawnedCount = 0;
             for (int i = 0; i < spawnAttempts; i++)
             {
+                EnsureCapacityForBaseName(ruleBaseName, baseLimit, strictComparison: true);
+
                 var instruction = new ItemInstruction
                 {
                     primary = rule.primary,
@@ -408,18 +438,47 @@ namespace Mechanics.Neuteral
                 if (intervalLoops > -1)
                     ConfigureIntervalSpawners(spawned, intervalLoops);
 
-                if (spawned.transform.parent == transform)
-                    spawned.transform.SetParent(null, worldPositionStays: true);
-
-                spawned.transform.position = spawnAnchor;
-                var intervalSpawner =
-                    spawned.GetComponent<Game.Procederal.Api.GenericIntervalSpawner>();
-                if (intervalSpawner != null)
+                bool shouldDetach = rule.detachFromSpawner;
+                if (shouldDetach && spawned.transform.parent != null)
                 {
-                    intervalSpawner.owner = spawned.transform;
-                    intervalSpawner.parentSpawnedToSpawner = true;
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        spawned,
+                        worldPositionStays: true
+                    );
                 }
 
+                spawned.transform.position = spawnAnchor;
+                var intervalSpawners =
+                    spawned.GetComponentsInChildren<Game.Procederal.Api.GenericIntervalSpawner>(
+                        includeInactive: true
+                    );
+                int intervalSpawnerCount = intervalSpawners?.Length ?? 0;
+                if (intervalSpawnerCount > 0)
+                {
+                    for (int spawnerIdx = 0; spawnerIdx < intervalSpawners.Length; spawnerIdx++)
+                    {
+                        var intervalSpawner = intervalSpawners[spawnerIdx];
+                        if (intervalSpawner == null)
+                            continue;
+
+                        intervalSpawner.owner = spawned.transform;
+
+                        if (shouldDetach && intervalSpawner.parentSpawnedToSpawner)
+                            intervalSpawner.parentSpawnedToSpawner = false;
+                    }
+                }
+
+                if (_debugLogs || rule.debugLogs)
+                {
+                    string parentName =
+                        spawned.transform.parent != null ? spawned.transform.parent.name : "<none>";
+                    Debug.Log(
+                        $"[SubItemsOnCondition] Spawned '{spawned.name}' (rule={ruleIndex}) parent={parentName} shouldDetach={shouldDetach} intervalSpawners={intervalSpawnerCount}",
+                        spawned
+                    );
+                }
+
+                RegisterActivePayload(ruleIndex, spawned);
                 spawnedCount++;
             }
 
@@ -582,10 +641,360 @@ namespace Mechanics.Neuteral
             return false;
         }
 
+        private void EnsureRuleTrackerCapacity()
+        {
+            if (_activeRulePayloads.Count > _rules.Count)
+            {
+                _activeRulePayloads.RemoveRange(
+                    _rules.Count,
+                    _activeRulePayloads.Count - _rules.Count
+                );
+            }
+
+            while (_activeRulePayloads.Count < _rules.Count)
+            {
+                _activeRulePayloads.Add(new HashSet<SubItemSpawnHandle>());
+            }
+        }
+
+        private HashSet<SubItemSpawnHandle> GetRuleTracker(int ruleIndex)
+        {
+            EnsureRuleTrackerCapacity();
+            if (ruleIndex < 0 || ruleIndex >= _activeRulePayloads.Count)
+                return null;
+            return _activeRulePayloads[ruleIndex];
+        }
+
+        private void RegisterActivePayload(int ruleIndex, GameObject go)
+        {
+            if (go == null)
+                return;
+
+            var tracker = GetRuleTracker(ruleIndex);
+            if (tracker == null)
+                return;
+
+            var handle =
+                go.GetComponent<SubItemSpawnHandle>() ?? go.AddComponent<SubItemSpawnHandle>();
+            handle.Initialize(this, ruleIndex);
+            if (!tracker.Add(handle))
+                return;
+
+            TrackHandleByBaseName(handle, ruleIndex);
+            LogTrackedObjectSummary($"registered rule #{ruleIndex}");
+        }
+
+        private void HandleSpawnHandleReleased(int ruleIndex, SubItemSpawnHandle handle)
+        {
+            if (ruleIndex < 0 || handle == null)
+                return;
+
+            var tracker = GetRuleTracker(ruleIndex);
+            if (tracker != null)
+                tracker.Remove(handle);
+
+            UntrackHandleByBaseName(handle);
+            LogTrackedObjectSummary($"released rule #{ruleIndex}");
+        }
+
+        private void TrackHandleByBaseName(SubItemSpawnHandle handle, int ruleIndex)
+        {
+            if (handle == null || handle.gameObject == null)
+                return;
+
+            if (_activeHandlesByBaseName == null)
+                return;
+
+            string baseName = ExtractTrackedBaseName(handle.gameObject.name);
+            if (string.IsNullOrWhiteSpace(baseName))
+                return;
+
+            handle.BaseName = baseName;
+
+            if (!_activeHandlesByBaseName.TryGetValue(baseName, out var list))
+            {
+                list = new LinkedList<SubItemSpawnHandle>();
+                _activeHandlesByBaseName[baseName] = list;
+            }
+
+            handle.BaseNode = list.AddLast(handle);
+
+            int limit = ResolveBaseNameLimit(baseName, ruleIndex);
+            EnsureCapacityForBaseName(baseName, limit, strictComparison: false);
+        }
+
+        private int ResolveBaseNameLimit(string baseName, int ruleIndex)
+        {
+            if (string.IsNullOrWhiteSpace(baseName))
+                return 0;
+
+            if (
+                _baseNameLimits != null
+                && _baseNameLimits.TryGetValue(baseName, out var existing)
+                && existing > 0
+            )
+            {
+                return existing;
+            }
+
+            int limit = _maxActivePerBaseName > 0 ? _maxActivePerBaseName : 0;
+            if (limit <= 0 && _rules != null && ruleIndex >= 0 && ruleIndex < _rules.Count)
+            {
+                var rule = _rules[ruleIndex];
+                limit = Mathf.Max(1, rule?.spawnCount ?? 1);
+            }
+
+            if (limit <= 0)
+                limit = 1;
+
+            if (_baseNameLimits == null)
+                _baseNameLimits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            _baseNameLimits[baseName] = limit;
+            return limit;
+        }
+
+        private void UntrackHandleByBaseName(SubItemSpawnHandle handle)
+        {
+            if (handle == null || string.IsNullOrWhiteSpace(handle.BaseName))
+                return;
+
+            if (
+                _activeHandlesByBaseName != null
+                && _activeHandlesByBaseName.TryGetValue(handle.BaseName, out var list)
+            )
+            {
+                if (handle.BaseNode != null && handle.BaseNode.List == list)
+                    list.Remove(handle.BaseNode);
+                else
+                    list.Remove(handle);
+
+                if (list.Count == 0)
+                    _activeHandlesByBaseName.Remove(handle.BaseName);
+            }
+
+            handle.BaseName = null;
+            handle.BaseNode = null;
+        }
+
+        private void EnsureCapacityForBaseName(
+            string baseName,
+            int limit,
+            bool strictComparison = true
+        )
+        {
+            if (string.IsNullOrWhiteSpace(baseName) || limit <= 0)
+                return;
+
+            if (
+                _activeHandlesByBaseName == null
+                || !_activeHandlesByBaseName.TryGetValue(baseName, out var list)
+            )
+                return;
+
+            while (
+                (strictComparison && list.Count >= limit)
+                || (!strictComparison && list.Count > limit)
+            )
+            {
+                var oldest = list.First?.Value;
+                if (oldest == null)
+                {
+                    list.RemoveFirst();
+                    continue;
+                }
+
+                ForceRecycleHandle(oldest);
+            }
+        }
+
+        private void EnforceBaseNameLimit(string baseName)
+        {
+            if (string.IsNullOrWhiteSpace(baseName))
+                return;
+            int limit = ResolveBaseNameLimit(baseName, -1);
+            EnsureCapacityForBaseName(baseName, limit, strictComparison: true);
+        }
+
+        private void ForceRecycleHandle(SubItemSpawnHandle handle)
+        {
+            if (handle == null)
+                return;
+
+            var go = handle.gameObject;
+            if (go == null)
+                return;
+
+            handle.ResetForPool();
+            MechanicLifecycleUtility.Release(go);
+        }
+
+        private void LogTrackedObjectSummary(string context)
+        {
+            if (!_debugLogs)
+                return;
+
+            if (_activeHandlesByBaseName == null || _activeHandlesByBaseName.Count == 0)
+            {
+                Debug.Log($"[SubItemsOnCondition] Tracked objects: total=0 ({context})", this);
+                return;
+            }
+
+            int total = 0;
+            var sb = new StringBuilder();
+            sb.Append("[SubItemsOnCondition] Tracked objects: ");
+            bool first = true;
+            foreach (var kvp in _activeHandlesByBaseName)
+            {
+                int count = kvp.Value?.Count ?? 0;
+                total += count;
+                if (!first)
+                    sb.Append(", ");
+                sb.Append(kvp.Key);
+                sb.Append('=');
+                sb.Append(count);
+                if (_baseNameLimits != null && _baseNameLimits.TryGetValue(kvp.Key, out int max))
+                {
+                    sb.Append('/');
+                    sb.Append(Mathf.Max(1, max));
+                }
+                first = false;
+            }
+
+            sb.Append($" :: total={total} ({context})");
+            Debug.Log(sb.ToString(), this);
+        }
+
+        private static string StripInstanceSuffix(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return string.Empty;
+
+            int parenIndex = name.LastIndexOf(" (", StringComparison.Ordinal);
+            if (parenIndex > 0 && name.EndsWith(")", StringComparison.Ordinal))
+                name = name.Substring(0, parenIndex);
+
+            return name.Trim();
+        }
+
+        private static string BuildRuleBaseName(Rule rule)
+        {
+            if (rule == null)
+                return "generateditem";
+
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(rule.primary))
+                parts.Add(rule.primary);
+
+            if (rule.secondary != null && rule.secondary.Count > 0)
+            {
+                for (int i = 0; i < rule.secondary.Count; i++)
+                {
+                    var sec = rule.secondary[i];
+                    if (!string.IsNullOrWhiteSpace(sec))
+                        parts.Add(sec);
+                }
+            }
+
+            var sanitized = new List<string>();
+            for (int i = 0; i < parts.Count; i++)
+            {
+                string sanitizedPart = SanitizeMechanicPart(parts[i]);
+                if (!string.IsNullOrWhiteSpace(sanitizedPart))
+                    sanitized.Add(sanitizedPart);
+            }
+
+            if (sanitized.Count == 0)
+                sanitized.Add("generateditem");
+
+            return string.Join("_", sanitized);
+        }
+
+        private static string SanitizeMechanicPart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "item";
+
+            var sb = new StringBuilder(value.Length);
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+                else if (c == '-' || c == '_')
+                {
+                    sb.Append(c);
+                }
+                else if (char.IsWhiteSpace(c))
+                {
+                    sb.Append('_');
+                }
+            }
+
+            if (sb.Length == 0)
+                sb.Append("item");
+
+            return sb.ToString();
+        }
+
+        private static string ExtractTrackedBaseName(string rawName)
+        {
+            var trimmed = StripInstanceSuffix(rawName);
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return null;
+
+            int dashIndex = trimmed.IndexOf('-');
+            if (dashIndex <= 0)
+                return null;
+
+            var baseName = trimmed.Substring(0, dashIndex).Trim();
+            return string.IsNullOrWhiteSpace(baseName) ? null : baseName;
+        }
+
         private void ResetRuntimeStates()
         {
             _runtimeStates.Clear();
             _activeMobColliders.Clear();
+            ClearActivePayloads();
+            EnsureRuleTrackerCapacity();
+        }
+
+        private void ClearActivePayloads()
+        {
+            for (int i = 0; i < _activeRulePayloads.Count; i++)
+            {
+                _activeRulePayloads[i].Clear();
+            }
+
+            if (_activeHandlesByBaseName != null && _activeHandlesByBaseName.Count > 0)
+            {
+                _recycleBuffer.Clear();
+                foreach (var kvp in _activeHandlesByBaseName)
+                {
+                    var list = kvp.Value;
+                    if (list == null)
+                        continue;
+                    var node = list.First;
+                    while (node != null)
+                    {
+                        var next = node.Next;
+                        if (node.Value != null)
+                            _recycleBuffer.Add(node.Value);
+                        node = next;
+                    }
+                }
+
+                for (int i = 0; i < _recycleBuffer.Count; i++)
+                {
+                    ForceRecycleHandle(_recycleBuffer[i]);
+                }
+
+                _recycleBuffer.Clear();
+                _activeHandlesByBaseName.Clear();
+            }
+            _baseNameLimits?.Clear();
         }
 
         private static bool HasMobTag(Transform t)
@@ -648,6 +1057,52 @@ namespace Mechanics.Neuteral
 
             _generator = GetComponentInParent<ProcederalItemGenerator>();
             return _generator;
+        }
+
+        private sealed class SubItemSpawnHandle : MonoBehaviour, IPooledPayloadResettable
+        {
+            private SubItemsOnConditionMechanic _owner;
+            private int _ruleIndex = -1;
+            private bool _released;
+
+            internal string BaseName { get; set; }
+            internal LinkedListNode<SubItemSpawnHandle> BaseNode { get; set; }
+
+            public void Initialize(SubItemsOnConditionMechanic owner, int ruleIndex)
+            {
+                _owner = owner;
+                _ruleIndex = ruleIndex;
+                _released = false;
+                BaseName = null;
+                BaseNode = null;
+            }
+
+            public void ResetForPool()
+            {
+                Release();
+            }
+
+            private void OnDisable()
+            {
+                Release();
+            }
+
+            private void OnDestroy()
+            {
+                Release();
+            }
+
+            private void Release()
+            {
+                if (_released)
+                    return;
+                _released = true;
+                _owner?.HandleSpawnHandleReleased(_ruleIndex, this);
+                BaseName = null;
+                BaseNode = null;
+                _owner = null;
+                _ruleIndex = -1;
+            }
         }
     }
 }

@@ -126,7 +126,10 @@ namespace Game.Procederal.Core.Builders
             if (spec.InitializeMechanics)
             {
                 var owner = spec.OwnerOverride != null ? spec.OwnerOverride : gen.owner;
-                var target = spec.TargetOverride != null ? spec.TargetOverride : gen.target;
+                var target =
+                    spec.TargetOverride != null
+                        ? spec.TargetOverride
+                        : gen.ResolveTargetOrDefault();
                 gen.InitializeMechanics(child, owner, target);
             }
 

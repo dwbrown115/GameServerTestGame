@@ -287,7 +287,7 @@ namespace Game.Procederal.Api
                 }
             }
 
-            generator.InitializeMechanics(go, owner, generator.target);
+            generator.InitializeMechanics(go, owner, generator.ResolveTargetOrDefault());
 
             // Ensure child mechanics tick even if spawned after root registration
             var runner = GetComponent<MechanicRunner>();

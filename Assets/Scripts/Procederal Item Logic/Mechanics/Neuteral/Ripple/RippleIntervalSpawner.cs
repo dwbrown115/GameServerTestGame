@@ -187,7 +187,10 @@ namespace Game.Procederal.Api
                 }
                 else
                 {
-                    go.transform.SetParent(null, worldPositionStays: false);
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        go,
+                        worldPositionStays: false
+                    );
                     go.transform.position = spawnPos;
                     go.transform.localScale = Vector3.one;
                 }
@@ -224,7 +227,7 @@ namespace Game.Procederal.Api
                 {
                     generator.AddMechanicByName(go, spec.mechanicName, spec.settings);
                 }
-                generator.InitializeMechanics(go, owner, generator.target);
+                generator.InitializeMechanics(go, owner, generator.ResolveTargetOrDefault());
                 TrackSpawnedInstance(go);
 
                 if (runner != null)

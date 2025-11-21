@@ -327,7 +327,7 @@ namespace Game.Procederal.Core.Builders.Strategies
                     gen.InitializeMechanics(
                         child,
                         gen.owner != null ? gen.owner : gen.transform,
-                        gen.target
+                        gen.ResolveTargetOrDefault()
                     );
                 }
             }

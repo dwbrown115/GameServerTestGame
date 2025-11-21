@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,81 @@ namespace Mechanics.Neuteral
             "json",
         };
 
+        public const int DefaultListenerCount = 1;
+        public const float DefaultTriggerRadius = 0.75f;
+
+        public static Dictionary<string, object> CreateDefaultSettings()
+        {
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["listeners"] = DefaultListenerCount,
+                ["triggerRadius"] = DefaultTriggerRadius,
+                ["debugLogs"] = false,
+                ["logRuleEvaluations"] = false,
+                ["logRuleSkips"] = false,
+            };
+        }
+
+        public static Dictionary<string, object> CreateSettingsFromParameters(
+            ItemParams parameters,
+            bool includeRules = true,
+            bool generatorDebug = false
+        )
+        {
+            var dict = CreateDefaultSettings();
+            ApplyParameterOverrides(dict, parameters, includeRules, generatorDebug);
+            return dict;
+        }
+
+        public static void ApplyParameterOverrides(
+            Dictionary<string, object> settings,
+            ItemParams parameters,
+            bool includeRules = true,
+            bool generatorDebug = false
+        )
+        {
+            if (settings == null)
+                return;
+
+            int listeners =
+                parameters != null
+                    ? Mathf.Max(1, parameters.subItemsOnConditionListeners)
+                    : DefaultListenerCount;
+            settings["listeners"] = listeners;
+
+            float radius =
+                parameters != null
+                    ? Mathf.Max(0.05f, parameters.subItemsOnConditionTriggerRadius)
+                    : DefaultTriggerRadius;
+            settings["triggerRadius"] = radius;
+
+            bool debug = generatorDebug;
+            if (parameters != null)
+            {
+                debug = debug || parameters.debugLogs || parameters.subItemsOnConditionDebugLogs;
+            }
+            settings["debugLogs"] = debug;
+
+            settings["logRuleEvaluations"] =
+                parameters?.subItemsOnConditionLogRuleEvaluations ?? false;
+            settings["logRuleSkips"] = parameters?.subItemsOnConditionLogRuleSkips ?? false;
+
+            if (includeRules)
+            {
+                if (parameters?.spawnItemsOnConditions != null)
+                {
+                    if (parameters.spawnItemsOnConditions.Count > 0)
+                        settings["spawnItemsOnCondition"] = parameters.spawnItemsOnConditions;
+                    else
+                        settings.Remove("spawnItemsOnCondition");
+                }
+                else
+                {
+                    settings.Remove("spawnItemsOnCondition");
+                }
+            }
+        }
+
         public static void Apply(
             SubItemsOnConditionMechanic comp,
             IDictionary<string, object> settings
@@ -31,8 +107,25 @@ namespace Mechanics.Neuteral
                 return;
 
             var specs = ExtractSpecs(settings);
+            if (comp.debugLogs)
+            {
+                Debug.Log(
+                    $"[SubItemsOnCondition] Settings.Apply -> keys={settings.Count}, extractedRules={specs.Count}",
+                    comp
+                );
+            }
+
             if (specs.Count == 0)
+            {
+                if (comp.debugLogs)
+                {
+                    Debug.Log(
+                        "[SubItemsOnCondition] Settings.Apply -> No specs extracted; rules unchanged.",
+                        comp
+                    );
+                }
                 return;
+            }
 
             comp.ClearRules();
 
@@ -44,6 +137,13 @@ namespace Mechanics.Neuteral
                     continue;
                 comp.AddRule(rule);
                 wantDebug |= rule.debugLogs;
+                if (comp.debugLogs)
+                {
+                    Debug.Log(
+                        $"[SubItemsOnCondition] Settings.Apply -> Added rule primary={rule.primary}, condition={rule.condition}, spawnCount={rule.spawnCount}, secondary={rule.secondary?.Count ?? 0}",
+                        comp
+                    );
+                }
             }
 
             comp.debugLogs = wantDebug;

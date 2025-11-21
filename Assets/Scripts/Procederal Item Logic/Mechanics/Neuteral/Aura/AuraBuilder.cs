@@ -92,7 +92,12 @@ namespace Game.Procederal.Core.Builders
 
             var aura = UnifiedChildBuilder.BuildChild(gen, spec);
             if (shouldDetachChildren)
-                aura.transform.SetParent(null, worldPositionStays: true);
+            {
+                Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                    aura,
+                    worldPositionStays: true
+                );
+            }
             subItems.Add(aura);
         }
     }

@@ -110,6 +110,15 @@
     "attribute": "Neuteral"
   },
   {
+    "mechanicName": "SubItemsOnCondition",
+    "category": "Modifier",
+    "resourcePath": "Modifier/SubItemsOnCondition",
+    "file": "Modifier/SubItemsOnCondition.json",
+    "sourcePath": "Neuteral/SubItemsOnCondition/SubItemsOnCondition.json",
+    "hash": "",
+    "attribute": "Neuteral"
+  },
+  {
     "mechanicName": "Projectile",
     "category": "Primary",
     "resourcePath": "Primary/Projectile",

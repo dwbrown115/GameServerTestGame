@@ -54,7 +54,7 @@ namespace Game.Procederal.Core.Builders
             var set = root.AddComponent<WhipArcSet>();
             set.generator = gen;
             set.owner = ownerT;
-            set.target = gen.target;
+            set.target = gen.ResolveTargetOrDefault();
             set.debugLogs = p.debugLogs || gen.debugLogs;
 
             for (int i = 0; i < count; i++)
@@ -112,7 +112,12 @@ namespace Game.Procederal.Core.Builders
 
                 var whip = UnifiedChildBuilder.BuildChild(gen, spec);
                 if (shouldDetachChildren)
-                    whip.transform.SetParent(null, worldPositionStays: true);
+                {
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        whip,
+                        worldPositionStays: true
+                    );
+                }
                 subItems.Add(whip);
             }
 

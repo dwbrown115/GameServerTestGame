@@ -239,7 +239,12 @@ namespace Game.Procederal.Core.Builders
 
             var ripple = UnifiedChildBuilder.BuildChild(gen, spec);
             if (shouldDetachChildren)
-                ripple.transform.SetParent(null, worldPositionStays: true);
+            {
+                Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                    ripple,
+                    worldPositionStays: true
+                );
+            }
             subItems.Add(ripple);
         }
     }

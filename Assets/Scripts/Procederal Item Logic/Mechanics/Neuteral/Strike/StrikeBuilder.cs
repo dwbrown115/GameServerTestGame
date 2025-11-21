@@ -84,7 +84,12 @@ namespace Game.Procederal.Core.Builders
 
             var strike = UnifiedChildBuilder.BuildChild(gen, spec);
             if (shouldDetachChildren)
-                strike.transform.SetParent(null, worldPositionStays: true);
+            {
+                Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                    strike,
+                    worldPositionStays: true
+                );
+            }
             subItems.Add(strike);
         }
     }

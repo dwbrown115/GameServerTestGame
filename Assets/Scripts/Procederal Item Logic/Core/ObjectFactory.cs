@@ -182,6 +182,17 @@ namespace Game.Procederal.Core
 
         private void CleanupInstance(GameObject instance)
         {
+            // If this instance contains a PooledPayloadManifest, prefer non-destructive reset.
+            if (
+                instance.TryGetComponent<Game.Procederal.Core.PooledPayloadManifest>(
+                    out var manifest
+                )
+            )
+            {
+                manifest.ResetForPool();
+                return;
+            }
+
             var components = instance.GetComponents<Component>();
             for (int i = 0; i < components.Length; i++)
             {
@@ -206,10 +217,12 @@ namespace Game.Procederal.Core
                 var child = instance.transform.GetChild(i);
                 if (child == null)
                     continue;
+                var childGo = child.gameObject;
+                child.SetParent(null, false);
                 if (Application.isPlaying)
-                    UnityEngine.Object.Destroy(child.gameObject);
+                    UnityEngine.Object.Destroy(childGo);
                 else
-                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+                    UnityEngine.Object.DestroyImmediate(childGo);
             }
         }
 
@@ -409,6 +422,17 @@ namespace Game.Procederal.Core
 
         private void CleanupInstance(GameObject instance)
         {
+            // Prefer non-destructive reset when a manifest is present on the instance.
+            if (
+                instance.TryGetComponent<Game.Procederal.Core.PooledPayloadManifest>(
+                    out var manifest
+                )
+            )
+            {
+                manifest.ResetForPool();
+                return;
+            }
+
             // Schedule removal of components and children. They will be gone before the next acquire (end of frame).
             var components = instance.GetComponents<Component>();
             for (int i = 0; i < components.Length; i++)
@@ -445,6 +469,10 @@ namespace Game.Procederal.Core
         {
             if (instance == null)
                 return false;
+            // Hierarchies with a manifest are intentionally reusable; they preserve children/components.
+            if (instance.TryGetComponent<Game.Procederal.Core.PooledPayloadManifest>(out _))
+                return true;
+
             if (instance.transform.childCount > 0)
                 return false;
 

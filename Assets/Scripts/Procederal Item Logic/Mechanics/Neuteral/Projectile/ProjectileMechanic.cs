@@ -346,10 +346,10 @@ namespace Mechanics.Neuteral
                     {
                         if (debugLogs)
                             Debug.Log(
-                                "[ProjectileMechanic] Destroying payload on hit (destroyOnHit=true)",
+                                "[ProjectileMechanic] Releasing payload to pool on hit (destroyOnHit=true)",
                                 this
                             );
-                        MechanicLifecycleUtility.Release(_ctx.Payload.gameObject, immediate: false);
+                        MechanicLifecycleUtility.Release(_ctx.Payload.gameObject);
                     }
                     else if (debugLogs)
                     {

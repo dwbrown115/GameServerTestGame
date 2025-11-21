@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Procederal;
 using Game.Procederal.Core;
@@ -148,6 +149,8 @@ namespace Game.Procederal.Api
         private int _maxBurstLimit = -1;
         private readonly List<Transform> _trackedChildren = new();
         private readonly HashSet<Transform> _trackedChildSet = new();
+        private readonly Queue<GameObject> _pooledChildren = new();
+        private readonly HashSet<GameObject> _pooledChildSet = new();
         private Collider2D[] _ownerCollidersCache = System.Array.Empty<Collider2D>();
         private Transform _cachedOwnerForColliders;
         private bool _loggedOwnerCollisionIgnore;
@@ -273,14 +276,14 @@ namespace Game.Procederal.Api
             if (debugLogs)
                 LogAttachedChildCount("pre-burst child count");
 
-            int maxActiveChildren = spawnCount;
+            int activeChildLimit = enforceActiveChildLimit ? GetChildLimit() : int.MaxValue;
             int activeChildren = GetActiveChildCount();
-            if (activeChildren >= maxActiveChildren)
+            if (activeChildren >= activeChildLimit)
             {
                 if (debugLogs)
                 {
                     Debug.Log(
-                        $"[GenericIntervalSpawner] Active child limit {maxActiveChildren} already reached; skipping burst.",
+                        $"[GenericIntervalSpawner] Active child limit {activeChildLimit} already reached; skipping burst.",
                         this
                     );
                 }
@@ -313,7 +316,7 @@ namespace Game.Procederal.Api
                 }
                 if (!got)
                 {
-                    dir = Random.insideUnitCircle.normalized;
+                    dir = UnityEngine.Random.insideUnitCircle.normalized;
                     if (dir.sqrMagnitude < 0.001f)
                         dir = Vector2.right;
                     pos = center.position + (Vector3)(dir * Mathf.Max(0f, spawnRadius));
@@ -343,6 +346,18 @@ namespace Game.Procederal.Api
                     continue;
                 }
 
+                var settings = BuildPayloadSettings(dir);
+                var reused = TryReuseInactiveChild(pos, settings, runner);
+                if (reused != null)
+                {
+                    spawnedAny = true;
+                    if (debugLogs)
+                        LogAttachedChildCount($"post-reuse #{i + 1} child count");
+                    if (GetActiveChildCount() >= maxActiveChildren)
+                        break;
+                    continue;
+                }
+
                 var shell = new SpawnHelpers.PayloadShellOptions
                 {
                     parent = parentSpawnedToSpawner ? transform : null,
@@ -364,6 +379,9 @@ namespace Game.Procederal.Api
                     lifetimeSeconds = lifetime > 0f ? lifetime : 0f,
                 };
                 var go = SpawnHelpers.CreatePayloadShell($"{payloadMechanicName}_Spawned", shell);
+                bool reactivateAfterSetup = go != null && go.activeSelf;
+                if (reactivateAfterSetup)
+                    go.SetActive(false);
                 if (parentSpawnedToSpawner)
                 {
                     if (go.transform.parent != transform)
@@ -371,38 +389,10 @@ namespace Game.Procederal.Api
                 }
                 else
                 {
-                    go.transform.SetParent(null, worldPositionStays: true);
-                }
-
-                // Build payload settings for this instance (allow direction injection if requested via key)
-                var settings = new List<(string key, object val)>(_payloadSettings);
-                // If payload requested directionFromResolver, support either "vector2" or "degrees"
-                // We look for a placeholder key: "directionFromResolver" with string value
-                int idx = settings.FindIndex(kv =>
-                    string.Equals(
-                        kv.key,
-                        "directionFromResolver",
-                        System.StringComparison.OrdinalIgnoreCase
-                    )
-                );
-                if (idx >= 0)
-                {
-                    var mode = settings[idx].val as string;
-                    settings.RemoveAt(idx);
-                    if (string.Equals(mode, "vector2", System.StringComparison.OrdinalIgnoreCase))
-                        settings.Add(("direction", (Vector2)dir));
-                    else if (
-                        string.Equals(mode, "degrees", System.StringComparison.OrdinalIgnoreCase)
-                    )
-                    {
-                        float deg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                        settings.Add(
-                            (
-                                "direction",
-                                deg.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                            )
-                        );
-                    }
+                    Game.Procederal.ProcederalItemGenerator.DetachToWorld(
+                        go,
+                        worldPositionStays: true
+                    );
                 }
 
                 generator.AddMechanicByName(go, payloadMechanicName, settings.ToArray());
@@ -412,9 +402,19 @@ namespace Game.Procederal.Api
                 {
                     foreach (var spec in _modifierSpecs)
                         generator.AddMechanicByName(go, spec.mechanicName, spec.settings);
+                    ApplyModifierSettingsToExisting(go);
                 }
 
-                generator.InitializeMechanics(go, owner, generator.target);
+                generator.InitializeMechanics(go, owner, generator.ResolveTargetOrDefault());
+
+                if (!VerifyActivationGuards(go, out var guardFailure))
+                {
+                    HandleActivationGuardFailure(go, guardFailure, fromPool: false);
+                    continue;
+                }
+
+                if (reactivateAfterSetup)
+                    go.SetActive(true);
 
                 // Ensure payloads advertise their generator ownership so AutoDespawn and pooling work.
                 var handle = go.GetComponent<GeneratedObjectHandle>();
@@ -434,7 +434,7 @@ namespace Game.Procederal.Api
                 if (debugLogs)
                     LogAttachedChildCount($"post-spawn #{i + 1} child count");
 
-                if (GetActiveChildCount() >= maxActiveChildren)
+                if (enforceActiveChildLimit && GetActiveChildCount() >= activeChildLimit)
                     break;
             }
 
@@ -623,6 +623,290 @@ namespace Game.Procederal.Api
                     count++;
             }
             return count;
+        }
+
+        private List<(string key, object val)> BuildPayloadSettings(Vector2 dir)
+        {
+            var settings = new List<(string key, object val)>(_payloadSettings);
+            InjectDirectionFromResolver(settings, dir);
+            return settings;
+        }
+
+        private static void InjectDirectionFromResolver(
+            List<(string key, object val)> settings,
+            Vector2 dir
+        )
+        {
+            if (settings == null || settings.Count == 0)
+                return;
+
+            int idx = settings.FindIndex(kv =>
+                string.Equals(
+                    kv.key,
+                    "directionFromResolver",
+                    System.StringComparison.OrdinalIgnoreCase
+                )
+            );
+            if (idx < 0)
+                return;
+
+            var mode = settings[idx].val as string;
+            settings.RemoveAt(idx);
+            if (string.Equals(mode, "vector2", System.StringComparison.OrdinalIgnoreCase))
+            {
+                settings.Add(("direction", (Vector2)dir));
+                return;
+            }
+
+            if (string.Equals(mode, "degrees", System.StringComparison.OrdinalIgnoreCase))
+            {
+                float deg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                settings.Add(
+                    ("direction", deg.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                );
+            }
+        }
+
+        private GameObject TryReuseInactiveChild(
+            Vector3 position,
+            List<(string key, object val)> payloadSettings,
+            MechanicRunner runner
+        )
+        {
+            if (generator == null)
+                return null;
+
+            while (true)
+            {
+                var go = DequeuePooledChild();
+                if (go == null)
+                    return null;
+
+                generator.NotifyBorrowedPooledInstance(go);
+                PrepareReusedPayload(go, position);
+                ApplySettingsToExistingMechanics(go, payloadSettings, payloadMechanicName);
+                ApplyModifierSettingsToExisting(go);
+
+                generator.InitializeMechanics(go, owner, generator.ResolveTargetOrDefault());
+
+                if (!VerifyActivationGuards(go, out var guardFailure))
+                {
+                    HandleActivationGuardFailure(go, guardFailure, fromPool: true);
+                    continue;
+                }
+
+                go.SetActive(true);
+
+                if (ignoreCollisionsWithOwner)
+                    IgnoreOwnerCollisions(go);
+
+                if (runner != null)
+                    runner.RegisterTree(go.transform);
+
+                TrackSpawnedChild(go);
+
+                if (debugLogs)
+                {
+                    Debug.Log($"[GenericIntervalSpawner] Reused pooled payload '{go.name}'.", this);
+                }
+
+                return go;
+            }
+        }
+
+        private GameObject DequeuePooledChild()
+        {
+            while (_pooledChildren.Count > 0)
+            {
+                var go = _pooledChildren.Dequeue();
+                if (go == null)
+                    continue;
+
+                _pooledChildSet.Remove(go);
+
+                if (!go.activeInHierarchy && !go.activeSelf)
+                    return go;
+            }
+
+            return null;
+        }
+
+        private void PrepareReusedPayload(GameObject go, Vector3 position)
+        {
+            if (go == null)
+                return;
+
+            if (parentSpawnedToSpawner)
+            {
+                if (go.transform.parent != transform)
+                    go.transform.SetParent(transform, worldPositionStays: true);
+            }
+            else
+            {
+                Game.Procederal.ProcederalItemGenerator.DetachToWorld(go, worldPositionStays: true);
+            }
+
+            go.transform.position = position;
+            go.transform.localScale = Vector3.one * Mathf.Max(0.0001f, spawnScale);
+            go.layer = owner != null ? owner.gameObject.layer : gameObject.layer;
+
+            var rb = go.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+            }
+
+            var resettables = go.GetComponents<IPooledPayloadResettable>();
+            if (resettables != null)
+            {
+                for (int i = 0; i < resettables.Length; i++)
+                {
+                    resettables[i]?.ResetForPool();
+                }
+            }
+        }
+
+        private void ApplySettingsToExistingMechanics(
+            GameObject go,
+            List<(string key, object val)> settings,
+            string mechanicName
+        )
+        {
+            if (go == null || generator == null || string.IsNullOrWhiteSpace(mechanicName))
+                return;
+            if (settings == null || settings.Count == 0)
+                return;
+
+            for (int i = 0; i < settings.Count; i++)
+            {
+                var kv = settings[i];
+                generator.SetExistingMechanicSetting(go, mechanicName, kv.key, kv.val);
+            }
+        }
+
+        private void ApplyModifierSettingsToExisting(GameObject go)
+        {
+            if (go == null || generator == null)
+                return;
+            if (_modifierSpecs.Count == 0)
+                return;
+
+            for (int i = 0; i < _modifierSpecs.Count; i++)
+            {
+                var spec = _modifierSpecs[i];
+                if (string.IsNullOrWhiteSpace(spec.mechanicName) || spec.settings == null)
+                    continue;
+
+                if (
+                    string.Equals(
+                        spec.mechanicName,
+                        "SubItemsOnCondition",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    var sub = go.GetComponent<SubItemsOnConditionMechanic>();
+                    if (sub != null)
+                    {
+                        var dict = BuildSettingsDictionary(spec.settings);
+                        bool enableDebug = ExtractBool(dict, "debugLogs");
+                        if (enableDebug)
+                            sub.debugLogs = true;
+                        SubItemsOnConditionMechanicSettings.Apply(sub, dict);
+                        continue;
+                    }
+                }
+
+                for (int k = 0; k < spec.settings.Length; k++)
+                {
+                    var kv = spec.settings[k];
+                    generator.SetExistingMechanicSetting(go, spec.mechanicName, kv.key, kv.val);
+                }
+            }
+        }
+
+        private static Dictionary<string, object> BuildSettingsDictionary(
+            (string key, object val)[] settings
+        )
+        {
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            if (settings == null || settings.Length == 0)
+                return dict;
+            for (int i = 0; i < settings.Length; i++)
+            {
+                var kv = settings[i];
+                if (string.IsNullOrWhiteSpace(kv.key))
+                    continue;
+                dict[kv.key] = kv.val;
+            }
+            return dict;
+        }
+
+        private static bool ExtractBool(Dictionary<string, object> dict, string key)
+        {
+            if (dict == null || string.IsNullOrWhiteSpace(key))
+                return false;
+            if (!dict.TryGetValue(key, out var raw) || raw == null)
+                return false;
+            switch (raw)
+            {
+                case bool b:
+                    return b;
+                case string s when bool.TryParse(s, out var parsed):
+                    return parsed;
+                case int i:
+                    return i != 0;
+                default:
+                    return false;
+            }
+        }
+
+        private bool VerifyActivationGuards(GameObject go, out string failure)
+        {
+            failure = null;
+            if (go == null)
+                return true;
+
+            var guards = go.GetComponents<IMechanicActivationGuard>();
+            if (guards == null || guards.Length == 0)
+                return true;
+
+            for (int i = 0; i < guards.Length; i++)
+            {
+                var guard = guards[i];
+                if (guard == null)
+                    continue;
+                if (!guard.IsMechanicReady(out var reason))
+                {
+                    failure = reason;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void HandleActivationGuardFailure(GameObject go, string reason, bool fromPool)
+        {
+            if (debugLogs)
+            {
+                Debug.LogWarning(
+                    $"[GenericIntervalSpawner] Activation blocked for '{go?.name ?? "<null>"}' (fromPool={fromPool}): {reason}",
+                    this
+                );
+            }
+
+            if (go == null)
+                return;
+
+            if (fromPool)
+            {
+                go.SetActive(false);
+                return;
+            }
+
+            Destroy(go);
         }
     }
 }

@@ -21,9 +21,16 @@ namespace Game.Procederal.Core.Builders
             if (gen == null || root == null)
                 return;
 
+            var defaults = SubItemsOnConditionMechanicSettings.CreateDefaultSettings();
             var merged = Game.Procederal.ProcederalItemGenerator.CreateEffectiveSettings(
-                gen.LoadAndMergeJsonSettings("SubItemsOnCondition"),
+                defaults,
                 gen.CollectSecondarySettings(instruction)
+            );
+            SubItemsOnConditionMechanicSettings.ApplyParameterOverrides(
+                merged,
+                p,
+                includeRules: true,
+                generatorDebug: gen.debugLogs || gen.subItemsOnConditionDebugLogs
             );
 
             int fallbackCount = BuilderChildCountHelper.ResolveFallbackCount(p, gen, 1);
@@ -36,7 +43,11 @@ namespace Game.Procederal.Core.Builders
             );
             count = BuilderChildCountHelper.ResolveFinalCount(count, p, gen);
 
-            float triggerRadius = MechanicSettingNormalizer.Radius(merged, "triggerRadius", 0.75f);
+            float triggerRadius = MechanicSettingNormalizer.Radius(
+                merged,
+                "triggerRadius",
+                SubItemsOnConditionMechanicSettings.DefaultTriggerRadius
+            );
 
             var mechanicSettings = BuildMechanicSettings(merged, gen, p);
 
@@ -75,7 +86,10 @@ namespace Game.Procederal.Core.Builders
                             if (comp != null)
                             {
                                 comp.SetGenerator(gen);
-                                comp.debugLogs |= (p != null && p.debugLogs) || gen.debugLogs;
+                                comp.debugLogs |=
+                                    (p != null && (p.debugLogs || p.subItemsOnConditionDebugLogs))
+                                    || gen.debugLogs
+                                    || gen.subItemsOnConditionDebugLogs;
                                 if (
                                     p != null
                                     && p.spawnItemsOnConditions != null
@@ -109,18 +123,27 @@ namespace Game.Procederal.Core.Builders
         )
         {
             var list = new List<(string key, object val)>();
+            bool hasDebugSetting = false;
             if (merged != null)
             {
                 foreach (var kv in merged)
                 {
                     if (kv.Key == null)
                         continue;
+                    if (
+                        !hasDebugSetting
+                        && string.Equals(kv.Key, "debugLogs", StringComparison.OrdinalIgnoreCase)
+                    )
+                        hasDebugSetting = true;
                     list.Add((kv.Key, kv.Value));
                 }
             }
 
-            bool debug = (p != null && p.debugLogs) || (gen != null && gen.debugLogs);
-            list.Add(("debugLogs", debug));
+            if (!hasDebugSetting)
+            {
+                bool debug = (p != null && p.debugLogs) || (gen != null && gen.debugLogs);
+                list.Add(("debugLogs", debug));
+            }
 
             return list.ToArray();
         }

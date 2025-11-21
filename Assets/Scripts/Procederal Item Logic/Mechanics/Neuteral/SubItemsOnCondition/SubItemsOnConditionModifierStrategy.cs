@@ -1,7 +1,6 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using Game.Procederal.Core.Builders.Modifiers;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Mechanics.Neuteral
@@ -20,8 +19,12 @@ namespace Mechanics.Neuteral
             Game.Procederal.ItemParams parameters
         )
         {
-            bool parameterDebug = parameters?.debugLogs ?? false;
-            bool generatorDebug = generator != null && generator.debugLogs;
+            bool parameterDebug =
+                (parameters?.debugLogs ?? false)
+                || (parameters?.subItemsOnConditionDebugLogs ?? false);
+            bool generatorDebug =
+                generator != null
+                && (generator.debugLogs || generator.subItemsOnConditionDebugLogs);
             bool wantDebug = parameterDebug || generatorDebug;
 
             if (generator == null)
@@ -53,43 +56,35 @@ namespace Mechanics.Neuteral
                 );
             }
 
-            var settings = new List<(string key, object val)>();
-            var overrideDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var settingsDict = SubItemsOnConditionMechanicSettings.CreateDefaultSettings();
+            SubItemsOnConditionMechanicSettings.ApplyParameterOverrides(
+                settingsDict,
+                parameters,
+                includeRules: true,
+                generatorDebug: generator.debugLogs || generator.subItemsOnConditionDebugLogs
+            );
 
-            if (parameters != null)
+            var settings = new List<(string key, object val)>(settingsDict.Count);
+            foreach (var kv in settingsDict)
+                settings.Add((kv.Key, kv.Value));
+
+            if (wantDebug)
             {
-                if (
-                    parameters.spawnItemsOnConditions != null
-                    && parameters.spawnItemsOnConditions.Count > 0
-                )
-                {
-                    string json = JsonConvert.SerializeObject(parameters.spawnItemsOnConditions);
-                    settings.Add(("spawnItemsOnCondition", json));
-
-                    if (wantDebug)
-                    {
-                        Debug.Log(
-                            $"[SubItemsOnConditionModifierStrategy] Serialized {parameters.spawnItemsOnConditions.Count} spawn rule(s) (payloadLength={json.Length}).",
-                            target
-                        );
-                    }
-                    overrideDict["spawnItemsOnCondition"] = json;
-                }
-                else if (wantDebug)
+                int ruleCount = parameters?.spawnItemsOnConditions?.Count ?? 0;
+                if (ruleCount > 0)
                 {
                     Debug.Log(
-                        "[SubItemsOnConditionModifierStrategy] ItemParams has no spawnItemsOnConditions entries; mechanic will rely on existing configuration.",
+                        $"[SubItemsOnConditionModifierStrategy] Prepared {ruleCount} spawn rule(s) for '{target.name}'.",
                         target
                     );
                 }
-
-                settings.Add(("debugLogs", parameters.debugLogs || generator.debugLogs));
-                overrideDict["debugLogs"] = parameters.debugLogs || generator.debugLogs;
-            }
-            else
-            {
-                settings.Add(("debugLogs", generator.debugLogs));
-                overrideDict["debugLogs"] = generator.debugLogs;
+                else
+                {
+                    Debug.Log(
+                        "[SubItemsOnConditionModifierStrategy] No spawnItemsOnConditions entries supplied; mechanic will rely on existing configuration.",
+                        target
+                    );
+                }
             }
 
             var added = generator.AddMechanicByName(
@@ -123,23 +118,10 @@ namespace Mechanics.Neuteral
             {
                 comp = target.AddComponent<SubItemsOnConditionMechanic>();
 
-                var baseSettings = generator.LoadAndMergeJsonSettings("SubItemsOnCondition");
-                var merged =
-                    baseSettings != null
-                        ? new Dictionary<string, object>(
-                            baseSettings,
-                            StringComparer.OrdinalIgnoreCase
-                        )
-                        : new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kv in overrideDict)
-                    merged[kv.Key] = kv.Value;
-
-                SubItemsOnConditionMechanicSettings.Apply(comp, merged);
-
                 if (wantDebug)
                 {
                     Debug.Log(
-                        $"[SubItemsOnConditionModifierStrategy] Applied {merged.Count} setting value(s) via fallback attachment to '{target.name}'.",
+                        $"[SubItemsOnConditionModifierStrategy] Fallback component added to '{target.name}'.",
                         comp
                     );
                 }
@@ -160,10 +142,21 @@ namespace Mechanics.Neuteral
             comp.SetGenerator(generator);
             comp.debugLogs |= wantDebug;
 
+            SubItemsOnConditionMechanicSettings.Apply(comp, settingsDict);
+
             if (wantDebug)
             {
+                int appliedRules = 0;
+                if (
+                    settingsDict.TryGetValue("spawnItemsOnCondition", out var rulesObj)
+                    && rulesObj is IList list
+                )
+                {
+                    appliedRules = list.Count;
+                }
+
                 Debug.Log(
-                    "[SubItemsOnConditionModifierStrategy] Component wiring complete; generator assigned and debugLogs enabled.",
+                    $"[SubItemsOnConditionModifierStrategy] Component wiring complete; generator assigned, debugLogs enabled, and {appliedRules} rule(s) applied.",
                     comp
                 );
             }
