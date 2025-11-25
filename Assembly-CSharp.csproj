@@ -96,6 +96,7 @@
     <Compile Include="Assets/Scripts/Procederal Item Logic/Api Scripts/GenericIntervalSpawner.cs" />
     <Compile Include="Assets/Scripts/Apis/PlayerApiClient.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/ProcederalItemGenerator.Builders.cs" />
+    <Compile Include="Assets/Scripts/Debug/FpsDisplay.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/Orbit/OrbitMechanicSettings.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Order/Lock/LockModifierStrategy.cs" />
     <Compile Include="Assets/Scripts/Procederal Item Logic/Mechanics/Neuteral/DamageZone/DamageZoneBuilder.cs" />
